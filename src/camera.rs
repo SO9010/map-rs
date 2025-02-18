@@ -1,4 +1,4 @@
-use bevy::{core_pipeline::bloom::Bloom, prelude::*, render::camera::CameraPlugin, window::PrimaryWindow};
+use bevy::{core_pipeline::bloom::Bloom, prelude::*, window::PrimaryWindow};
 use bevy_pancam::{DirectionKeys, PanCam, PanCamPlugin};
 use rstar::RTree;
 

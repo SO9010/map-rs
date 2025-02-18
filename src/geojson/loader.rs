@@ -1,6 +1,5 @@
 use std::{fs::File, io::BufReader};
 
-use bevy::prelude::*;
 use geojson::GeoJson;
 use serde::{Deserialize, Serialize};
 

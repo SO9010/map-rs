@@ -3,6 +3,7 @@ use std::io::{BufRead, BufReader, Read};
 use bevy::prelude::*;
 use geojson::{Geometry, Value};
 
+use crate::{geojson::get_data_from_string_osm, types::{MapBundle, MapFeature, SettingsOverlay}};
 
 fn build_overpass_query(bounds: Vec<WorldSpaceRect>, overpass_settings: &mut SettingsOverlay) -> String {
     let mut query = String::default();
