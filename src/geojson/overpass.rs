@@ -3,7 +3,7 @@ use std::io::{BufRead, BufReader, Read};
 use bevy::prelude::*;
 use geojson::{Geometry, Value};
 
-use crate::{geojson::get_data_from_string_osm, types::{MapBundle, MapFeature, SettingsOverlay}};
+use crate::{geojson::get_data_from_string_osm, types::{MapBundle, MapFeature, SettingsOverlay, WorldSpaceRect}};
 
 fn build_overpass_query(bounds: Vec<WorldSpaceRect>, overpass_settings: &mut SettingsOverlay) -> String {
     let mut query = String::default();
@@ -19,13 +19,13 @@ fn build_overpass_query(bounds: Vec<WorldSpaceRect>, overpass_settings: &mut Set
                 (
                 way["{}"]({},{},{},{}); 
                 );
-                "#, category.to_lowercase(), bound.bottom, bound.right, bound.top, bound.left));
+                "#, category.to_lowercase(), bound.bottom_right.lat, bound.bottom_right.long, bound.top_left.lat, bound.top_left.long));
             } else {
                 query.push_str(&format!(r#"
                 (
                 way["{}"="{}"]({},{},{},{}); 
                 );
-                "#, category.to_lowercase(), key.to_lowercase(), bound.bottom, bound.right, bound.top, bound.left));
+                "#, category.to_lowercase(), key.to_lowercase(), bound.bottom_right.lat, bound.bottom_right.long, bound.top_left.lat, bound.top_left.long));
             }
         }
     }

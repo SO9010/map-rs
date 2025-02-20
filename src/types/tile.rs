@@ -1,5 +1,14 @@
-use std::{f64::consts::PI, ops::{AddAssign, DivAssign, MulAssign, SubAssign}};
 use bevy::math::Vec2;
+use std::{
+    f64::consts::PI,
+    ops::{AddAssign, DivAssign, MulAssign, SubAssign},
+};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct WorldSpaceRect {
+    pub top_left: Coord,
+    pub bottom_right: Coord,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Coord {
@@ -9,10 +18,7 @@ pub struct Coord {
 
 impl Coord {
     pub const fn new(lat: f32, long: f32) -> Self {
-        Self {
-            lat,
-            long,
-        }
+        Self { lat, long }
     }
 
     pub fn to_tuple(&self) -> (f32, f32) {
@@ -25,12 +31,13 @@ impl Coord {
 
     pub fn to_tile_coords(&self, zoom: u32) -> Tile {
         let x = ((self.long + 180.0) / 360.0 * (2_i32.pow(zoom) as f32)).floor() as i32;
-        let y = ((1.0 - (self.lat.to_radians().tan() + 1.0 / self.lat.to_radians().cos()).ln() / std::f32::consts::PI) / 2.0 * (2_i32.pow(zoom) as f32)).floor() as i32;
-        Tile {
-            x,
-            y,
-            zoom
-        }
+        let y = ((1.0
+            - (self.lat.to_radians().tan() + 1.0 / self.lat.to_radians().cos()).ln()
+                / std::f32::consts::PI)
+            / 2.0
+            * (2_i32.pow(zoom) as f32))
+            .floor() as i32;
+        Tile { x, y, zoom }
     }
 
     pub fn to_mercator(&self) -> Vec2 {
@@ -41,23 +48,28 @@ impl Coord {
 
         Vec2::new(x as f32, y as f32)
     }
-    
+
     pub fn to_game_coords(&self, reference: Coord, zoom: u32, tile_quality: f64) -> Vec2 {
-        let mut ref_coords = Vec2 {x: 1., y: 1.};
+        let mut ref_coords = Vec2 { x: 1., y: 1. };
         if reference.lat != 0. && reference.long != 0. {
             ref_coords = reference.to_mercator();
         }
-        
+
         let meters_per_tile = 20037508.34 * 2.0 / (2.0_f64.powi(zoom as i32)); // At zoom level N
         let scale = (meters_per_tile / tile_quality) as f32;
 
         let x = self.long * 20037508.34 / 180.0;
-        let y = (self.lat.to_radians().tan() + 1.0 / self.lat.to_radians().cos()).ln() * 20037508.34 / std::f32::consts::PI;
+        let y = (self.lat.to_radians().tan() + 1.0 / self.lat.to_radians().cos()).ln()
+            * 20037508.34
+            / std::f32::consts::PI;
 
         let x_offset = (x - ref_coords.x) / scale;
         let y_offset = (y - ref_coords.y) / scale;
 
-        Vec2 {x: x_offset, y: y_offset}
+        Vec2 {
+            x: x_offset,
+            y: y_offset,
+        }
     }
 }
 
@@ -92,7 +104,9 @@ impl DivAssign for Coord {
 pub fn tile_to_coords(x: i32, y: i32, zoom: u32) -> Coord {
     let n = 2_i32.pow(zoom) as f32;
     let lon = x as f32 / n * 360.0 - 180.0;
-    let lat_rad = (std::f32::consts::PI * (1.0 - 2.0 * y as f32 / n)).sinh().atan();
+    let lat_rad = (std::f32::consts::PI * (1.0 - 2.0 * y as f32 / n))
+        .sinh()
+        .atan();
     let lat = lat_rad.to_degrees();
     Coord::new(lat, lon)
 }
@@ -105,11 +119,7 @@ pub struct Tile {
 
 impl Tile {
     pub const fn new(x: i32, y: i32, zoom: u32) -> Self {
-        Self {
-            x,
-            y,
-            zoom
-        }
+        Self { x, y, zoom }
     }
 
     pub fn to_vec2(&self) -> Vec2 {
@@ -119,12 +129,16 @@ impl Tile {
     pub fn to_lat_long(&self) -> Coord {
         let n = 2.0f64.powi(self.zoom as i32);
         let lon_deg = self.x as f64 / n * 360.0 - 180.0;
-        let lat_deg = (PI * (1.0 - 2.0 * self.y as f64  / n)).sinh().atan().to_degrees();
+        let lat_deg = (PI * (1.0 - 2.0 * self.y as f64 / n))
+            .sinh()
+            .atan()
+            .to_degrees();
         Coord::new(lat_deg as f32, normalize_longitude(lon_deg) as f32)
     }
 
     pub fn to_game_coords(&self, offset: Coord, zoom: u32, tile_quality: f64) -> Vec2 {
-        self.to_lat_long().to_game_coords(offset, zoom, tile_quality)
+        self.to_lat_long()
+            .to_game_coords(offset, zoom, tile_quality)
     }
 
     pub fn to_mercator(&self) -> Vec2 {
@@ -139,7 +153,7 @@ pub fn level_to_tile_width(level: u32) -> f32 {
 pub fn world_mercator_to_lat_lon(
     x_offset: f64,
     y_offset: f64,
-    reference: Coord, 
+    reference: Coord,
     zoom: u32,
     quality: f32,
 ) -> Coord {
@@ -153,14 +167,13 @@ pub fn world_mercator_to_lat_lon(
     // Apply offsets with corrected scale
     let global_x = refrence.x as f64 + (x_offset * scale);
     let global_y = refrence.y as f64 + (y_offset * scale);
- 
 
     // Inverse Mercator to convert back to lat/lon
     let lon = (global_x / 20037508.34) * 180.0;
     let lat = (global_y / 20037508.34 * 180.0).to_radians();
     let lat = 2.0 * lat.exp().atan() - std::f64::consts::FRAC_PI_2;
     let lat = lat.to_degrees();
-   
+
     Coord::new(lat as f32, normalize_longitude(lon) as f32)
 }
 
@@ -172,7 +185,7 @@ pub fn lat_lon_to_world_mercator_with_offset(
     quality: u32,
 ) -> (f64, f64) {
     // Convert reference point to Web Mercator
-    
+
     let refrence = reference.to_mercator();
 
     // Calculate meters per pixel (adjust for your tile setup)
@@ -181,7 +194,8 @@ pub fn lat_lon_to_world_mercator_with_offset(
 
     // Convert lat/lon to world mercator coordinates
     let x = lon * 20037508.34 / 180.0;
-    let y = (lat.to_radians().tan() + 1.0 / lat.to_radians().cos()).ln() * 20037508.34 / std::f64::consts::PI;
+    let y = (lat.to_radians().tan() + 1.0 / lat.to_radians().cos()).ln() * 20037508.34
+        / std::f64::consts::PI;
 
     // Apply offsets with corrected scale
     let x_offset = (x - refrence.x as f64) / scale;
