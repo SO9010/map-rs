@@ -1,4 +1,5 @@
 use bevy::math::Vec2;
+use serde::{Deserialize, Serialize};
 use std::{
     f64::consts::PI,
     ops::{AddAssign, DivAssign, MulAssign, SubAssign},
@@ -10,9 +11,11 @@ pub struct WorldSpaceRect {
     pub bottom_right: Coord,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize, Copy,)]
+#[serde(rename_all = "camelCase")]
 pub struct Coord {
     pub lat: f32,
+    #[serde(rename = "lon")]
     pub long: f32,
 }
 
@@ -48,6 +51,7 @@ impl Coord {
 
         Vec2::new(x as f32, y as f32)
     }
+    
 
     pub fn to_game_coords(&self, reference: Coord, zoom: u32, tile_quality: f64) -> Vec2 {
         let mut ref_coords = Vec2 { x: 1., y: 1. };

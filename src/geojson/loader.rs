@@ -3,7 +3,7 @@ use std::{fs::File, io::BufReader};
 use geojson::GeoJson;
 use serde::{Deserialize, Serialize};
 
-use crate::types::MapFeature;
+use crate::types::{Coord, MapFeature};
 
 /// Parses OSM data from a string and returns a vector of map features.
 pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn std::error::Error>> {
@@ -18,12 +18,10 @@ pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn s
             features.push(MapFeature {
                 id: way.id.to_string(),
                 properties: way.tags.unwrap_or_default(),
-                geometry: geo::Polygon::new(geo::LineString(geometry.into_iter().map(|p| geo::Coord { x: p.lat, y: p.lon }).collect()), vec![]),
+                geometry: geo::Polygon::new(geo::LineString(geometry.into_iter().map(|p| geo::Coord { x: p.lat as f64, y: p.long as f64 }).collect()), vec![]),
             });
         }
     }
-
-
     Ok(features)
 }
 
@@ -110,7 +108,7 @@ struct Section {
     #[serde(default)]
     pub nodes: Vec<i64>,
     #[serde(default)]
-    pub geometry: Vec<Geometry>,
+    pub geometry: Vec<Coord>,
 }
 
 
@@ -121,11 +119,4 @@ struct Bounds {
     pub minlon: f64,
     pub maxlat: f64,
     pub maxlon: f64,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Geometry {
-    pub lat: f64,
-    pub lon: f64,
 }

@@ -1,8 +1,9 @@
 use bevy::{core_pipeline::bloom::Bloom, prelude::*, window::PrimaryWindow};
 use bevy_pancam::{DirectionKeys, PanCam, PanCamPlugin};
+use bevy_prototype_lyon::{prelude::*, shapes};
 use rstar::RTree;
 
-use crate::{debug::DebugPlugin, tiles::{ChunkManager, Location, OfmTiles, TileMapPlugin, ZoomManager}, types::{world_mercator_to_lat_lon, Coord}, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
+use crate::{debug::DebugPlugin, tiles::{ChunkManager, Location, OfmTiles, TileMapPlugin, ZoomManager}, types::{world_mercator_to_lat_lon, Coord, MapBundle, SettingsOverlay}, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
 
 pub struct CameraSystemPlugin;
 
@@ -17,12 +18,14 @@ impl Plugin for CameraSystemPlugin {
             })
             // This is being allowed, as it can't get the managers and location
             .add_systems(Startup, setup_camera)
-            .add_systems(Update, handle_mouse);
+            .add_systems(Update, handle_mouse)
+            .add_systems(Update, camera_change);
     }
 }
 
 pub fn setup_camera(mut commands: Commands) {
     let starting = STARTING_DISPLACEMENT.to_game_coords(STARTING_LONG_LAT, 14, TILE_QUALITY.into());
+    
     commands.spawn((
         Camera2d,
         Camera {
@@ -100,6 +103,7 @@ pub fn handle_mouse(
     zoom_manager: Res<ZoomManager>,
     mut location_manager: ResMut<Location>,
     mut chunk_manager: ResMut<ChunkManager>,
+    mut map_bundle: ResMut<MapBundle>,
 ) {
     let (camera, camera_transform) = camera.single();
     if buttons.pressed(MouseButton::Left) {
@@ -112,17 +116,70 @@ pub fn handle_mouse(
             */
 
             let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-            info!("{:?}", world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size));
+            info!("{:?}", (world_pos, world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size)));
         }
     }   
     if buttons.pressed(MouseButton::Middle){
+        if zoom_manager.zoom_level > 16 {
+            map_bundle.get_more_data = true;
+        }
         chunk_manager.update = true;
     }
     if buttons.just_released(MouseButton::Middle) {
         let movement = camera_middle_to_lat_long(camera_transform, zoom_manager.zoom_level, zoom_manager.tile_size, chunk_manager.refrence_long_lat);
         if movement != location_manager.location {
             location_manager.location = movement;
+            if zoom_manager.zoom_level > 16 {
+                map_bundle.get_more_data = true;
+            }
+            map_bundle.respawn = true;
+            map_bundle.get_more_data = true;
             chunk_manager.update = true;
         }
     }
+}
+
+pub fn camera_change(
+    mut overpass_settings: ResMut<SettingsOverlay>,
+    zoom_manager: Res<ZoomManager>,
+    mut map_bundle: ResMut<MapBundle>,
+) {
+    if zoom_manager.is_changed() && zoom_manager.zoom_level > 16 {
+        if let Some(category) = overpass_settings.categories.get_mut("Building") {
+            if !category.disabled {
+                category.disabled = true;
+                map_bundle.respawn = true;
+                map_bundle.get_more_data = true;
+            }
+        }
+    } else if let Some(category) = overpass_settings.categories.get_mut("Building") {
+        if category.disabled {
+            category.disabled = false;
+            map_bundle.respawn = true;
+            map_bundle.get_more_data = true;
+        } 
+    }
+}
+
+fn setup_polygon(mut commands: Commands) {
+    // Define the points of the polygon
+    let points = vec![
+        Vec2::new(1624.456, 715871.7),
+        Vec2::new(2664.6226, 715171.94),
+    ];
+
+    // Create the polygon shape
+    let shape = shapes::Polygon {
+        points,
+        closed: true,
+    };
+
+    // Spawn the polygon entity
+    commands.spawn( (ShapeBundle {
+        path: GeometryBuilder::build_as(&shape),
+        transform: Transform::from_xyz(0.0, 0.0, 199.),
+        ..default()
+    },
+    Stroke::new(Srgba { red: 0.50, green: 0.500, blue: 0.500, alpha: 1.0 }, 1000_f32),
+    ));
 }

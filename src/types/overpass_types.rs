@@ -26,6 +26,12 @@ impl Category {
     }
 }
 
+impl Default for SettingsOverlay {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SettingsOverlay {
     pub fn new() -> Self {
         let mut overlay = SettingsOverlay {

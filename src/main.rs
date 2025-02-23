@@ -1,9 +1,11 @@
 use bevy::{
     prelude::*,
-    window::PrimaryWindow,
     winit::{UpdateMode, WinitSettings},
 };
-use camera::{handle_mouse, CameraSystemPlugin};
+use bevy_prototype_lyon::plugin::ShapePlugin;
+use camera::CameraSystemPlugin;
+use geojson::MapPlugin;
+use settings::SettingsPlugin;
 use types::Coord;
 
 pub mod camera;
@@ -11,6 +13,7 @@ pub mod debug;
 pub mod geojson;
 pub mod tiles;
 pub mod types;
+pub mod settings;
 
 pub const STARTING_LONG_LAT: Coord = Coord::new(0.011, 0.011);
 pub const STARTING_DISPLACEMENT: Coord = Coord::new(52.207_59, 0.186_745_48);
@@ -26,7 +29,7 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins(CameraSystemPlugin)
+        .add_plugins((CameraSystemPlugin, ShapePlugin))
         .insert_resource(WinitSettings {
             unfocused_mode: UpdateMode::Reactive {
                 wait: std::time::Duration::from_secs(1),
@@ -42,5 +45,7 @@ fn main() {
             blue: 0.1,
             alpha: 1.0,
         })))
+        .add_plugins(MapPlugin)
+        .add_plugins(SettingsPlugin)
         .run();
 }

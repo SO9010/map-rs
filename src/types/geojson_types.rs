@@ -16,8 +16,8 @@ impl MapFeature {
         let exterior = new_geo.exterior().clone();
         let mut new_points = Vec::new();
         for coord in exterior {
-            let point = Coord::new(coord.y as f32, coord.x as f32).to_game_coords(reference, zoom, tile_quality);
-            new_points.push(point);
+            let point = Coord::new(coord.x as f32, coord.y as f32).to_game_coords(reference, zoom, tile_quality);
+            new_points.push(Vec2::new(point.x, point.y));
         }
         new_points
     }
@@ -41,6 +41,7 @@ fn polygon_area(geometry: &Vec<Vec2>) -> f32 {
     area
 }
 
+#[derive(Resource, Clone, Debug)]
 pub struct MapBundle {
     /// A collection of map features, please put this in a spatial hashmap
     pub features: RTree<MapFeature>,
@@ -48,9 +49,14 @@ pub struct MapBundle {
 
     pub features_to_respawn: Vec<MapFeature>,
 
-    pub respawn_specific_features: bool,
     pub respawn: bool,
     pub get_more_data: bool,
+}
+
+impl Default for MapBundle {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl MapBundle {
@@ -59,7 +65,6 @@ impl MapBundle {
             features: RTree::new(),
             selected_features: Vec::new(),
             features_to_respawn: Vec::new(),
-            respawn_specific_features: false,
             respawn: false,
             get_more_data: false,
         }

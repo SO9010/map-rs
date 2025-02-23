@@ -25,7 +25,7 @@ impl Plugin for TileMapPlugin {
             .insert_resource(ZoomManager::default())
             .add_systems(Update, (spawn_chunks_around_camera, spawn_to_needed_chunks))
             .add_systems(Update, detect_zoom_level)
-            .add_systems(FixedUpdate, (despawn_outofrange_chunks, read_map_receiver));
+            .add_systems(FixedUpdate, (despawn_outofrange_chunks, read_tile_map_receiver));
     }
 }
 
@@ -67,6 +67,7 @@ impl Default for ChunkManager {
     }
 }
 
+/// This is the marker for the middle of the camera.
 #[derive(Resource, Debug, Clone, Copy, PartialEq)]
 pub struct Location {
     pub location: Coord,
@@ -235,7 +236,7 @@ fn spawn_chunks_around_camera(
     }
 }
 
-fn read_map_receiver(
+fn read_tile_map_receiver(
     map_receiver: Res<ChunkReceiver>,
     mut chunk_manager: ResMut<ChunkManager>,
 ) {
