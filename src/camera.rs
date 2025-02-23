@@ -1,6 +1,5 @@
 use bevy::{core_pipeline::bloom::Bloom, prelude::*, window::PrimaryWindow};
 use bevy_pancam::{DirectionKeys, PanCam, PanCamPlugin};
-use bevy_prototype_lyon::{prelude::*, shapes};
 use rstar::RTree;
 
 use crate::{debug::DebugPlugin, tiles::{ChunkManager, Location, OfmTiles, TileMapPlugin, ZoomManager}, types::{world_mercator_to_lat_lon, Coord, MapBundle, SettingsOverlay}, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
@@ -159,27 +158,4 @@ pub fn camera_change(
             map_bundle.get_more_data = true;
         } 
     }
-}
-
-fn setup_polygon(mut commands: Commands) {
-    // Define the points of the polygon
-    let points = vec![
-        Vec2::new(1624.456, 715871.7),
-        Vec2::new(2664.6226, 715171.94),
-    ];
-
-    // Create the polygon shape
-    let shape = shapes::Polygon {
-        points,
-        closed: true,
-    };
-
-    // Spawn the polygon entity
-    commands.spawn( (ShapeBundle {
-        path: GeometryBuilder::build_as(&shape),
-        transform: Transform::from_xyz(0.0, 0.0, 199.),
-        ..default()
-    },
-    Stroke::new(Srgba { red: 0.50, green: 0.500, blue: 0.500, alpha: 1.0 }, 1000_f32),
-    ));
 }

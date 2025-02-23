@@ -3,7 +3,6 @@ use std::io::{BufRead, BufReader, Read};
 use bevy::{prelude::*, utils::HashMap, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::{Path, ShapeBundle}, prelude::GeometryBuilder, shapes};
 use crossbeam_channel::{bounded, Receiver};
-use geojson::{Geometry, Value};
 use rstar::AABB;
 
 use crate::{camera::camera_space_to_lat_long_rect, geojson::get_data_from_string_osm, tiles::{ChunkManager, ZoomManager}, types::{Coord, MapBundle, MapFeature, SettingsOverlay, WorldSpaceRect}};
@@ -57,23 +56,6 @@ pub fn get_overpass_data<'a>(bounds: Vec<WorldSpaceRect>, map_bundle: &mut MapBu
     vec![]
 }
 
-fn match_geometry(geom: &Geometry) {
-    match geom.value {
-        Value::Polygon(_) => println!("Matched a Polygon"),
-        Value::MultiPolygon(_) => println!("Matched a MultiPolygon"),
-        Value::GeometryCollection(ref gc) => {
-            println!("Matched a GeometryCollection");
-            // !!! GeometryCollections contain other Geometry types, and can
-            // nest — we deal with this by recursively processing each geometry
-            for geometry in gc {
-                match_geometry(geometry)
-            }
-        }
-        // Point, LineString, and their Multi– counterparts
-        _ => println!("Matched some other geometry"),
-    }
-}
-
 fn send_overpass_query(query: String, map_bundle: &mut MapBundle,
 ) -> Vec<MapFeature> {
     if query.is_empty() {
@@ -85,7 +67,6 @@ fn send_overpass_query(query: String, map_bundle: &mut MapBundle,
     while status == 429 {
         if let Ok(response) = ureq::post(url).send_string(&query) {
             if response.status() == 200 {
-                status = 200;
                 let reader: BufReader<Box<dyn Read + Send + Sync>> = BufReader::new(response.into_reader());
             
                 let mut response_body = String::default();
@@ -175,11 +156,10 @@ pub fn respawn_overpass_map(
         }
         
         for feature in intersection_candidates {
-            let mut fill_color= Some(Srgba { red: 0.4, green: 0.400, blue: 0.400, alpha: 1.0 });
-            let mut stroke_color = Srgba { red: 0.50, green: 0.500, blue: 0.500, alpha: 1.0 };
+            let mut fill_color;
+            let mut stroke_color;
             let mut line_width = 1.0;
             let mut elevation = 10.0;
-            let closed = true;
             for ((cat, key), _) in &feature_groups {
                 if key != "*" && feature.properties.get(cat.to_lowercase()).map_or(false, |v| *v == *key.to_lowercase()) {
                     let color = overpass_settings.categories.get(cat).unwrap().items.get(key).unwrap().1;
@@ -195,7 +175,7 @@ pub fn respawn_overpass_map(
                             line_width = 5.5;
                         }
                         
-                        feature.properties.get("est_width").map_or((), |v| {
+                        let _ = feature.properties.get("est_width").map_or((), |_v| {
                             // line_width = v.as_str().unwrap().replace("\"", "").parse::<f64>().unwrap() as f64;
                         });
                     }
@@ -263,13 +243,13 @@ pub fn bbox_system(
 ) {
     if map_bundle.get_more_data {
         map_bundle.get_more_data = false;
-        let (camera, camera_transform) = query.single();
+        let (_camera, camera_transform) = query.single();
         let window = primary_window_query.single();
 
         if let Some(viewport) = camera_space_to_lat_long_rect(camera_transform, window, ortho_projection_query.single().clone(), zoom_manager.zoom_level, zoom_manager.tile_size, chunk_manager.refrence_long_lat) {
             // Here we need to go through the bounding boxes and check if we have already gotten this bounding box 
             let (tx, rx) = bounded::<Vec<MapFeature>>(10);
-            let tx_clone = tx.clone();
+            let _tx_clone = tx.clone();
             let mut map_bundle_clone = map_bundle.clone();
             let mut overpass_settings_clone = overpass_settings.clone();
             let converted_rect = WorldSpaceRect {

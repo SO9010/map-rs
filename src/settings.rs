@@ -19,9 +19,6 @@ impl Plugin for SettingsPlugin {
 #[derive(Default, Resource)]
 pub struct OccupiedScreenSpace {
     pub left: f32,
-    top: f32,
-    right: f32,
-    bottom: f32,
 }
 
 fn ui_example_system(
@@ -40,7 +37,7 @@ fn ui_example_system(
             ui.label("Layers");
 
             egui::ScrollArea::vertical().show(ui, |ui| {
-                let mut color = Color32::from_rgb(221, 221, 221);
+                let mut color;
                 
                 for (category_name, category) in &mut overpass_settings.categories {
                     if category.disabled {
