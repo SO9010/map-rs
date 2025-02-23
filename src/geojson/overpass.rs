@@ -51,7 +51,6 @@ pub fn get_overpass_data<'a>(bounds: Vec<WorldSpaceRect>, map_bundle: &mut MapBu
     if query != "ERR" {
         return send_overpass_query(query, map_bundle)
     } else {
-        info!("Error building query");
     }
     vec![]
 }
@@ -256,7 +255,6 @@ pub fn bbox_system(
                 top_left: Coord::new(viewport.max().x, viewport.max().y),
                 bottom_right: Coord::new(viewport.min().x, viewport.min().y),
             };
-            info!("{:?}", converted_rect);
             std::thread::spawn(move || {
                 //tx.send(get_map_data("green-belt.geojson").unwrap());
 
@@ -287,7 +285,7 @@ pub fn bbox_system(
 }
 
 pub fn read_overpass_receiver(
-    map_receiver: Option<Res<OverpassReceiver>>, // Use Option<Res<OverpassReceiver>> to handle missing resource
+    map_receiver: Option<Res<OverpassReceiver>>,
     mut map_bundle: ResMut<MapBundle>,
 ) {
     if let Some(map_receiver) = map_receiver {
