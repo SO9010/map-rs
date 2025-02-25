@@ -167,7 +167,7 @@ pub fn respawn_overpass_map(
                     if cat == "Highway" || cat == "Railway" {
                         fill_color = None;
                         line_width = 2.5;
-                        elevation = 0.;
+                        elevation = 10.;
 
                         // When zoomed out we should make the primary roads bigger, and the motorways even bigger.
                         if feature.properties.get("highway").map_or(false, |v| v == "residential" || v == "primary" || v == "secondary" || v == "tertiary") {
