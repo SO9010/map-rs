@@ -1,0 +1,85 @@
+
+use bevy::{prelude::*, utils::HashMap, window::PrimaryWindow};
+use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::{Path, ShapeBundle}, prelude::GeometryBuilder, shapes};
+use rstar::AABB;
+
+use crate::{camera::camera_space_to_lat_long_rect, tiles::{ChunkManager, ZoomManager}, types::{MapBundle, MapFeature, SettingsOverlay}};
+
+pub fn respawn_shapes(
+    mut commands: Commands,
+    shapes_query: Query<(Entity, &Path, &GlobalTransform, &MapFeature)>,
+    overpass_settings: Res<SettingsOverlay>,
+    mut map_bundle: ResMut<MapBundle>,
+    zoom_manager: Res<ZoomManager>,
+    chunk_manager: Res<ChunkManager>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    primary_window_query: Query<&Window, With<PrimaryWindow>>,
+    query: Query<&mut OrthographicProjection, With<Camera>>,
+) {
+    if map_bundle.respawn {
+        map_bundle.respawn = false;
+        for (entity, _, _, _) in shapes_query.iter() {
+            commands.entity(entity).despawn_recursive();
+        }
+
+        let mut batch_commands_closed: Vec<(ShapeBundle, Fill, Stroke, MapFeature)> = Vec::new();
+        let mut batch_commands_open: Vec<(ShapeBundle, Stroke, MapFeature)> = Vec::new();
+
+        // Determine the viewport bounds
+        let (_, camera_transform) = camera_query.single();
+        let viewport: geo::Rect<f32> = camera_space_to_lat_long_rect(camera_transform, primary_window_query.single(), query.single().clone(), zoom_manager.zoom_level, zoom_manager.tile_size, chunk_manager.refrence_long_lat).unwrap();
+
+        let viewport_aabb = AABB::from_corners(
+            [viewport.min().x as f64, viewport.min().y as f64],
+            [viewport.max().x as f64, viewport.max().y as f64],
+        );
+        
+        // let intersection_candidates = map_bundle.features.locate_in_envelope_intersecting(&viewport_aabb).collect::<Vec<_>>();
+        
+        for feature in map_bundle.features.iter().collect::<Vec<_>>() {
+            let mut fill_color= Some(Srgba { red: 1.5, green: 1.5, blue: 1.5, alpha: 1.0 });
+            let mut stroke_color = Srgba { red: 1.5, green: 1.5, blue: 1.5, alpha: 1.0 };
+            let mut line_width = 1.0;
+            let mut elevation = 10.0;
+
+            let mut points = feature.get_in_world_space(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
+
+            points.pop();                            
+
+            if let Some(fill) = fill_color {
+                let shape = shapes::Polygon {
+                    points: points.clone(),
+                    closed: true,
+                };
+                info!("Points: {:?}", feature.geometry);
+                batch_commands_closed.push((
+                    ShapeBundle {
+                        path: GeometryBuilder::build_as(&shape),
+                        transform: Transform::from_xyz(0.0, 0.0, elevation),
+                        ..default()
+                    },
+                    Fill::color(fill),
+                    Stroke::new(stroke_color, line_width as f32),
+                    feature.clone(),
+                ));
+            } else {
+                let shape = shapes::Polygon {
+                    points: points.clone(),
+                    closed: false,
+                };
+                batch_commands_open.push((
+                    ShapeBundle {
+                        path: GeometryBuilder::build_as(&shape),
+                        transform: Transform::from_xyz(0.0, 0.0, elevation),
+                        ..default()
+                    },
+                    Stroke::new(stroke_color, line_width as f32),
+                    feature.clone(),
+                ));
+            }         
+        }
+
+        commands.spawn_batch(batch_commands_closed);
+        commands.spawn_batch(batch_commands_open);
+    }
+}

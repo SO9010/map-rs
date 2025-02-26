@@ -1,5 +1,6 @@
 use std::{fs::File, io::BufReader};
 
+use bevy::log::info;
 use geojson::GeoJson;
 use serde::{Deserialize, Serialize};
 
@@ -43,7 +44,6 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
                 match geometry.value {
                     geojson::Value::Polygon(poly) => {
                         for ring in poly {
-                            
                             geo = geo::Polygon::new(geo::LineString(ring.into_iter().map(|p| geo::Coord { x: p[0], y: p[1] }).collect()), vec![]);
                         }
                     }
@@ -63,14 +63,14 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
                 features.push(MapFeature {
                     id: feature
                         .id
-                        .map_or_else(|| String::from("unknown"), |id| format!("{:?}", id)),
+                        .map_or_else(|| String::from(format!("{}_{:?}", file_path, feature.properties.clone().unwrap().get_key_value("entity"))), |id| format!("{:?}", id)),
                     properties: serde_json::Value::Object(feature.properties.unwrap_or_default()),
                     geometry: geo.clone(),
                 });
             }
         }
     }
-
+    info!("Loaded {} features from {}", features.len(), file_path);
     Ok(features)
 }
 

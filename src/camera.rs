@@ -125,34 +125,30 @@ pub fn handle_mouse(
         let movement = camera_middle_to_lat_long(camera_transform, zoom_manager.zoom_level, zoom_manager.tile_size, chunk_manager.refrence_long_lat);
         if movement != location_manager.location {
             location_manager.location = movement;
+
             if zoom_manager.zoom_level > 16 {
+                map_bundle.respawn = true;
                 map_bundle.get_more_data = true;
             }
-            map_bundle.respawn = true;
-            map_bundle.get_more_data = true;
+   
             chunk_manager.update = true;
         }
+    }
+
+    if buttons.just_released(MouseButton::Right) {
+        map_bundle.respawn = true;
+        map_bundle.get_green_data = true;
     }
 }
 
 pub fn camera_change(
-    mut overpass_settings: ResMut<SettingsOverlay>,
     zoom_manager: Res<ZoomManager>,
     mut map_bundle: ResMut<MapBundle>,
 ) {
-    if zoom_manager.is_changed() && zoom_manager.zoom_level > 16 {
-        if let Some(category) = overpass_settings.categories.get_mut("Building") {
-            if !category.disabled {
-                category.disabled = true;
-                map_bundle.respawn = true;
-                map_bundle.get_more_data = true;
-            }
-        }
-    } else if let Some(category) = overpass_settings.categories.get_mut("Building") {
-        if category.disabled {
-            category.disabled = false;
+    if zoom_manager.is_changed() {
+        if zoom_manager.zoom_level > 16 {
             map_bundle.respawn = true;
             map_bundle.get_more_data = true;
-        } 
+        }
     }
 }

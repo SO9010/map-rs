@@ -46,12 +46,12 @@ fn _polygon_area(geometry: &Vec<Vec2>) -> f32 {
 pub struct MapBundle {
     /// A collection of map features, please put this in a spatial hashmap
     pub features: RTree<MapFeature>,
-    pub selected_features: Vec<MapFeature>,
-
-    pub features_to_respawn: Vec<MapFeature>,
 
     pub respawn: bool,
     pub get_more_data: bool,
+
+    // TODO REMOVE THIS 
+    pub get_green_data: bool,
 }
 
 impl Default for MapBundle {
@@ -64,10 +64,11 @@ impl MapBundle {
     pub fn new() -> Self {
         Self {
             features: RTree::new(),
-            selected_features: Vec::new(),
-            features_to_respawn: Vec::new(),
             respawn: false,
             get_more_data: false,
+
+            // TODO REMOVE THIS 
+            get_green_data: false,
         }
     }
 }
