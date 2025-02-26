@@ -43,20 +43,65 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
 
                 match geometry.value {
                     geojson::Value::Polygon(poly) => {
-                        for ring in poly {
-                            geo = geo::Polygon::new(geo::LineString(ring.into_iter().map(|p| geo::Coord { x: p[0], y: p[1] }).collect()), vec![]);
+                        if !poly.is_empty() {
+                            // First ring is exterior
+                            let exterior = geo::LineString(
+                                poly[0].iter()
+                                   .map(|p| geo::Coord { x: p[1], y: p[0] })
+                                   .collect()
+                            );
+                            
+                            // Remaining rings are interiors (holes)
+                            let interiors: Vec<geo::LineString> = poly.iter()
+                                .skip(1) // Skip the exterior ring
+                                .map(|ring| {
+                                    geo::LineString(
+                                        ring.iter()
+                                           .map(|p| geo::Coord { x: p[1], y: p[0] })
+                                           .collect()
+                                    )
+                                })
+                                .collect();
+                                
+                            geo = geo::Polygon::new(exterior, interiors);
                         }
-                    }
-                    geojson::Value::LineString(line) => {
-                        geo = geo::Polygon::new(geo::LineString(line.into_iter().map(|p| geo::Coord { x: p[0], y: p[1] }).collect()), vec![]);
-                    }
+                    },
                     geojson::Value::MultiPolygon(multi_poly) => {
-                        for poly in multi_poly {
-                            for ring in poly {
-                                geo = geo::Polygon::new(geo::LineString(ring.into_iter().map(|p| geo::Coord { x: p[0], y: p[1] }).collect()), vec![]);
-                            }
+                        // For MultiPolygon, we'll just use the first polygon
+                        // A proper implementation would convert this to multiple features
+                        if !multi_poly.is_empty() && !multi_poly[0].is_empty() {
+                            let exterior = geo::LineString(
+                                multi_poly[0][0].iter()
+                                   .map(|p| geo::Coord { x: p[1], y: p[0] })
+                                   .collect()
+                            );
+                            
+                            // Process interior rings of the first polygon
+                            let interiors: Vec<geo::LineString> = multi_poly[0].iter()
+                                .skip(1) // Skip the exterior ring
+                                .map(|ring| {
+                                    geo::LineString(
+                                        ring.iter()
+                                           .map(|p| geo::Coord { x: p[1], y: p[0] })
+                                           .collect()
+                                    )
+                                })
+                                .collect();
+                                
+                            geo = geo::Polygon::new(exterior, interiors);
                         }
-                    }
+                    },
+                    geojson::Value::LineString(line) => {
+                        // LineString doesn't have interiors
+                        geo = geo::Polygon::new(
+                            geo::LineString(
+                                line.iter()
+                                   .map(|p| geo::Coord { x: p[1], y: p[0] })
+                                   .collect()
+                            ), 
+                            vec![]
+                        );
+                    },
                     _ => continue,
                 }
 

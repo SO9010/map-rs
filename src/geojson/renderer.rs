@@ -37,8 +37,8 @@ pub fn respawn_shapes(
         // let intersection_candidates = map_bundle.features.locate_in_envelope_intersecting(&viewport_aabb).collect::<Vec<_>>();
         
         for feature in map_bundle.features.iter().collect::<Vec<_>>() {
-            let mut fill_color= Some(Srgba { red: 1.5, green: 1.5, blue: 1.5, alpha: 1.0 });
-            let mut stroke_color = Srgba { red: 1.5, green: 1.5, blue: 1.5, alpha: 1.0 };
+            let mut fill_color= Some(Srgba { red: 0.5, green: 0.5, blue: 0.5, alpha: 0.25 });
+            let mut stroke_color = Srgba { red: 0.5, green: 0.5, blue: 0.5, alpha: 0.75 };
             let mut line_width = 1.0;
             let mut elevation = 10.0;
 
@@ -51,7 +51,7 @@ pub fn respawn_shapes(
                     points: points.clone(),
                     closed: true,
                 };
-                info!("Points: {:?}", feature.geometry);
+
                 batch_commands_closed.push((
                     ShapeBundle {
                         path: GeometryBuilder::build_as(&shape),

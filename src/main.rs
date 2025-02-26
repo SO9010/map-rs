@@ -16,7 +16,7 @@ pub mod types;
 pub mod settings;
 
 pub const STARTING_LONG_LAT: Coord = Coord::new(0.011, 0.011);
-pub const STARTING_DISPLACEMENT: Coord = Coord::new(52.207_59, 0.186_745_48);
+pub const STARTING_DISPLACEMENT: Coord = Coord::new(51.419033,  -2.492631);
 // This can be changed, it changes the size of each tile too.
 pub const TILE_QUALITY: i32 = 256;
 

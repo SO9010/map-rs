@@ -127,10 +127,10 @@ pub fn handle_mouse(
             location_manager.location = movement;
 
             if zoom_manager.zoom_level > 16 {
-                map_bundle.respawn = true;
                 map_bundle.get_more_data = true;
             }
    
+            map_bundle.respawn = true;
             chunk_manager.update = true;
         }
     }
@@ -147,8 +147,8 @@ pub fn camera_change(
 ) {
     if zoom_manager.is_changed() {
         if zoom_manager.zoom_level > 16 {
-            map_bundle.respawn = true;
             map_bundle.get_more_data = true;
         }
+        map_bundle.respawn = true;
     }
 }
