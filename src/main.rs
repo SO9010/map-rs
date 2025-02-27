@@ -5,6 +5,7 @@ use bevy::{
 use bevy_prototype_lyon::plugin::ShapePlugin;
 use camera::CameraSystemPlugin;
 use geojson::MapPlugin;
+use interaction::InteractionSystemPlugin;
 use settings::SettingsPlugin;
 use types::Coord;
 
@@ -14,9 +15,10 @@ pub mod geojson;
 pub mod tiles;
 pub mod types;
 pub mod settings;
+pub mod interaction;
 
 pub const STARTING_LONG_LAT: Coord = Coord::new(0.011, 0.011);
-pub const STARTING_DISPLACEMENT: Coord = Coord::new(51.419033,  -2.492631);
+pub const STARTING_DISPLACEMENT: Coord = Coord::new(52.1951, 0.1313);
 // This can be changed, it changes the size of each tile too.
 pub const TILE_QUALITY: i32 = 256;
 
@@ -29,7 +31,7 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins((CameraSystemPlugin, ShapePlugin))
+        .add_plugins((CameraSystemPlugin, InteractionSystemPlugin, ShapePlugin))
         .insert_resource(WinitSettings {
             unfocused_mode: UpdateMode::Reactive {
                 wait: std::time::Duration::from_secs(1),

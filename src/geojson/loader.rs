@@ -1,10 +1,14 @@
-use std::{fs::File, io::BufReader};
+use std::{fs::File, io::BufReader, path::PathBuf};
 
-use bevy::log::info;
+use bevy::{ecs::system::{Commands, ResMut}, log::info};
+use bevy_egui::egui::epaint::tessellator::Path;
+use crossbeam_channel::bounded;
 use geojson::GeoJson;
+use rstar::RTree;
 use serde::{Deserialize, Serialize};
+use crate::geojson::overpass::OverpassReceiver;
 
-use crate::types::{Coord, MapFeature};
+use crate::types::{Coord, MapBundle, MapFeature};
 
 /// Parses OSM data from a string and returns a vector of map features.
 pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn std::error::Error>> {
@@ -119,6 +123,14 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
     Ok(features)
 }
 
+pub fn get_file_data (
+    features: &mut RTree<MapFeature>,
+    file_path: &str,
+) {
+    for feature in get_map_data(file_path).unwrap() {
+        features.insert(feature);
+    }
+}
 
 // Overpass API, thanks to: https://transform.tools/json-to-rust-serde
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

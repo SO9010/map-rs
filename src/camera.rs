@@ -16,9 +16,7 @@ impl Plugin for CameraSystemPlugin {
                 tiles_to_render: Vec::new(),
             })
             // This is being allowed, as it can't get the managers and location
-            .add_systems(Startup, setup_camera)
-            .add_systems(Update, handle_mouse)
-            .add_systems(Update, camera_change);
+            .add_systems(Startup, setup_camera);
     }
 }
 
@@ -93,62 +91,4 @@ pub fn camera_middle_to_lat_long(
 ) -> Coord {
     let camera_translation = transform.translation();
     world_mercator_to_lat_lon(camera_translation.x.into(), camera_translation.y.into(), reference, zoom, quality)
-}
-
-pub fn handle_mouse(
-    buttons: Res<ButtonInput<MouseButton>>,
-    q_windows: Query<&Window, With<PrimaryWindow>>,
-    camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
-    zoom_manager: Res<ZoomManager>,
-    mut location_manager: ResMut<Location>,
-    mut chunk_manager: ResMut<ChunkManager>,
-    mut map_bundle: ResMut<MapBundle>,
-) {
-    let (camera, camera_transform) = camera.single();
-    if buttons.pressed(MouseButton::Left) {
-        if let Some(position) = q_windows.single().cursor_position() {
-            /*
-            let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-            let long_lat = world_mercator_to_lat_lon(world_pos.x as f64, world_pos.y as f64, chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
-            let closest_tile = long_lat.to_tile_coords(zoom_manager.zoom_level).to_lat_long();
-            info!("{:?}", closest_tile);
-            */
-
-            let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-            info!("{:?}", (world_pos, world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size)));
-        }
-    }   
-    if buttons.pressed(MouseButton::Middle){
-        chunk_manager.update = true;
-    }
-    if buttons.just_released(MouseButton::Middle) {
-        let movement = camera_middle_to_lat_long(camera_transform, zoom_manager.zoom_level, zoom_manager.tile_size, chunk_manager.refrence_long_lat);
-        if movement != location_manager.location {
-            location_manager.location = movement;
-
-            if zoom_manager.zoom_level > 16 {
-                map_bundle.get_more_data = true;
-            }
-   
-            map_bundle.respawn = true;
-            chunk_manager.update = true;
-        }
-    }
-
-    if buttons.just_released(MouseButton::Right) {
-        map_bundle.respawn = true;
-        map_bundle.get_green_data = true;
-    }
-}
-
-pub fn camera_change(
-    zoom_manager: Res<ZoomManager>,
-    mut map_bundle: ResMut<MapBundle>,
-) {
-    if zoom_manager.is_changed() {
-        if zoom_manager.zoom_level > 16 {
-            map_bundle.get_more_data = true;
-        }
-        map_bundle.respawn = true;
-    }
 }

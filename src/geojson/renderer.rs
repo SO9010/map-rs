@@ -8,7 +8,6 @@ use crate::{camera::camera_space_to_lat_long_rect, tiles::{ChunkManager, ZoomMan
 pub fn respawn_shapes(
     mut commands: Commands,
     shapes_query: Query<(Entity, &Path, &GlobalTransform, &MapFeature)>,
-    overpass_settings: Res<SettingsOverlay>,
     mut map_bundle: ResMut<MapBundle>,
     zoom_manager: Res<ZoomManager>,
     chunk_manager: Res<ChunkManager>,
@@ -37,8 +36,8 @@ pub fn respawn_shapes(
         // let intersection_candidates = map_bundle.features.locate_in_envelope_intersecting(&viewport_aabb).collect::<Vec<_>>();
         
         for feature in map_bundle.features.iter().collect::<Vec<_>>() {
-            let mut fill_color= Some(Srgba { red: 0.5, green: 0.5, blue: 0.5, alpha: 0.25 });
-            let mut stroke_color = Srgba { red: 0.5, green: 0.5, blue: 0.5, alpha: 0.75 };
+            let mut fill_color= Some(Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.5 });
+            let mut stroke_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.75 };
             let mut line_width = 1.0;
             let mut elevation = 10.0;
 

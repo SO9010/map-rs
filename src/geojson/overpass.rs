@@ -167,55 +167,19 @@ pub fn bbox_system(
 
 pub fn get_green_belt_data(
     mut commands: Commands,
-    query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
-    primary_window_query: Query<&Window, With<PrimaryWindow>>,
-    ortho_projection_query: Query<&mut OrthographicProjection, With<Camera>>,
     mut map_bundle: ResMut<MapBundle>,
-    overpass_settings: ResMut<SettingsOverlay>,
-    zoom_manager: Res<ZoomManager>,
-    chunk_manager: Res<ChunkManager>,
 ) {
     if map_bundle.get_green_data {
         map_bundle.get_green_data = false;
-        let (_camera, camera_transform) = query.single();
-        let window = primary_window_query.single();
 
-        if let Some(viewport) = camera_space_to_lat_long_rect(camera_transform, window, ortho_projection_query.single().clone(), zoom_manager.zoom_level, zoom_manager.tile_size, chunk_manager.refrence_long_lat) {
-            // Here we need to go through the bounding boxes and check if we have already gotten this bounding box 
-            let (tx, rx) = bounded::<Vec<MapFeature>>(10);
-            let _tx_clone = tx.clone();
-            let mut map_bundle_clone = map_bundle.clone();
-            let mut overpass_settings_clone = overpass_settings.clone();
-            let converted_rect = WorldSpaceRect {
-                top_left: Coord::new(viewport.max().x, viewport.max().y),
-                bottom_right: Coord::new(viewport.min().x, viewport.min().y),
-            };
-            std::thread::spawn(move || {
-                tx.send(get_map_data("assets/test/green-belt.geojson").unwrap());
+        let (tx, rx) = bounded::<Vec<MapFeature>>(10);
+        let _tx_clone = tx.clone();
+        std::thread::spawn(move || {
+            let _ = tx.send(get_map_data("assets/test/green-belt.geojson").unwrap());
+        });
 
-                // let _ = tx.send(get_overpass_data(vec![converted_rect], &mut map_bundle_clone, &mut overpass_settings_clone));
-            });
+        commands.insert_resource(OverpassReceiver(rx));
 
-            let shape = shapes::RoundedPolygon {
-                points: vec![
-                    Vec2::new(viewport.min().x, viewport.max().y),
-                    Vec2::new(viewport.max().x, viewport.max().y),
-                    Vec2::new(viewport.max().x, viewport.min().y),
-                    Vec2::new(viewport.min().x, viewport.min().y),
-                ],
-                radius: 25.0,
-                closed: true,
-            };
-            commands.spawn((ShapeBundle {
-                path: GeometryBuilder::build_as(&shape),
-                transform: Transform::from_xyz(0.0, 0.0, -0.1),
-                ..default()
-            },
-                Fill::color(Srgba {red: 0.071, green: 0.071, blue: 0.071, alpha: 1.0 })
-            ));
-            commands.insert_resource(OverpassReceiver(rx));
-
-        }
     }
 }
 
