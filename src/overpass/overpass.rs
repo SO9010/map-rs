@@ -4,7 +4,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
 use crossbeam_channel::{bounded, Receiver};
 
-use crate::{camera::camera_space_to_lat_long_rect, geojson::{get_data_from_string_osm, get_map_data}, tiles::{ChunkManager, ZoomManager}, types::{Coord, MapBundle, MapFeature, SettingsOverlay, WorldSpaceRect}};
+use crate::{camera::camera_space_to_lat_long_rect, geojson::get_data_from_string_osm, tiles::{ChunkManager, ZoomManager}, types::{Coord, MapBundle, MapFeature, SettingsOverlay, WorldSpaceRect}};
 
 pub struct OverpassPlugin;
 

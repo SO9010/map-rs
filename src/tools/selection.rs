@@ -2,7 +2,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use rstar::{RTree, RTreeObject, AABB};
 use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::{Path, ShapeBundle}, prelude::GeometryBuilder, shapes};
 
-use crate::{camera::camera_space_to_lat_long_rect, tiles::{ChunkManager, ZoomManager}, types::{world_mercator_to_lat_lon, Coord, MapBundle}};
+use crate::{tiles::{ChunkManager, ZoomManager}, types::{world_mercator_to_lat_lon, Coord}};
 
 pub struct SelectionPlugin;
 
@@ -24,7 +24,7 @@ impl SelectionSettings {
     pub fn default() -> Self {
         Self {
             selection_tool_type: SelectionType::CIRCLE,
-            selection_enabled: true,
+            selection_enabled: false,
         }
     }
 }
@@ -58,12 +58,8 @@ impl SelectionAreas {
         }
     }
     
-    pub fn add(&mut self, selection: Selection) {
+    fn add(&mut self, selection: Selection) {
         self.areas.insert(selection);
-    }
-    
-    pub fn query_region(&self, min: [f64; 2], max: [f64; 2]) -> Vec<&Selection> {
-        self.areas.locate_in_envelope_intersecting(&AABB::from_corners(min, max)).collect()
     }
 }
 
@@ -104,33 +100,6 @@ impl Selection {
             start: Some(start),
             end: Some(end),
             points: None,
-        }
-    }
-
-    fn default() -> Self {
-        Selection {
-            selection_type: SelectionType::NONE,
-            start: None,
-            end: None,
-            points: None,
-        }
-    }
-
-    pub fn new_circle(start: Coord, end: Coord) -> Self {
-        Self {
-            selection_type: SelectionType::CIRCLE,
-            start: Some(start),
-            end: Some(end),
-            points: None,
-        }
-    }
-
-    pub fn new_polygon(start: Coord, end: Coord, points: Vec<Coord>) -> Self {
-        Self {
-            selection_type: SelectionType::POLYGON,
-            start: Some(start),
-            end: Some(end),
-            points: Some(points),
         }
     }
 }
@@ -224,12 +193,8 @@ fn render_selection_box(
     mut commands: Commands,
     mut selections: ResMut<SelectionAreas>,
     selections_query: Query<(Entity, &Path, &GlobalTransform, &Selection)>,
-    mut map_bundle: ResMut<MapBundle>,
     zoom_manager: Res<ZoomManager>,
     chunk_manager: Res<ChunkManager>,
-    camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
-    primary_window_query: Query<&Window, With<PrimaryWindow>>,
-    query: Query<&mut OrthographicProjection, With<Camera>>,
 ) {
     if selections.respawn {
         selections.respawn = false;
@@ -239,15 +204,6 @@ fn render_selection_box(
 
         let mut batch_commands_closed: Vec<(ShapeBundle, Fill, Stroke, Selection)> = Vec::new();
 
-        // Determine the viewport bounds
-        let (_, camera_transform) = camera_query.single();
-        let viewport: geo::Rect<f32> = camera_space_to_lat_long_rect(camera_transform, primary_window_query.single(), query.single().clone(), zoom_manager.zoom_level, zoom_manager.tile_size, chunk_manager.refrence_long_lat).unwrap();
-
-        let viewport_aabb = AABB::from_corners(
-            [viewport.min().x as f64, viewport.min().y as f64],
-            [viewport.max().x as f64, viewport.max().y as f64],
-        );
-        
         let mut intersection_candidates = selections.areas.clone().into_iter().collect::<Vec<_>>();
         
         if selections.unfinished_selection.is_some() {

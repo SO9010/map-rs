@@ -1,6 +1,6 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::{camera::camera_middle_to_lat_long, geojson::get_file_data, tiles::{ChunkManager, Location, ZoomManager}, tools::SelectionAreas, types::{world_mercator_to_lat_lon, MapBundle}};
+use crate::{camera::camera_middle_to_lat_long, geojson::get_file_data, tiles::{ChunkManager, Location, ZoomManager}, tools::{Measure, SelectionAreas}, types::{world_mercator_to_lat_lon, MapBundle}};
 
 pub struct InteractionSystemPlugin;
 
@@ -31,8 +31,8 @@ fn handle_mouse(
             info!("{:?}", closest_tile);
             */
 
-            let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-            info!("{:?}", (world_pos, world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size)));
+            // let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
+            // info!("{:?}", (world_pos, world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size)));
         }
     }   
     if buttons.pressed(MouseButton::Middle){
@@ -47,14 +47,12 @@ fn handle_mouse(
                 map_bundle.get_more_data = true;
             }
    
-            map_bundle.respawn = true;
             chunk_manager.update = true;
         }
     }
 
     if buttons.just_released(MouseButton::Right) {
         map_bundle.respawn = true;
-        map_bundle.get_green_data = true;
     }
 }
 
@@ -62,6 +60,7 @@ fn camera_change(
     zoom_manager: Res<ZoomManager>,
     mut map_bundle: ResMut<MapBundle>,
     mut selections: ResMut<SelectionAreas>,
+    mut measure: ResMut<Measure>,
 ) {
     if zoom_manager.is_changed() {
         if zoom_manager.zoom_level > 16 {
@@ -69,6 +68,7 @@ fn camera_change(
         }
         map_bundle.respawn = true;
         selections.respawn = true;
+        measure.respawn = true;
     }
 }
 
