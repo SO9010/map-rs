@@ -108,7 +108,7 @@ fn detect_zoom_level(
                     camera.translation = location_manager.location.to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into()).extend(1.0);
                     
                     projection.scale = 1.0;
-                } else if projection.scale < 1. && projection.scale != 0. && zoom_manager.zoom_level < 19 {
+                } else if projection.scale < 1.0 && projection.scale != 0. && zoom_manager.zoom_level < 19 {
                     zoom_manager.last_zoom_level = zoom_manager.zoom_level;
                     zoom_manager.zoom_level += 1;
 

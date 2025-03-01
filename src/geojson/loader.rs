@@ -1,14 +1,11 @@
-use std::{fs::File, io::BufReader, path::PathBuf};
+use std::{fs::File, io::BufReader};
 
-use bevy::{ecs::system::{Commands, ResMut}, log::info};
-use bevy_egui::egui::epaint::tessellator::Path;
-use crossbeam_channel::bounded;
+use bevy::log::info;
 use geojson::GeoJson;
 use rstar::RTree;
 use serde::{Deserialize, Serialize};
-use crate::geojson::overpass::OverpassReceiver;
 
-use crate::types::{Coord, MapBundle, MapFeature};
+use crate::types::{Coord, MapFeature};
 
 /// Parses OSM data from a string and returns a vector of map features.
 pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn std::error::Error>> {
@@ -20,9 +17,11 @@ pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn s
         // Ensure geometry exists
         let geometry = way.geometry;
         if !geometry.is_empty() {
+            info!("{}", way.type_field);
             features.push(MapFeature {
                 id: way.id.to_string(),
                 properties: way.tags.unwrap_or_default(),
+                closed: way.type_field != "way",
                 geometry: geo::Polygon::new(geo::LineString(geometry.into_iter().map(|p| geo::Coord { x: p.lat as f64, y: p.long as f64 }).collect()), vec![]),
             });
         }
@@ -32,11 +31,9 @@ pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn s
 
 /// Parses OSM data from a string and returns a vector of map features. This takes in geojson data.
 pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::error::Error>> {
-    // Open and read the GeoJSON file
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
 
-    // Parse the GeoJSON
     let geojson = GeoJson::from_reader(reader)?;
 
     let mut features = Vec::new();
@@ -44,18 +41,16 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
     if let GeoJson::FeatureCollection(collection) = geojson {
         for feature in collection.features {
             if let Some(geometry) = feature.geometry {
-
+                let mut closed = true;
                 match geometry.value {
                     geojson::Value::Polygon(poly) => {
                         if !poly.is_empty() {
-                            // First ring is exterior
                             let exterior = geo::LineString(
                                 poly[0].iter()
                                    .map(|p| geo::Coord { x: p[1], y: p[0] })
                                    .collect()
                             );
                             
-                            // Remaining rings are interiors (holes)
                             let interiors: Vec<geo::LineString> = poly.iter()
                                 .skip(1) // Skip the exterior ring
                                 .map(|ring| {
@@ -66,13 +61,10 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
                                     )
                                 })
                                 .collect();
-                                
                             geo = geo::Polygon::new(exterior, interiors);
                         }
                     },
                     geojson::Value::MultiPolygon(multi_poly) => {
-                        // For MultiPolygon, we'll just use the first polygon
-                        // A proper implementation would convert this to multiple features
                         if !multi_poly.is_empty() && !multi_poly[0].is_empty() {
                             let exterior = geo::LineString(
                                 multi_poly[0][0].iter()
@@ -80,7 +72,6 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
                                    .collect()
                             );
                             
-                            // Process interior rings of the first polygon
                             let interiors: Vec<geo::LineString> = multi_poly[0].iter()
                                 .skip(1) // Skip the exterior ring
                                 .map(|ring| {
@@ -91,12 +82,11 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
                                     )
                                 })
                                 .collect();
-                                
                             geo = geo::Polygon::new(exterior, interiors);
                         }
                     },
                     geojson::Value::LineString(line) => {
-                        // LineString doesn't have interiors
+                        closed = false;
                         geo = geo::Polygon::new(
                             geo::LineString(
                                 line.iter()
@@ -114,6 +104,7 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
                         .id
                         .map_or_else(|| String::from(format!("{}_{:?}", file_path, feature.properties.clone().unwrap().get_key_value("entity"))), |id| format!("{:?}", id)),
                     properties: serde_json::Value::Object(feature.properties.unwrap_or_default()),
+                    closed,
                     geometry: geo.clone(),
                 });
             }

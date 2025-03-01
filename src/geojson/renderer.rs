@@ -1,10 +1,11 @@
 
-use bevy::{prelude::*, utils::HashMap, window::PrimaryWindow};
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::{Path, ShapeBundle}, prelude::GeometryBuilder, shapes};
 use rstar::AABB;
 
 use crate::{camera::camera_space_to_lat_long_rect, tiles::{ChunkManager, ZoomManager}, types::{MapBundle, MapFeature, SettingsOverlay}};
 
+// TODO: we need to make it so it only renders aproximations when we zoom
 pub fn respawn_shapes(
     mut commands: Commands,
     shapes_query: Query<(Entity, &Path, &GlobalTransform, &MapFeature)>,
@@ -33,19 +34,19 @@ pub fn respawn_shapes(
             [viewport.max().x as f64, viewport.max().y as f64],
         );
         
-        // let intersection_candidates = map_bundle.features.locate_in_envelope_intersecting(&viewport_aabb).collect::<Vec<_>>();
+        let intersection_candidates = map_bundle.features.locate_in_envelope_intersecting(&viewport_aabb).collect::<Vec<_>>();
         
-        for feature in map_bundle.features.iter().collect::<Vec<_>>() {
-            let mut fill_color= Some(Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.5 });
-            let mut stroke_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.75 };
-            let mut line_width = 1.0;
-            let mut elevation = 10.0;
+        for feature in intersection_candidates {
+            let fill_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.5 };
+            let stroke_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.75 };
+            let line_width = 1.5;
+            let elevation = 10.0;
 
             let mut points = feature.get_in_world_space(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
 
             points.pop();                            
 
-            if let Some(fill) = fill_color {
+            if feature.closed {
                 let shape = shapes::Polygon {
                     points: points.clone(),
                     closed: true,
@@ -57,7 +58,7 @@ pub fn respawn_shapes(
                         transform: Transform::from_xyz(0.0, 0.0, elevation),
                         ..default()
                     },
-                    Fill::color(fill),
+                    Fill::color(fill_color),
                     Stroke::new(stroke_color, line_width as f32),
                     feature.clone(),
                 ));
@@ -81,4 +82,8 @@ pub fn respawn_shapes(
         commands.spawn_batch(batch_commands_closed);
         commands.spawn_batch(batch_commands_open);
     }
+}
+
+pub fn despawn_shapes_with_id(
+) {
 }

@@ -8,6 +8,7 @@ use super::Coord;
 pub struct MapFeature {
     pub id: String,
     pub properties: serde_json::Value,
+    pub closed: bool,
     pub geometry: geo::Polygon,
 }
 impl MapFeature {
