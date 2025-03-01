@@ -212,6 +212,10 @@ pub fn handle_selection(
                 }
                 selections.respawn = true;
             }
+            if buttons.pressed(MouseButton::Right) {
+                selections.unfinished_selection = None;
+                selections.respawn = true;
+            }
         }
     }
 }
