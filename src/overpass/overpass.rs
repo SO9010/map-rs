@@ -4,9 +4,17 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
 use crossbeam_channel::{bounded, Receiver};
 
-use crate::{camera::camera_space_to_lat_long_rect, geojson::get_data_from_string_osm, tiles::{ChunkManager, ZoomManager}, types::{Coord, MapBundle, MapFeature, SettingsOverlay, WorldSpaceRect}};
+use crate::{camera::camera_space_to_lat_long_rect, geojson::{get_data_from_string_osm, get_map_data}, tiles::{ChunkManager, ZoomManager}, types::{Coord, MapBundle, MapFeature, SettingsOverlay, WorldSpaceRect}};
 
-use super::get_map_data;
+pub struct OverpassPlugin;
+
+impl Plugin for OverpassPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(MapBundle::new())
+            .add_systems(Update, bbox_system)
+            .add_systems(FixedUpdate, read_overpass_receiver);
+    }
+}
 
 fn build_overpass_query(bounds: Vec<WorldSpaceRect>, overpass_settings: &mut SettingsOverlay) -> String {
     let mut query = String::default();
@@ -161,24 +169,6 @@ pub fn bbox_system(
             commands.insert_resource(OverpassReceiver(rx));
 
         }
-    }
-}
-
-pub fn get_green_belt_data(
-    mut commands: Commands,
-    mut map_bundle: ResMut<MapBundle>,
-) {
-    if map_bundle.get_green_data {
-        map_bundle.get_green_data = false;
-
-        let (tx, rx) = bounded::<Vec<MapFeature>>(10);
-        let _tx_clone = tx.clone();
-        std::thread::spawn(move || {
-            let _ = tx.send(get_map_data("assets/test/green-belt.geojson").unwrap());
-        });
-
-        commands.insert_resource(OverpassReceiver(rx));
-
     }
 }
 

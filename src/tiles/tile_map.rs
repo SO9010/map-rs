@@ -9,7 +9,6 @@ use crate::{types::{world_mercator_to_lat_lon, Coord}, STARTING_DISPLACEMENT, ST
 
 use super::{buffer_to_bevy_image, get_rasta_data};
 
-
 // For this example, don't choose too large a chunk size.
 const CHUNK_SIZE: UVec2 = UVec2 { x: 1, y: 1 };
 

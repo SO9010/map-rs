@@ -1,4 +1,3 @@
-
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::{Path, ShapeBundle}, prelude::GeometryBuilder, shapes};
 use rstar::AABB;
@@ -44,7 +43,7 @@ pub fn respawn_shapes(
 
             let mut points = feature.get_in_world_space(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
 
-            points.pop();                            
+            points.pop();
 
             if feature.closed {
                 let shape = shapes::Polygon {
@@ -76,7 +75,7 @@ pub fn respawn_shapes(
                     Stroke::new(stroke_color, line_width as f32),
                     feature.clone(),
                 ));
-            }         
+            }
         }
 
         commands.spawn_batch(batch_commands_closed);

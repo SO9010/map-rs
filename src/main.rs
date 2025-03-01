@@ -4,14 +4,18 @@ use bevy::{
 };
 use bevy_prototype_lyon::plugin::ShapePlugin;
 use camera::CameraSystemPlugin;
-use geojson::MapPlugin;
+use geojson::RenderPlugin;
 use interaction::InteractionSystemPlugin;
+use overpass::OverpassPlugin;
 use settings::SettingsPlugin;
+use tools::ToolsPlugin;
 use types::Coord;
 
 pub mod camera;
 pub mod debug;
 pub mod geojson;
+pub mod overpass;
+pub mod tools;
 pub mod tiles;
 pub mod types;
 pub mod settings;
@@ -48,7 +52,9 @@ fn main() {
             blue: 0.8,
             alpha: 1.0,
         })))
-        .add_plugins(MapPlugin)
+        .add_plugins(RenderPlugin)
+        .add_plugins(OverpassPlugin)
         .add_plugins(SettingsPlugin)
+        .add_plugins(ToolsPlugin)
         .run();
 }
