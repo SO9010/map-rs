@@ -1,6 +1,6 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::{camera::camera_middle_to_lat_long, geojson::get_file_data, tiles::{ChunkManager, Location, ZoomManager}, types::{world_mercator_to_lat_lon, MapBundle}};
+use crate::{camera::camera_middle_to_lat_long, geojson::get_file_data, tiles::{ChunkManager, Location, ZoomManager}, tools::SelectionAreas, types::{world_mercator_to_lat_lon, MapBundle}};
 
 pub struct InteractionSystemPlugin;
 
@@ -61,12 +61,14 @@ fn handle_mouse(
 fn camera_change(
     zoom_manager: Res<ZoomManager>,
     mut map_bundle: ResMut<MapBundle>,
+    mut selections: ResMut<SelectionAreas>,
 ) {
     if zoom_manager.is_changed() {
         if zoom_manager.zoom_level > 16 {
             map_bundle.get_more_data = true;
         }
         map_bundle.respawn = true;
+        selections.respawn = true;
     }
 }
 

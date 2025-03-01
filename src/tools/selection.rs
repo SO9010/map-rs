@@ -23,7 +23,7 @@ pub struct SelectionSettings {
 impl SelectionSettings {
     pub fn default() -> Self {
         Self {
-            selection_tool_type: SelectionType::RECTANGLE,
+            selection_tool_type: SelectionType::CIRCLE,
             selection_enabled: true,
         }
     }
@@ -46,7 +46,7 @@ pub enum SelectionType {
 pub struct SelectionAreas {
     areas: RTree<Selection>,
     unfinished_selection: Option<Selection>,
-    respawn: bool,
+    pub respawn: bool,
 }
 
 impl SelectionAreas {
@@ -186,7 +186,7 @@ pub fn handle_selection(
                 let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
 
                 let start = Coord::new(pos.lat as f32, pos.long as f32);
-                selections.unfinished_selection = Some(Selection::new(SelectionType::RECTANGLE, start, start));
+                selections.unfinished_selection = Some(Selection::new(selection_settings.selection_tool_type.clone(), start, start));
                 selections.respawn = true;
             }
             if buttons.pressed(MouseButton::Left) {
@@ -227,8 +227,7 @@ fn render_selection_box(
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
     query: Query<&mut OrthographicProjection, With<Camera>>,
 ) {
-    if map_bundle.respawn || selections.respawn {
-        map_bundle.respawn = false;
+    if selections.respawn {
         selections.respawn = false;
         for (entity, _, _, _) in selections_query.iter() {
             commands.entity(entity).despawn_recursive();
