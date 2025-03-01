@@ -14,14 +14,13 @@ pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn s
     let mut features = Vec::new();
 
     for way in response.elements {
-        // Ensure geometry exists
         let geometry = way.geometry;
         if !geometry.is_empty() {
-            info!("{}", way.type_field);
+            let tags = way.tags.unwrap_or_default();
             features.push(MapFeature {
                 id: way.id.to_string(),
-                properties: way.tags.unwrap_or_default(),
-                closed: way.type_field != "way",
+                properties: tags.clone(),
+                closed: !geometry.is_empty() && geometry.first() == geometry.last(),
                 geometry: geo::Polygon::new(geo::LineString(geometry.into_iter().map(|p| geo::Coord { x: p.lat as f64, y: p.long as f64 }).collect()), vec![]),
             });
         }
