@@ -101,7 +101,7 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
                 features.push(MapFeature {
                     id: feature
                         .id
-                        .map_or_else(|| String::from(format!("{}_{:?}", file_path, feature.properties.clone().unwrap().get_key_value("entity"))), |id| format!("{:?}", id)),
+                        .map_or_else(|| format!("{}_{:?}", file_path, feature.properties.clone().unwrap().get_key_value("entity")), |id| format!("{:?}", id)),
                     properties: serde_json::Value::Object(feature.properties.unwrap_or_default()),
                     closed,
                     geometry: geo.clone(),

@@ -3,7 +3,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::{Path, ShapeBundle}, prelude::GeometryBuilder, shapes};
 use rstar::AABB;
 
-use crate::{camera::camera_space_to_lat_long_rect, tiles::{ChunkManager, ZoomManager}, types::{MapBundle, MapFeature, SettingsOverlay}};
+use crate::{camera::camera_space_to_lat_long_rect, tiles::{ChunkManager, ZoomManager}, types::{MapBundle, MapFeature}};
 
 // TODO: we need to make it so it only renders aproximations when we zoom
 pub fn respawn_shapes(

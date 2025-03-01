@@ -1,8 +1,8 @@
-use bevy::{core_pipeline::bloom::Bloom, prelude::*, window::PrimaryWindow};
+use bevy::{core_pipeline::bloom::Bloom, prelude::*};
 use bevy_pancam::{DirectionKeys, PanCam, PanCamPlugin};
 use rstar::RTree;
 
-use crate::{debug::DebugPlugin, tiles::{ChunkManager, Location, OfmTiles, TileMapPlugin, ZoomManager}, types::{world_mercator_to_lat_lon, Coord, MapBundle, SettingsOverlay}, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
+use crate::{debug::DebugPlugin, tiles::{Location, OfmTiles, TileMapPlugin}, types::{world_mercator_to_lat_lon, Coord}, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
 
 pub struct CameraSystemPlugin;
 

@@ -53,8 +53,7 @@ pub fn get_overpass_data<'a>(bounds: Vec<WorldSpaceRect>, map_bundle: &mut MapBu
         let result = send_overpass_query(query, map_bundle);
         info!("Got {} features", result.len());
         return result;
-    } else {
-    }
+    } 
     vec![]
 }
 
