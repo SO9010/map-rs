@@ -41,6 +41,17 @@ pub enum SelectionType {
     CIRCLE,
 }
 
+impl SelectionType {
+    pub fn iterate(&mut self) {
+        match self {
+            SelectionType::NONE => *self = SelectionType::RECTANGLE,
+            SelectionType::RECTANGLE => *self = SelectionType::POLYGON,
+            SelectionType::POLYGON => *self = SelectionType::CIRCLE,
+            SelectionType::CIRCLE => *self = SelectionType::RECTANGLE,
+        }
+    }
+}
+
 // What we will want to do is have a ui for the selection points. We also want to be able to select it by clicking the edge then we can risize or annotate or change the things.
 #[derive(Resource)]
 pub struct SelectionAreas {
@@ -113,23 +124,27 @@ impl RTreeObject for Selection {
             SelectionType::RECTANGLE => AABB::from_corners([self.start.unwrap().long, self.start.unwrap().lat], [self.end.unwrap().long, self.end.unwrap().lat]),
             SelectionType::CIRCLE => AABB::from_corners([self.start.unwrap().long, self.start.unwrap().lat], [self.end.unwrap().long, self.end.unwrap().lat]),
             SelectionType::POLYGON => {
-                let mut min = [f64::MAX, f64::MAX];
-                let mut max = [f64::MIN, f64::MIN];
-                for point in self.points.as_ref().unwrap() {
-                    if point.long < min[0] as f32 {
-                        min[0] = point.long as f64 ;
+                /*
+                    let mut min = [f64::MAX, f64::MAX];
+                    let mut max = [f64::MIN, f64::MIN];
+                    for point in self.points.as_ref().unwrap() {
+                        if point.long < min[0] as f32 {
+                            min[0] = point.long as f64 ;
+                        }
+                        if point.lat < min[1] as f32 {
+                            min[1] = point.lat as f64;
+                        }
+                        if point.long > max[0] as f32 {
+                            max[0] = point.long as f64;
+                        }
+                        if point.lat > max[1] as f32 {
+                            max[1] = point.lat as f64;
+                        }
                     }
-                    if point.lat < min[1] as f32 {
-                        min[1] = point.lat as f64;
-                    }
-                    if point.long > max[0] as f32 {
-                        max[0] = point.long as f64;
-                    }
-                    if point.lat > max[1] as f32 {
-                        max[1] = point.lat as f64;
-                    }
-                }
-                return AABB::from_corners(min, max);
+                    return AABB::from_corners(min, max);
+                
+                */
+                AABB::from_corners([self.start.unwrap().long, self.start.unwrap().lat], [self.end.unwrap().long, self.end.unwrap().lat])
             },
             _ => AABB::from_corners([0.0, 0.0], [0.0, 0.0]),
         };

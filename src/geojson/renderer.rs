@@ -10,17 +10,19 @@ pub struct ShapeMarker;
 
 pub fn respawn_shapes(
     mut commands: Commands,
-    shapes_query: Query<(Entity, &Transform, &ShapeMarker)>,
+    shapes_query: Query<(Entity, &ShapeMarker)>,
     mut map_bundle: ResMut<MapBundle>,
     zoom_manager: Res<ZoomManager>,
     chunk_manager: Res<ChunkManager>,
     camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
     query: Query<&mut OrthographicProjection, With<Camera>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     if map_bundle.respawn {
         map_bundle.respawn = false;
-        for (entity, _, _) in shapes_query.iter() {
+        for (entity, _) in shapes_query.iter() {
             commands.entity(entity).despawn_recursive();
         }
 

@@ -93,7 +93,7 @@ fn render_pins(
             commands.entity(entity).despawn_recursive();
         }
 
-        let fill_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.5 };
+        let fill_color = Srgba { red: 0.5, green: 0.5, blue: 0., alpha: 0.5 };
         let width = 5.;
         let elevation = 10.0;
 

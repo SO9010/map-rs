@@ -31,6 +31,15 @@ impl Measure {
         }
         return new_points;
     }
+        
+    pub fn disable(&mut self) {
+        *self = Measure {
+            start: None,
+            end: None,
+            enabled: false,
+            respawn: true,
+        }
+    }
 }
 
 /// These implementations are for constructors.
@@ -80,6 +89,11 @@ pub fn handle_measure(
                 measure.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
                 measure.respawn = true;
             }
+            if buttons.pressed(MouseButton::Right) {
+                measure.start = None;
+                measure.end = None;
+                measure.respawn = true;
+            }
         }
     }
 }
@@ -89,7 +103,7 @@ pub struct MeasureMarker;
 
 fn render_measure(
     mut commands: Commands,
-    selections_query: Query<(Entity, &Transform, &MeasureMarker)>,
+    mut measure_query: Query<(Entity, &MeasureMarker)>,
     zoom_manager: Res<ZoomManager>,
     chunk_manager: Res<ChunkManager>,
     mut measure: ResMut<Measure>,
@@ -98,13 +112,13 @@ fn render_measure(
 ) {
     if measure.respawn {
         measure.respawn = false;
-        for (entity, _, _) in selections_query.iter() {
+        if let Ok((entity, _)) = measure_query.get_single_mut(){
             commands.entity(entity).despawn_recursive();
         }
 
-        let fill_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 1. };
-        let line_width = 5.;
-        let elevation = 10.0;
+        let fill_color = Srgba { red: 0.5, green: 0.5, blue: 0.5, alpha: 1. };
+        let line_width = 2.5;
+        let elevation = 1000.0;
 
         if measure.start.is_some() && measure.end.is_some() {
             let points: Vec<Vec2> = vec![
