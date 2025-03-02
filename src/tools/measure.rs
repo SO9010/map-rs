@@ -39,7 +39,7 @@ impl Measure {
         Measure {
             start: None,
             end: None,
-            enabled: true,
+            enabled: false,
             respawn: false,
         }
     }
@@ -85,24 +85,24 @@ pub fn handle_measure(
 }
 
 #[derive(Component)]
-pub struct MeasureText;
+pub struct MeasureMarker;
 
 fn render_measure(
     mut commands: Commands,
-    selections_query: Query<(Entity, &Path, &GlobalTransform, &Measure)>,
+    selections_query: Query<(Entity, &Transform, &MeasureMarker)>,
     zoom_manager: Res<ZoomManager>,
     chunk_manager: Res<ChunkManager>,
     mut measure: ResMut<Measure>,
-    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     if measure.respawn {
         measure.respawn = false;
-        for (entity, _, _, _) in selections_query.iter() {
+        for (entity, _, _) in selections_query.iter() {
             commands.entity(entity).despawn_recursive();
         }
 
-        let fill_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.5 };
-        let stroke_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.75 };
+        let fill_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 1. };
         let line_width = 5.;
         let elevation = 10.0;
 
@@ -111,21 +111,24 @@ fn render_measure(
                 measure.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into()),
                 measure.end.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into()),
             ];
-    
-            let shape = shapes::Polygon {
-                points: points.clone(),
-                closed: true,
-            };
-     
+            let direction = points[1] - points[0];
+            
+            let angle = direction.y.atan2(direction.x);
+            
+            let midpoint = Vec3::new(
+                (points[0].x + points[1].x) / 2.0,  // x midpoint
+                (points[0].y + points[1].y) / 2.0,  // y midpoint
+                elevation
+            );
+            
+            let length = points[0].distance(points[1]);
+            
             commands.spawn((
-                ShapeBundle {
-                    path: GeometryBuilder::build_as(&shape),
-                    transform: Transform::from_xyz(0.0, 0.0, elevation),
-                    ..default()
-                },
-                Fill::color(fill_color),
-                Stroke::new(stroke_color, line_width as f32),
-                measure.clone(),
+                Mesh2d(meshes.add(Rectangle::new(length, line_width))),
+                Transform::from_translation(midpoint)
+                    .with_rotation(Quat::from_rotation_z(angle)),
+                MeshMaterial2d(materials.add(Color::from(fill_color))),
+                MeasureMarker,
             ));
         }
     }

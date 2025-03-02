@@ -10,7 +10,7 @@ pub struct SettingsPlugin;
 impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(EguiPlugin)
-            //.add_systems(Update, ui_example_system.after(EguiPreUpdateSet::InitContexts)) // Ensure the system runs after EguiPreUpdateSet::InitContexts
+            // .add_systems(Update, ui_example_system.after(EguiPreUpdateSet::InitContexts)) // Ensure the system runs after EguiPreUpdateSet::InitContexts
             .init_resource::<OccupiedScreenSpace>()
             .insert_resource(SettingsOverlay::new());
     }

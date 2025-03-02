@@ -5,9 +5,12 @@ use rstar::AABB;
 use crate::{camera::camera_space_to_lat_long_rect, tiles::{ChunkManager, ZoomManager}, types::{MapBundle, MapFeature}};
 
 // TODO: we need to make it so it only renders aproximations when we zoom
+#[derive(Component)]
+pub struct ShapeMarker;
+
 pub fn respawn_shapes(
     mut commands: Commands,
-    shapes_query: Query<(Entity, &Path, &GlobalTransform, &MapFeature)>,
+    shapes_query: Query<(Entity, &Transform, &ShapeMarker)>,
     mut map_bundle: ResMut<MapBundle>,
     zoom_manager: Res<ZoomManager>,
     chunk_manager: Res<ChunkManager>,
@@ -17,13 +20,12 @@ pub fn respawn_shapes(
 ) {
     if map_bundle.respawn {
         map_bundle.respawn = false;
-        for (entity, _, _, _) in shapes_query.iter() {
+        for (entity, _, _) in shapes_query.iter() {
             commands.entity(entity).despawn_recursive();
         }
 
-        let mut batch_commands_closed: Vec<(ShapeBundle, Fill, Stroke, MapFeature)> = Vec::new();
-        let mut batch_commands_open: Vec<(ShapeBundle, Stroke, MapFeature)> = Vec::new();
-
+        let mut batch_commands_closed: Vec<(ShapeBundle, Fill, Stroke, ShapeMarker)> = Vec::new();
+        let mut batch_commands_open: Vec<(ShapeBundle, Stroke, ShapeMarker)> = Vec::new();
         // Determine the viewport bounds
         let (_, camera_transform) = camera_query.single();
         let viewport: geo::Rect<f32> = camera_space_to_lat_long_rect(camera_transform, primary_window_query.single(), query.single().clone(), zoom_manager.zoom_level, zoom_manager.tile_size, chunk_manager.refrence_long_lat).unwrap();
@@ -59,7 +61,7 @@ pub fn respawn_shapes(
                     },
                     Fill::color(fill_color),
                     Stroke::new(stroke_color, line_width as f32),
-                    feature.clone(),
+                    ShapeMarker,
                 ));
             } else {
                 let shape = shapes::Polygon {
@@ -73,7 +75,7 @@ pub fn respawn_shapes(
                         ..default()
                     },
                     Stroke::new(stroke_color, line_width as f32),
-                    feature.clone(),
+                    ShapeMarker,
                 ));
             }
         }

@@ -1,6 +1,6 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::{camera::camera_middle_to_lat_long, geojson::get_file_data, tiles::{ChunkManager, Location, ZoomManager}, tools::{Measure, SelectionAreas}, types::{world_mercator_to_lat_lon, MapBundle}};
+use crate::{camera::camera_middle_to_lat_long, geojson::get_file_data, tiles::{ChunkManager, Location, ZoomManager}, tools::{Measure, Pins, SelectionAreas}, types::{world_mercator_to_lat_lon, MapBundle}};
 
 pub struct InteractionSystemPlugin;
 
@@ -50,10 +50,6 @@ fn handle_mouse(
             chunk_manager.update = true;
         }
     }
-
-    if buttons.just_released(MouseButton::Right) {
-        map_bundle.respawn = true;
-    }
 }
 
 fn camera_change(
@@ -61,6 +57,7 @@ fn camera_change(
     mut map_bundle: ResMut<MapBundle>,
     mut selections: ResMut<SelectionAreas>,
     mut measure: ResMut<Measure>,
+    mut pins: ResMut<Pins>,
 ) {
     if zoom_manager.is_changed() {
         if zoom_manager.zoom_level > 16 {
@@ -68,7 +65,8 @@ fn camera_change(
         }
         map_bundle.respawn = true;
         selections.respawn = true;
-        measure.respawn = true;
+        measure.respawn = true;        
+        pins.respawn = true;
     }
 }
 

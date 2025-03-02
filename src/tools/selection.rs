@@ -1,4 +1,4 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{math::NormedVectorSpace, prelude::*, window::PrimaryWindow};
 use rstar::{RTree, RTreeObject, AABB};
 use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::{Path, ShapeBundle}, prelude::GeometryBuilder, shapes};
 
@@ -24,7 +24,7 @@ impl SelectionSettings {
     pub fn default() -> Self {
         Self {
             selection_tool_type: SelectionType::CIRCLE,
-            selection_enabled: false,
+            selection_enabled: true,
         }
     }
 }
@@ -189,20 +189,25 @@ pub fn handle_selection(
     }
 }
 
+#[derive(Component)]
+pub struct SelectionMarker;
+
 fn render_selection_box(
     mut commands: Commands,
     mut selections: ResMut<SelectionAreas>,
-    selections_query: Query<(Entity, &Path, &GlobalTransform, &Selection)>,
+    selections_query: Query<(Entity, &Transform, &SelectionMarker)>,
     zoom_manager: Res<ZoomManager>,
     chunk_manager: Res<ChunkManager>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     if selections.respawn {
         selections.respawn = false;
-        for (entity, _, _, _) in selections_query.iter() {
+        for (entity, _, _) in selections_query.iter() {
             commands.entity(entity).despawn_recursive();
         }
 
-        let mut batch_commands_closed: Vec<(ShapeBundle, Fill, Stroke, Selection)> = Vec::new();
+        let mut batch_commands_closed: Vec<(ShapeBundle, Fill, Stroke, SelectionMarker)> = Vec::new();
 
         let mut intersection_candidates = selections.areas.clone().into_iter().collect::<Vec<_>>();
         
@@ -219,30 +224,20 @@ fn render_selection_box(
             let points: Vec<Vec2> = feature.get_in_world_space(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
             match feature.selection_type {
                 SelectionType::RECTANGLE => {
-                    let shape: Vec<Vec2> = vec![
-                        Vec2::new(points.iter().map(|p| p.x).fold(f32::INFINITY, f32::min), points.iter().map(|p| p.y).fold(f32::INFINITY, f32::min)),
-                        Vec2::new(points.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max), points.iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max)),
-                    ];
-                    let shape: Vec<Vec2> = vec![
-                        Vec2::new(shape[0].x, shape[0].y),
-                        Vec2::new(shape[1].x, shape[0].y),
-                        Vec2::new(shape[1].x, shape[1].y),
-                        Vec2::new(shape[0].x, shape[1].y),
-                    ];
-
-                    let shape = shapes::Polygon {
-                        points: shape.clone(),
-                        closed: true,
-                    };
-                    batch_commands_closed.push((
-                        ShapeBundle {
-                            path: GeometryBuilder::build_as(&shape),
-                            transform: Transform::from_xyz(0.0, 0.0, elevation),
-                            ..default()
-                        },
-                        Fill::color(fill_color),
-                        Stroke::new(stroke_color, line_width as f32),
-                        feature.clone(),
+                    let midpoint = Vec3::new(
+                        (points[0].x + points[1].x) / 2.0,  // x midpoint
+                        (points[0].y + points[1].y) / 2.0,  // y midpoint
+                        elevation
+                    );
+                    
+                    let width = points[0].x.distance(points[1].x);
+                    let height = points[0].y.distance(points[1].y);
+                    
+                    commands.spawn((
+                        Mesh2d(meshes.add(Rectangle::new(width, height))),
+                        Transform::from_translation(midpoint),
+                        MeshMaterial2d(materials.add(Color::from(fill_color))),
+                        SelectionMarker,
                     ));
                 },
                 SelectionType::POLYGON => {
@@ -259,23 +254,17 @@ fn render_selection_box(
                         },
                         Fill::color(fill_color),
                         Stroke::new(stroke_color, line_width as f32),
-                        feature.clone(),
+                        SelectionMarker,
                     ));
                 },
                 SelectionType::CIRCLE => {
-                    let shape = shapes::Circle {
-                        radius: (points[0] - points[1]).length(),
-                        center: points[0],
-                    };
-                    batch_commands_closed.push((
-                        ShapeBundle {
-                            path: GeometryBuilder::build_as(&shape),
-                            transform: Transform::from_xyz(0.0, 0.0, elevation),
-                            ..default()
-                        },
-                        Fill::color(fill_color),
-                        Stroke::new(stroke_color, line_width as f32),
-                        feature.clone(),
+                    let radius = points[0].distance(points[1]);
+                    
+                    commands.spawn((
+                        Mesh2d(meshes.add(Circle::new(radius))),
+                        Transform::from_translation(points[0].extend(elevation)),
+                        MeshMaterial2d(materials.add(Color::from(fill_color))),
+                        SelectionMarker,
                     ));
                 },
                 _ => {},
