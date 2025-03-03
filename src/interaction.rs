@@ -1,6 +1,6 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::prelude::*;
 
-use crate::{camera::camera_middle_to_lat_long, geojson::get_file_data, tiles::{ChunkManager, Location, ZoomManager}, tools::{Measure, Pins, SelectionAreas}, types::{world_mercator_to_lat_lon, MapBundle}};
+use crate::{camera::camera_middle_to_lat_long, geojson::get_file_data, tiles::{ChunkManager, Location, ZoomManager}, tools::{Measure, Pins, SelectionAreas}, types::MapBundle};
 
 pub struct InteractionSystemPlugin;
 
@@ -14,27 +14,14 @@ impl Plugin for InteractionSystemPlugin {
 
 fn handle_mouse(
     buttons: Res<ButtonInput<MouseButton>>,
-    q_windows: Query<&Window, With<PrimaryWindow>>,
     camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
     zoom_manager: Res<ZoomManager>,
     mut location_manager: ResMut<Location>,
     mut chunk_manager: ResMut<ChunkManager>,
     mut map_bundle: ResMut<MapBundle>,
 ) {
-    let (camera, camera_transform) = camera.single();
-    if buttons.pressed(MouseButton::Left) {
-        if let Some(position) = q_windows.single().cursor_position() {
-            /*
-            let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-            let long_lat = world_mercator_to_lat_lon(world_pos.x as f64, world_pos.y as f64, chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
-            let closest_tile = long_lat.to_tile_coords(zoom_manager.zoom_level).to_lat_long();
-            info!("{:?}", closest_tile);
-            */
-
-            // let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-            // info!("{:?}", (world_pos, world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size)));
-        }
-    }   
+    let (_, camera_transform) = camera.single();
+   
     if buttons.pressed(MouseButton::Middle){
         chunk_manager.update = true;
     }

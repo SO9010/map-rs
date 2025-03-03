@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+#[allow(unused_imports)]
 use bevy_egui::{EguiContexts, EguiPlugin, EguiPreUpdateSet, egui::{self, color_picker::color_edit_button_srgba, Color32, RichText}};
 use bevy_prototype_lyon::entity::Path;
 
@@ -21,6 +22,7 @@ pub struct OccupiedScreenSpace {
     pub left: f32,
 }
 
+#[allow(dead_code)]
 fn ui_example_system(
     mut contexts: EguiContexts,
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,

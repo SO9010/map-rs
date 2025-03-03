@@ -1,4 +1,4 @@
-use bevy::{log::info, math::Vec2};
+use bevy::math::Vec2;
 use serde::{Deserialize, Serialize};
 use std::{
     f64::consts::PI,
@@ -84,9 +84,9 @@ impl Coord {
         let d = earth_radius_in_km * c;
         
         if d * 1000. > 999. {
-            return (d, DistanceType::Km)
+            (d, DistanceType::Km)
         } else {
-            return (d * 1000., DistanceType::M)
+            (d * 1000., DistanceType::M)
         }
     }
 

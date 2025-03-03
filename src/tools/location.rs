@@ -1,6 +1,4 @@
-// This will have the capability to place markers on the map. This should be able to be changed to selectors and circles. 
-use bevy::{asset::RenderAssetUsages, color::palettes::css::PURPLE, prelude::*, render::mesh::PrimitiveTopology, window::PrimaryWindow};
-use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::{Path, ShapeBundle}, prelude::GeometryBuilder, shapes};
+use bevy::{prelude::*, window::PrimaryWindow};
 use rstar::{RTree, RTreeObject, AABB};
 
 use crate::{tiles::{ChunkManager, ZoomManager}, types::{world_mercator_to_lat_lon, Coord}};
@@ -51,7 +49,7 @@ impl RTreeObject for Pin {
 
 impl Pin {
     pub fn get_in_world_space(&self, reference: Coord, zoom: u32, tile_quality: f64) -> Vec2 {
-        return self.location.to_game_coords(reference, zoom, tile_quality);
+        self.location.to_game_coords(reference, zoom, tile_quality)
     }
 }
 
@@ -93,7 +91,7 @@ fn render_pins(
             commands.entity(entity).despawn_recursive();
         }
 
-        let fill_color = Srgba { red: 0.5, green: 0.5, blue: 0., alpha: 0.5 };
+        let fill_color = Srgba { red: 0., green: 0., blue: 1., alpha: 0.75 };
         let width = 5.;
         let elevation = 10.0;
 
@@ -111,7 +109,7 @@ fn render_pins(
 }
 
 
-const PIN_ICON: [&str; 2] = [
+const _PIN_ICON: [&str; 2] = [
     "M12 2a8 8 0 0 0-2.565 15.572L12 21.992l2.565-4.42A8 8 0 0 0 12 2zm1.626 13.77-.391.11L12 18.008l-1.235-2.128-.391-.11a6 6 0 1 1 3.252 0z",
     "M12 7a3 3 0 1 0 3 3 3 3 0 0 0-3-3zm0 4a1 1 0 1 1 1-1 1 1 0 0 1-1 1z",
 ];

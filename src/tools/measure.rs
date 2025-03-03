@@ -1,5 +1,4 @@
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::{Path, ShapeBundle}, prelude::GeometryBuilder, shapes};
 
 use crate::{tiles::{ChunkManager, ZoomManager}, types::{world_mercator_to_lat_lon, Coord}};
 
@@ -29,7 +28,7 @@ impl Measure {
         if self.end.is_some() {
             new_points.push(self.end.unwrap().to_game_coords(reference, zoom, tile_quality));
         }
-        return new_points;
+        new_points
     }
         
     pub fn disable(&mut self) {
@@ -114,7 +113,7 @@ struct MeasureText;
 fn render_measure(
     mut commands: Commands,
     mut measure_query: Query<(Entity, &MeasureMarker)>,
-    mut text_query: Query<(Entity, &MeasureTextTranslation)>,
+    text_query: Query<(Entity, &MeasureTextTranslation)>,
     mut text_trans: Query<&mut Transform, (With<Text2d>, With<MeasureTextTranslation>)>,
     mut measure_length: Query<&mut TextSpan, With<MeasureText>>,
     zoom_manager: Res<ZoomManager>,
@@ -163,43 +162,41 @@ fn render_measure(
                     transform.rotation = Quat::from_rotation_z(angle);
                 };
             }
-        } else {
-            if measure.start.is_some() && measure.end.is_some() {
-                let points: Vec<Vec2> = vec![
-                    measure.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into()),
-                    measure.end.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into()),
-                ];
-                let direction = points[1] - points[0];
-                
-                let angle = direction.y.atan2(direction.x);
-                
-                let midpoint = Vec3::new(
-                    (points[0].x + points[1].x) / 2.0,  // x midpoint
-                    (points[0].y + points[1].y) / 2.0,  // y midpoint
-                    elevation
-                );
-                
-                let font = asset_server.load("fonts/BagnardSans.otf");
-                let text_font = TextFont {
-                    font: font.clone(),
-                    font_size: 15.0,
-                    ..default()
-                };
+        } else if measure.start.is_some() && measure.end.is_some() {
+            let points: Vec<Vec2> = vec![
+                measure.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into()),
+                measure.end.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into()),
+            ];
+            let direction = points[1] - points[0];
+            
+            let angle = direction.y.atan2(direction.x);
+            
+            let midpoint = Vec3::new(
+                (points[0].x + points[1].x) / 2.0,  // x midpoint
+                (points[0].y + points[1].y) / 2.0,  // y midpoint
+                elevation
+            );
+            
+            let font = asset_server.load("fonts/BagnardSans.otf");
+            let text_font = TextFont {
+                font: font.clone(),
+                font_size: 15.0,
+                ..default()
+            };
 
-                for mut span in &mut measure_length {
-                    **span = format!("{:.2} km", points[0].distance(points[1]) / 1000.0);
-                }
-                
-                commands.spawn((
-                    Text2d::new(""),
-                    text_font,
-                    Transform::from_translation(midpoint)
-                            .with_rotation(Quat::from_rotation_z(angle)),
-                    MeasureTextTranslation
-                )).with_child((TextSpan::default(),
-                    TextColor(Color::BLACK),
-                    MeasureText,));
+            for mut span in &mut measure_length {
+                **span = format!("{:.2} km", points[0].distance(points[1]) / 1000.0);
             }
+            
+            commands.spawn((
+                Text2d::new(""),
+                text_font,
+                Transform::from_translation(midpoint)
+                        .with_rotation(Quat::from_rotation_z(angle)),
+                MeasureTextTranslation
+            )).with_child((TextSpan::default(),
+                TextColor(Color::BLACK),
+                MeasureText,));
         }
 
         if measure.start.is_some() && measure.end.is_some() {

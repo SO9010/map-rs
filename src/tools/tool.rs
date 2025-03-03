@@ -1,5 +1,5 @@
-use bevy::{app::*, ecs::system::{Res, ResMut}, input::{keyboard::{KeyCode, KeyboardInput}, mouse::MouseButton, ButtonInput}};
-use super::{Measure, MeasurePlugin, PinPlugin, Pins, SelectionPlugin, SelectionSettings, SelectionType, ToolbarUiPlugin};
+use bevy::{app::*, ecs::system::{Res, ResMut}, input::{keyboard::KeyCode, ButtonInput}};
+use super::{Measure, MeasurePlugin, PinPlugin, Pins, SelectionPlugin, SelectionSettings, ToolbarUiPlugin};
 
 pub struct ToolsPlugin;
 

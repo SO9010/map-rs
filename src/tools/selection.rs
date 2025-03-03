@@ -1,6 +1,6 @@
 use bevy::{math::NormedVectorSpace, prelude::*, window::PrimaryWindow};
 use rstar::{RTree, RTreeObject, AABB};
-use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::{Path, ShapeBundle}, prelude::GeometryBuilder, shapes};
+use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
 
 use crate::{tiles::{ChunkManager, ZoomManager}, types::{world_mercator_to_lat_lon, Coord}};
 
@@ -60,6 +60,12 @@ pub struct SelectionAreas {
     pub respawn: bool,
 }
 
+impl Default for SelectionAreas {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SelectionAreas {
     pub fn new() -> Self {
         Self { 
@@ -89,7 +95,7 @@ impl Selection {
             for point in self.points.as_ref().unwrap() {
                 new_points.push(point.to_game_coords(reference, zoom, tile_quality));
             }
-            return new_points;
+            new_points
         } else {
             let mut new_points = Vec::new();
             if self.start.is_some() {
@@ -98,7 +104,7 @@ impl Selection {
             if self.end.is_some() {
                 new_points.push(self.end.unwrap().to_game_coords(reference, zoom, tile_quality));
             }
-            return new_points;
+            new_points
         }
     }
 }

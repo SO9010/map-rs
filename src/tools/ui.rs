@@ -1,8 +1,6 @@
 use bevy::prelude::*;
-use bevy_egui::{egui::{self, color_picker::color_edit_button_srgba, emath::GuiRounding, Button, Color32, RichText}, EguiContexts, EguiPlugin, EguiPreUpdateSet};
-use bevy_prototype_lyon::entity::Path;
+use bevy_egui::{egui::{self, Color32, RichText}, EguiContexts, EguiPreUpdateSet};
 
-use crate::types::{MapBundle, MapFeature, SettingsOverlay};
 
 use super::{Measure, Pins, SelectionSettings};
 

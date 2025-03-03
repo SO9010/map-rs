@@ -1,8 +1,8 @@
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::{Path, ShapeBundle}, prelude::GeometryBuilder, shapes};
+use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
 use rstar::AABB;
 
-use crate::{camera::camera_space_to_lat_long_rect, tiles::{ChunkManager, ZoomManager}, types::{MapBundle, MapFeature}};
+use crate::{camera::camera_space_to_lat_long_rect, tiles::{ChunkManager, ZoomManager}, types::MapBundle};
 
 // TODO: we need to make it so it only renders aproximations when we zoom
 #[derive(Component)]
@@ -17,8 +17,6 @@ pub fn respawn_shapes(
     camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
     query: Query<&mut OrthographicProjection, With<Camera>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     if map_bundle.respawn {
         map_bundle.respawn = false;
@@ -85,8 +83,4 @@ pub fn respawn_shapes(
         commands.spawn_batch(batch_commands_closed);
         commands.spawn_batch(batch_commands_open);
     }
-}
-
-pub fn despawn_shapes_with_id(
-) {
 }

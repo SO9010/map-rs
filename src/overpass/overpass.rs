@@ -50,7 +50,7 @@ fn build_overpass_query(bounds: Vec<WorldSpaceRect>, overpass_settings: &mut Set
     query
 }
 
-pub fn get_overpass_data<'a>(bounds: Vec<WorldSpaceRect>, map_bundle: &mut MapBundle, overpass_settings: &mut SettingsOverlay,
+pub fn get_overpass_data(bounds: Vec<WorldSpaceRect>, map_bundle: &mut MapBundle, overpass_settings: &mut SettingsOverlay,
 ) -> Vec<MapFeature>  {
     if bounds.is_empty() {
         return vec![];
