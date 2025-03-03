@@ -1,14 +1,31 @@
-use bevy::math::Vec2;
+use bevy::{log::info, math::Vec2};
 use serde::{Deserialize, Serialize};
 use std::{
     f64::consts::PI,
     ops::{AddAssign, DivAssign, MulAssign, SubAssign},
 };
 
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct WorldSpaceRect {
     pub top_left: Coord,
     pub bottom_right: Coord,
+}
+
+pub enum DistanceType {
+    Km,
+    M,
+    CM
+}
+
+impl std::fmt::Debug for DistanceType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DistanceType::Km => write!(f, "Km"),
+            DistanceType::M => write!(f, "M"),
+            DistanceType::CM => write!(f, "CM"),
+        }
+    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize, Copy,)]
@@ -52,6 +69,26 @@ impl Coord {
         Vec2::new(x as f32, y as f32)
     }
     
+    // https://stackoverflow.com/questions/639695/how-to-convert-latitude-or-longitude-to-meters
+    pub fn distance(&self, other: &Coord) -> (f64, DistanceType) {
+        let earth_radius_in_km = 6378.137;
+        let lat1 = self.lat as f64 * PI / 180.0;
+        let lat2 = other.lat as f64 * PI / 180.0;
+        let d_lat = lat2 - lat1;
+        let d_lon = (other.long - self.long) as f64 * PI / 180.0;
+        
+        let a = (d_lat/2.0).sin() * (d_lat/2.0).sin() + 
+                lat1.cos() * lat2.cos() * 
+                (d_lon/2.0).sin() * (d_lon/2.0).sin();
+        let c = 2.0 * ((a).sqrt().atan2((1.0-a).sqrt()));
+        let d = earth_radius_in_km * c;
+        
+        if d * 1000. > 999. {
+            return (d, DistanceType::Km)
+        } else {
+            return (d * 1000., DistanceType::M)
+        }
+    }
 
     pub fn to_game_coords(&self, reference: Coord, zoom: u32, tile_quality: f64) -> Vec2 {
         let mut ref_coords = Vec2 { x: 1., y: 1. };
