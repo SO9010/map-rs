@@ -145,8 +145,11 @@ fn render_measure(
                     ];
                     let direction = points[1] - points[0];
                     
-                    let angle = direction.y.atan2(direction.x);
-                    
+                    let mut  angle = direction.y.atan2(direction.x);
+                    if angle > 1.5 || angle < -1.6 {
+                        angle -= 3.14;
+                    }
+
                     let midpoint = Vec3::new(
                         (points[0].x + points[1].x) / 2.0,  // x midpoint
                         (points[0].y + points[1].y) / 2.0,  // y midpoint
@@ -169,8 +172,11 @@ fn render_measure(
             ];
             let direction = points[1] - points[0];
             
-            let angle = direction.y.atan2(direction.x);
-            
+            let mut  angle = direction.y.atan2(direction.x);
+            if angle > 1.5 || angle < -1.6 {
+                angle -= 3.14;
+            }
+
             let midpoint = Vec3::new(
                 (points[0].x + points[1].x) / 2.0,  // x midpoint
                 (points[0].y + points[1].y) / 2.0,  // y midpoint
@@ -207,7 +213,7 @@ fn render_measure(
             let direction = points[1] - points[0];
             
             let angle = direction.y.atan2(direction.x);
-            
+
             let midpoint = Vec3::new(
                 (points[0].x + points[1].x) / 2.0,  // x midpoint
                 (points[0].y + points[1].y) / 2.0,  // y midpoint
