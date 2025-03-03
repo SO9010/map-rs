@@ -126,7 +126,7 @@ fn render_measure(
     if measure.respawn {
         measure.respawn = false;
 
-        let fill_color = Srgba { red: 0.5, green: 0.5, blue: 0.5, alpha: 1. };
+        let fill_color = Srgba { red: 0.75, green: 0., blue: 0., alpha: 1. };
         let line_width = 2.5;
         let elevation = 1000.0;
         

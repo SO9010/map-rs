@@ -62,7 +62,8 @@ pub fn get_ofm_image(x: u64, y: u64, zoom: u64, tile_size: u32) -> Image {
 }
 
 pub fn get_rasta_data(x: u64, y: u64, zoom: u64) -> Vec<u8> {
-    send_image_tile_request(x, y, zoom, "https://tile.openstreetmap.org".to_string())
+    send_image_tile_request(x, y, zoom, "https://mt1.google.com/vt".to_string())
+    // send_image_tile_request(x, y, zoom, "https://tile.openstreetmap.org".to_string())
 }
 
 pub fn get_mvt_data(x: u64, y: u64, zoom: u64, tile_size: u32) -> Vec<u8> {
@@ -87,18 +88,24 @@ pub fn buffer_to_bevy_image(data: Vec<u8>, tile_size: u32) -> Image {
 /// Rather than getting a vector trile which can be tricky to work with, we get a buffer of an image 
 /// https://wiki.openstreetmap.org/wiki/Raster_tile_providers
 fn send_image_tile_request(x: u64, y: u64, zoom: u64, url: String) -> Vec<u8> {
-    let cache_dir = "cache";
+    let cache_dir = format!("cache/{}", url);
     let cache_file = format!("{}/{}_{}_{}.png", cache_dir, zoom, x, y);
     
     // Check if the file exists in the cache
     if Path::new(&cache_file).exists() {
         return png_to_image(fs::read(&cache_file).expect("Failed to read cache file"));
     }
+    
+    let mut req = format!("{}/{}/{}/{}.png", url, zoom, x, y);
+    if url.contains("google") {
+        // can change the layers y for both roads and satalite, m for just roads and s for just satalite
+        req = format!("{}/lyrs=m&x={x}&y={y}&z={zoom}", url);
+    }
 
     // If not in cache, fetch from the network
     let mut status = 429;
     while status == 429 {
-        if let Ok(response) = ureq::get(format!("{}/{}/{}/{}.png", url, zoom, x, y).as_str()).call() {
+        if let Ok(response) = ureq::get(&req).call() {
             // info!("{}", format!("{}/{}/{}/{}.png", url, zoom, x, y));
             if response.status() == 200 {
                 let mut reader = response.into_reader();
