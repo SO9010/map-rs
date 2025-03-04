@@ -56,17 +56,16 @@ pub fn tile_width_meters(zoom: u32) -> f64 {
     earth_circumference_meters / num_tiles
 }
 
-pub fn get_ofm_image(x: u64, y: u64, zoom: u64, tile_size: u32) -> Image {
+pub fn get_ofm_image(x: u64, y: u64, zoom: u64, tile_size: u32, url: String) -> Image {
     let data = send_vector_request(x, y, zoom, "https://tiles.openfreemap.org/planet/20250122_001001_pt".to_string());
     buffer_to_bevy_image(ofm_to_data_image(data, tile_size, zoom as u32), tile_size)
 }
 
-pub fn get_rasta_data(x: u64, y: u64, zoom: u64) -> Vec<u8> {
-    send_image_tile_request(x, y, zoom, "https://mt1.google.com/vt".to_string())
-    // send_image_tile_request(x, y, zoom, "https://tile.openstreetmap.org".to_string())
+pub fn get_rasta_data(x: u64, y: u64, zoom: u64, url: String) -> Vec<u8> {
+    send_image_tile_request(x, y, zoom, url)
 }
 
-pub fn get_mvt_data(x: u64, y: u64, zoom: u64, tile_size: u32) -> Vec<u8> {
+pub fn get_mvt_data(x: u64, y: u64, zoom: u64, tile_size: u32, url: String) -> Vec<u8> {
     let data = send_vector_request(x, y, zoom, "https://tiles.openfreemap.org/planet/20250122_001001_pt".to_string());
     ofm_to_data_image(data, tile_size, zoom as u32)
 }
@@ -99,7 +98,7 @@ fn send_image_tile_request(x: u64, y: u64, zoom: u64, url: String) -> Vec<u8> {
     let mut req = format!("{}/{}/{}/{}.png", url, zoom, x, y);
     if url.contains("google") {
         // can change the layers y for both roads and satalite, m for just roads and s for just satalite
-        req = format!("{}/lyrs=m&x={x}&y={y}&z={zoom}", url);
+        req = format!("{}&x={x}&y={y}&z={zoom}", url);
     }
 
     // If not in cache, fetch from the network
@@ -168,6 +167,7 @@ fn send_vector_request(x: u64, y: u64, zoom: u64, url: String) -> Vec<u8> {
 }
 
 /// This converts it to an image which is as many meters as the tile width This would be AAAMAAZZZING to multithread
+/// It would also be good to add a settings struct to control the colors, perhaps add background images and select what specificlly is rendered.
 fn ofm_to_data_image(data: Vec<u8>, size: u32, zoom: u32) -> Vec<u8> {
     let tile = Reader::new(data).unwrap();
     //let size_multiplyer = TILE_QUALITY as u32 / size ;

@@ -94,3 +94,6 @@ fn tool_ui(
                 });
         });
 }
+
+// Soon make overpass query. Also to view selected points and waypoints. This will be big when this is done.
+// Try and add more apis like weather. We want to be able to add layers.

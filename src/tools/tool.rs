@@ -1,6 +1,7 @@
 use bevy::{app::*, ecs::system::{Res, ResMut}, input::{keyboard::KeyCode, ButtonInput}};
 use super::{Measure, MeasurePlugin, PinPlugin, Pins, SelectionPlugin, SelectionSettings, ToolbarUiPlugin};
 
+// TODO: !IMPORTANT! make it so that the clicks dont go through the ui.
 pub struct ToolsPlugin;
 
 impl Plugin for ToolsPlugin {

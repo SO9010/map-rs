@@ -6,6 +6,7 @@ use bevy_ecs_tilemap::{map::{TilemapGridSize, TilemapId, TilemapTexture, Tilemap
 use crossbeam_channel::{bounded, Receiver, Sender};
 
 use crate::{types::{world_mercator_to_lat_lon, Coord}, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
+use super::ui::TilesUiPlugin;
 #[allow(unused_imports)]
 use super::{buffer_to_bevy_image, get_mvt_data, get_rasta_data};
 
@@ -24,9 +25,11 @@ impl Plugin for TileMapPlugin {
             .insert_resource(ZoomManager::default())
             .add_systems(Update, (spawn_chunks_around_camera, spawn_to_needed_chunks))
             .add_systems(Update, detect_zoom_level)
-            .add_systems(FixedUpdate, (despawn_outofrange_chunks, read_tile_map_receiver));
+            .add_systems(FixedUpdate, (despawn_outofrange_chunks, read_tile_map_receiver))
+            .add_plugins(TilesUiPlugin);
     }
 }
+
 
 #[derive(Debug, Resource, Clone)]
 pub struct ZoomManager {
@@ -47,21 +50,74 @@ impl Default for ZoomManager {
     }
 }
 
-#[derive(Debug, Resource)]
+#[derive(Debug, Clone)]
+pub enum TileType {
+    Raster,
+    Vector
+}
+
+#[derive(Debug, Resource, Clone)]
 pub struct ChunkManager {
     pub spawned_chunks: HashSet<IVec2>,
     pub to_spawn_chunks: HashMap<IVec2, Vec<u8>>, // Store raw image data
     pub update: bool, // Store raw image data
     pub refrence_long_lat: Coord,
+    // Todo: Have a way to store this in a config file.
+    pub tile_web_origin: HashMap<String, (bool, TileType)>,
+    pub tile_web_origin_changed: bool,
+}
+
+impl ChunkManager {
+    pub fn add_tile_web_origin(&mut self, url: String, enabled: bool, tile_type: TileType) {
+        self.tile_web_origin.insert(url, (enabled, tile_type));
+    }
+
+    pub fn enable_tile_web_origin(&mut self, url: &str) {
+        if let Some((enabled, _)) = self.tile_web_origin.get_mut(url) {
+            *enabled = true;
+        }
+    }
+    
+    pub fn disable_all_tile_web_origins(&mut self) {
+        for (_, (enabled, _)) in self.tile_web_origin.iter_mut() {
+            *enabled = false;
+        }
+    }
+    
+    pub fn enable_only_tile_web_origin(&mut self, url: &str) {
+        self.disable_all_tile_web_origins();
+        
+        if let Some((enabled, _)) = self.tile_web_origin.get_mut(url) {
+            *enabled = true;
+            self.tile_web_origin_changed = true;
+        }
+    }
+
+    pub fn get_enabled_tile_web_origins(&self) -> Option<(&String, (&bool, &TileType))> {
+        for (url, (enabled, tile_type)) in &self.tile_web_origin {
+            if *enabled {
+                return Some((url, (enabled, tile_type)));
+            }
+        }
+        None
+    }
 }
 
 impl Default for ChunkManager {
     fn default() -> Self {
+        let mut tile_web_origin = HashMap::default();
+        tile_web_origin.insert("https://tile.openstreetmap.org".to_string(), (false, TileType::Raster));
+        tile_web_origin.insert("https://mt1.google.com/vt/lyrs=y".to_string(), (true, TileType::Raster));
+        tile_web_origin.insert("https://mt1.google.com/vt/lyrs=m".to_string(), (false, TileType::Raster));
+        tile_web_origin.insert("https://mt1.google.com/vt/lyrs=s".to_string(), (false, TileType::Raster));
+        tile_web_origin.insert("https://tiles.openfreemap.org/planet/20250122_001001_pt".to_string(), (false, TileType::Vector));
         Self {
             spawned_chunks: HashSet::default(),
             to_spawn_chunks: HashMap::default(),
             update: true,
             refrence_long_lat: STARTING_LONG_LAT,
+            tile_web_origin,
+            tile_web_origin_changed: false,
         }
     }
 }
@@ -122,6 +178,12 @@ fn detect_zoom_level(
 
                     projection.scale = 1.0;
                 }
+                chunk_manager.update = true;
+            } else if chunk_manager.tile_web_origin_changed {
+                chunk_manager.tile_web_origin_changed = false;
+                despawn_all_chunks(commands, chunk_query);
+                chunk_manager.spawned_chunks.clear();
+                chunk_manager.to_spawn_chunks.clear();
                 chunk_manager.update = true;
             }
         }
@@ -204,9 +266,13 @@ fn spawn_chunks_around_camera(
 ) {
     if chunk_manager.update {
         chunk_manager.update = false;
-        for transform in camera_query.iter() {
-            let camera_chunk_pos = camera_pos_to_chunk_pos(&transform.translation.xy(), zoom_manager.tile_size);
-            let range = 4;
+
+        let chunk_manager_clone = chunk_manager.clone();
+        let enabled_origins = chunk_manager_clone.get_enabled_tile_web_origins();
+        if let Some((url, (_, tileType))) = enabled_origins {
+            for transform in camera_query.iter() {
+                let camera_chunk_pos = camera_pos_to_chunk_pos(&transform.translation.xy(), zoom_manager.tile_size);
+                let range = 4;
 
             for y in (camera_chunk_pos.y - range)..=(camera_chunk_pos.y + range) {
                 for x in (camera_chunk_pos.x - range)..=(camera_chunk_pos.x + range) {
@@ -214,16 +280,27 @@ fn spawn_chunks_around_camera(
                     if !chunk_manager.spawned_chunks.contains(&chunk_pos) {
                         let tx = chunk_sender.clone(); // Clone existing sender
                         let zoom_manager = zoom_manager.clone();
+                        let refrence_long_lat = chunk_manager.refrence_long_lat.clone();
                         let world_pos = chunk_pos_to_world_pos(chunk_pos, zoom_manager.tile_size);
-                        let position = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
-
+                        let position = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
+                        let url = url.clone();
+                        let tileType = tileType.clone();
                         thread::spawn(move || {
                             let tile_coords = position.to_tile_coords(zoom_manager.zoom_level);
 
-                            // let tile_image = get_mvt_data(tile_coords.x as u64, tile_coords.y as u64, zoom_manager.zoom_level as u64, zoom_manager.tile_size as u32);
-                            let tile_image = get_rasta_data(tile_coords.x as u64, tile_coords.y as u64, zoom_manager.zoom_level as u64);
-                            if let Err(e) = tx.send((chunk_pos, tile_image)) {
-                                eprintln!("Failed to send chunk data: {:?}", e);
+                            match tileType {
+                                TileType::Raster => {
+                                    let tile_image = get_rasta_data(tile_coords.x as u64, tile_coords.y as u64, zoom_manager.zoom_level as u64, url.to_string());
+                                    if let Err(e) = tx.send((chunk_pos, tile_image)) {
+                                        eprintln!("Failed to send chunk data: {:?}", e);
+                                    }
+                                },
+                                TileType::Vector => {
+                                    let tile_image = get_mvt_data(tile_coords.x as u64, tile_coords.y as u64, zoom_manager.zoom_level as u64, zoom_manager.tile_size as u32, url.to_string());
+                                    if let Err(e) = tx.send((chunk_pos, tile_image)) {
+                                        eprintln!("Failed to send chunk data: {:?}", e);
+                                    }
+                                }
                             }
                         });
 
@@ -231,6 +308,7 @@ fn spawn_chunks_around_camera(
                     }
                 }
             }
+        }
         }
     }
 }
