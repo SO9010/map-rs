@@ -5,7 +5,7 @@ use bevy::{prelude::*, utils::{HashMap, HashSet}};
 use bevy_ecs_tilemap::{map::{TilemapGridSize, TilemapId, TilemapTexture, TilemapTileSize}, tiles::{TileBundle, TilePos, TileStorage}, TilemapBundle, TilemapPlugin};
 use crossbeam_channel::{bounded, Receiver, Sender};
 
-use crate::{types::{world_mercator_to_lat_lon, Coord}, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
+use crate::{types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
 use super::ui::TilesUiPlugin;
 #[allow(unused_imports)]
 use super::{buffer_to_bevy_image, get_mvt_data, get_rasta_data};
@@ -144,10 +144,11 @@ fn detect_zoom_level(
     mut camera_query: Query<&mut Transform, With<Camera>>,
     commands: Commands,
     location_manager: ResMut<Location>,
+    state: Res<EguiBlockInputState>,
 ) {
     if let Ok(mut projection) = ortho_projection_query.get_single_mut() {
         if let Ok(mut camera) = camera_query.get_single_mut() {
-            if projection.scale != zoom_manager.last_projection_level {
+            if projection.scale != zoom_manager.last_projection_level && !state.block_input {
                 zoom_manager.last_projection_level = projection.scale;
                 if projection.scale > 1. && projection.scale != 0. && zoom_manager.zoom_level > 3 {
                     zoom_manager.last_zoom_level = zoom_manager.zoom_level;

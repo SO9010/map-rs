@@ -1,7 +1,7 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use rstar::{RTree, RTreeObject, AABB};
 
-use crate::{tiles::{ChunkManager, ZoomManager}, types::{world_mercator_to_lat_lon, Coord}};
+use crate::{tiles::{ChunkManager, ZoomManager}, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState};
 
 pub struct PinPlugin;
 
@@ -60,9 +60,10 @@ pub fn handle_pin(
     buttons: Res<ButtonInput<MouseButton>>,
     zoom_manager: Res<ZoomManager>,
     chunk_manager: Res<ChunkManager>,
+    state: Res<EguiBlockInputState>,
 ) {
     let (camera, camera_transform) = camera.single();
-    if pin.enabled {
+    if pin.enabled && !state.block_input{
         if let Some(position) = q_windows.single().cursor_position() {
             if buttons.just_pressed(MouseButton::Left) {
                 let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();

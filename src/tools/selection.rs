@@ -2,7 +2,7 @@ use bevy::{math::NormedVectorSpace, prelude::*, window::PrimaryWindow};
 use rstar::{RTree, RTreeObject, AABB};
 use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
 
-use crate::{tiles::{ChunkManager, ZoomManager}, types::{world_mercator_to_lat_lon, Coord}};
+use crate::{tiles::{ChunkManager, ZoomManager}, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState};
 
 pub struct SelectionPlugin;
 
@@ -166,9 +166,11 @@ pub fn handle_selection(
     zoom_manager: Res<ZoomManager>,
     chunk_manager: Res<ChunkManager>,
     selection_settings: Res<SelectionSettings>,
+    state: Res<EguiBlockInputState>,
 ) {
     let (camera, camera_transform) = camera.single();
-    if selection_settings.selection_enabled {
+    if selection_settings.selection_enabled && !state.block_input {
+        
         if let Some(position) = q_windows.single().cursor_position() {
             // TODO ADD POLYGON SELECTION
             if buttons.just_pressed(MouseButton::Left) {

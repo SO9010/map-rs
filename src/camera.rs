@@ -2,7 +2,7 @@ use bevy::{core_pipeline::bloom::Bloom, prelude::*};
 use bevy_pancam::{DirectionKeys, PanCam, PanCamPlugin};
 use rstar::RTree;
 
-use crate::{debug::DebugPlugin, tiles::{Location, OfmTiles, TileMapPlugin}, types::{world_mercator_to_lat_lon, Coord}, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
+use crate::{debug::DebugPlugin, tiles::{Location, OfmTiles, TileMapPlugin}, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
 
 pub struct CameraSystemPlugin;
 
@@ -16,11 +16,14 @@ impl Plugin for CameraSystemPlugin {
                 tiles_to_render: Vec::new(),
             })
             // This is being allowed, as it can't get the managers and location
-            .add_systems(Startup, setup_camera);
+            .add_systems(Startup, setup_camera)
+            .add_systems(Update, handle_pancam);
     }
 }
 
-pub fn setup_camera(mut commands: Commands) {
+fn setup_camera(
+    mut commands: Commands,
+) {
     let starting = STARTING_DISPLACEMENT.to_game_coords(STARTING_LONG_LAT, 14, TILE_QUALITY.into());
     
     commands.spawn((
@@ -53,6 +56,21 @@ pub fn setup_camera(mut commands: Commands) {
         },
         Bloom::NATURAL,
     ));
+}
+
+fn handle_pancam(
+    mut query: Query<&mut PanCam>, 
+    state: Res<EguiBlockInputState>,
+) {
+    if state.is_changed() {
+        for mut pancam in &mut query {
+            if state.block_input {
+                pancam.enabled = false;
+            } else {
+                pancam.enabled = true;
+            }
+        }
+    }
 }
 
 pub fn camera_space_to_lat_long_rect(

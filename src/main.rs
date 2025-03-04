@@ -1,6 +1,7 @@
+use std::default;
+
 use bevy::{
-    prelude::*,
-    winit::{UpdateMode, WinitSettings},
+    input::mouse::MouseWheel, prelude::*, winit::{UpdateMode, WinitSettings}
 };
 use bevy_prototype_lyon::plugin::ShapePlugin;
 use camera::CameraSystemPlugin;
@@ -35,6 +36,7 @@ fn main() {
             }),
             ..Default::default()
         }))
+        .insert_resource(EguiBlockInputState::default())
         .add_plugins((CameraSystemPlugin, InteractionSystemPlugin, ShapePlugin))
         .insert_resource(WinitSettings {
             unfocused_mode: UpdateMode::Reactive {
@@ -56,5 +58,22 @@ fn main() {
         .add_plugins(OverpassPlugin)
         .add_plugins(SettingsPlugin)
         .add_plugins(ToolsPlugin)
+        .add_systems(Update, absorb_egui_inputs)
         .run();
+}
+
+#[derive(Resource, Default)]
+pub struct EguiBlockInputState {
+    pub block_input: bool,
+}
+fn absorb_egui_inputs(
+    mut contexts: bevy_egui::EguiContexts,
+    mut state: ResMut<EguiBlockInputState>,
+) {
+    let ctx = contexts.ctx_mut();
+    if (ctx.wants_pointer_input() || ctx.is_pointer_over_area()) {
+        state.block_input = true;
+    } else {
+        state.block_input = false;
+    }
 }

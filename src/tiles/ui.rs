@@ -33,6 +33,7 @@ fn tile_ui(
         screen_rect.height() - tilebox_height
     );
     
+    // Make it so that this intercepts user input.
     egui::Area::new("tilebox".into())
         .fixed_pos(tilebox_pos)
         .show(ctx, |ui| {
