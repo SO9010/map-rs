@@ -197,10 +197,10 @@ pub fn handle_selection(
             if buttons.just_released(MouseButton::Left) {
                 let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
                 let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
-
+                let areas_size = selections.areas.size();
                 if let Some(selection) = selections.unfinished_selection.as_mut() {
                     selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
-                    selection.selection_name = format!("{:#?}-{:#?}", selection.selection_type, selection.start.unwrap());
+                    selection.selection_name = format!("{:#?}-{}", selection.selection_type, areas_size);
                 }
                 if let Some(selection) = selections.unfinished_selection.take() {
                     selections.add(selection);

@@ -1,4 +1,6 @@
 use bevy::{app::*, ecs::system::{Res, ResMut}, input::{keyboard::KeyCode, ButtonInput}};
+use crate::EguiBlockInputState;
+
 use super::{Measure, MeasurePlugin, PinPlugin, Pins, SelectionPlugin, SelectionSettings, ToolbarUiPlugin};
 
 // TODO: !IMPORTANT! make it so that the clicks dont go through the ui.
@@ -17,23 +19,26 @@ fn handle_tool_keybinds(
     mut measure: ResMut<Measure>,
     mut pins: ResMut<Pins>,
     keys: Res<ButtonInput<KeyCode>>,
+    state: Res<EguiBlockInputState>,
 ) {
-    if keys.just_pressed(KeyCode::KeyS) {
-        if selection_settings.selection_enabled {
-            selection_settings.selection_tool_type.iterate();
+    if !state.block_input {
+        if keys.just_pressed(KeyCode::KeyS) {
+            if selection_settings.selection_enabled {
+                selection_settings.selection_tool_type.iterate();
+            }
+            selection_settings.selection_enabled = true;
+            measure.disable();
+            pins.enabled = false;
         }
-        selection_settings.selection_enabled = true;
-        measure.disable();
-        pins.enabled = false;
-    }
-    if keys.just_pressed(KeyCode::KeyM) {
-        measure.enabled = true;
-        selection_settings.selection_enabled = false;
-        pins.enabled = false;
-    }
-    if keys.just_pressed(KeyCode::KeyP) {
-        pins.enabled = true;
-        selection_settings.selection_enabled = false;
-        measure.disable();
+        if keys.just_pressed(KeyCode::KeyM) {
+            measure.enabled = true;
+            selection_settings.selection_enabled = false;
+            pins.enabled = false;
+        }
+        if keys.just_pressed(KeyCode::KeyP) {
+            pins.enabled = true;
+            selection_settings.selection_enabled = false;
+            measure.disable();
+        }
     }
 }

@@ -104,17 +104,18 @@ fn tool_actions_ui(
 ) {
     let ctx = contexts.ctx_mut();
 
-    let tilebox_width = 250.0;
+    let tilebox_width = 400.0;
     let tilebox_height = 100.0;
     
     let screen_rect = ctx.screen_rect();
     let tilebox_pos = egui::pos2(
-        (screen_rect.width() - tilebox_width), 
+        (screen_rect.width() - tilebox_width) - 10.0, 
         10.0
     );
     
     egui::Area::new("tool_action".into())
         .fixed_pos(tilebox_pos)
+        .fade_in(true)
         .show(ctx, |ui| {
             egui::Frame::new()
                 .fill(egui::Color32::from_rgba_premultiplied(30, 30, 30, 255))
@@ -126,18 +127,28 @@ fn tool_actions_ui(
                     spread: 5,
                 })
                 .show(ui, |ui| {
-                    ui.set_width(tilebox_width);
-                    ui.set_height(tilebox_height);
-                    
+                    ui.set_max_width(tilebox_width);
+                    ui.set_max_height(tilebox_height);
+                    ui.set_min_width(tilebox_width);
+                    ui.set_min_height(tilebox_height);
                     egui::ScrollArea::vertical().show(ui, |ui| {
-                        ui.spacing_mut().item_spacing = egui::vec2(8.0, 0.0);
-
+                        ui.vertical_centered( |ui| {
+                        let available_width = tilebox_width - 10.0; // 10px padding on each side
+                        ui.set_max_width(available_width);
+    
                         for selection in selections.areas.iter_mut() {
                             ui.horizontal(|ui| {
-                                ui.text_edit_singleline(&mut selection.selection_name);
+                                // Set a maximum width for the text box
+                                ui.add_sized(
+                                    [available_width, 24.0],
+                                    egui::TextEdit::singleline(&mut selection.selection_name)
+                                        .margin(egui::vec2(4.0, 4.0))
+                                );
                             });
                         }
                     });
                 });
+            });
         });
+
 }
