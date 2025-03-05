@@ -63,9 +63,9 @@ pub fn handle_measure(
     state: Res<EguiBlockInputState>,
 ) {
     let (camera, camera_transform) = camera.single();
-    if measure.enabled && !state.block_input {
+    if measure.enabled {
         if let Some(position) = q_windows.single().cursor_position() {
-            if buttons.just_pressed(MouseButton::Left) {
+            if buttons.just_pressed(MouseButton::Left) && !state.block_input {
                 let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
                 let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
 

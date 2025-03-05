@@ -171,11 +171,10 @@ pub fn handle_selection(
     state: Res<EguiBlockInputState>,
 ) {
     let (camera, camera_transform) = camera.single();
-    if selection_settings.selection_enabled && !state.block_input {
-        
+    if selection_settings.selection_enabled {
         if let Some(position) = q_windows.single().cursor_position() {
             // TODO ADD POLYGON SELECTION
-            if buttons.just_pressed(MouseButton::Left) {
+            if buttons.just_pressed(MouseButton::Left) && !state.block_input {
                 let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
                 let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
 
@@ -194,18 +193,27 @@ pub fn handle_selection(
                     }
                 }
             }
-            if buttons.just_released(MouseButton::Left) {
-                let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
-                let areas_size = selections.areas.size();
-                if let Some(selection) = selections.unfinished_selection.as_mut() {
-                    selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
-                    selection.selection_name = format!("{:#?}-{}", selection.selection_type, areas_size);
+            if !buttons.pressed(MouseButton::Left) {
+                if selections.unfinished_selection.is_some() {
+                    let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
+                    let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
+                    let areas_size = selections.areas.size();
+                    if let Some(selection) = selections.unfinished_selection.as_mut() {
+                    if selection.end != selection.start {
+                        selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
+                        selection.selection_name = format!("{:#?}-{}", selection.selection_type, areas_size);
+                    } else {
+                        selections.unfinished_selection = None;
+                        selections.respawn = true;
+                        return;
+                    }
+                    }
+                    if let Some(selection) = selections.unfinished_selection.take() {
+                        selections.add(selection);
+                    }
+                    selections.respawn = true;
                 }
-                if let Some(selection) = selections.unfinished_selection.take() {
-                    selections.add(selection);
-                }
-                selections.respawn = true;
+
             }
             if buttons.pressed(MouseButton::Right) {
                 selections.unfinished_selection = None;
