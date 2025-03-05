@@ -104,12 +104,12 @@ fn tool_actions_ui(
 ) {
     let ctx = contexts.ctx_mut();
 
-    let tilebox_width = 400.0;
+    let tilebox_width = 200.0;
     let tilebox_height = 100.0;
     
     let screen_rect = ctx.screen_rect();
     let tilebox_pos = egui::pos2(
-        (screen_rect.width() - tilebox_width) - 10.0, 
+        screen_rect.width() - 210., 
         10.0
     );
     
@@ -127,24 +127,21 @@ fn tool_actions_ui(
                     spread: 5,
                 })
                 .show(ui, |ui| {
-                    ui.set_max_width(tilebox_width);
-                    ui.set_max_height(tilebox_height);
                     ui.set_min_width(tilebox_width);
                     ui.set_min_height(tilebox_height);
+                    ui.set_max_width(tilebox_width);
+                    ui.set_max_height(tilebox_height);
                     egui::ScrollArea::vertical().show(ui, |ui| {
                         ui.vertical_centered( |ui| {
                         let available_width = tilebox_width - 10.0; // 10px padding on each side
                         ui.set_max_width(available_width);
     
                         for selection in selections.areas.iter_mut() {
-                            ui.horizontal(|ui| {
-                                // Set a maximum width for the text box
-                                ui.add_sized(
-                                    [available_width, 24.0],
-                                    egui::TextEdit::singleline(&mut selection.selection_name)
-                                        .margin(egui::vec2(4.0, 4.0))
-                                );
-                            });
+                                ui.horizontal_wrapped(|ui| {
+                                    ui.set_max_width(tilebox_width - 10.);
+                                    if ui.checkbox(&mut false, RichText::new(&selection.selection_name)).clicked() {
+                                    }
+                                });
                         }
                     });
                 });

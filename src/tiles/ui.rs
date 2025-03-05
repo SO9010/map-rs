@@ -21,12 +21,12 @@ fn tile_ui(
     let ctx = contexts.ctx_mut();
 
     let tilebox_width = 250.0;
-    let tilebox_height = 100.0;
+    let tilebox_height = 75.0;
     
     let screen_rect = ctx.screen_rect();
     let tilebox_pos = egui::pos2(
-        (screen_rect.width() - tilebox_width) + 25.0, 
-        screen_rect.height() - tilebox_height - 10.0
+        (screen_rect.width() - tilebox_width) - 10.0, 
+        screen_rect.height() - tilebox_height - 38.0
     );
     
     egui::Area::new("tilebox".into())
@@ -44,22 +44,26 @@ fn tile_ui(
                 .show(ui, |ui| {
                     ui.set_width(tilebox_width);
                     ui.set_height(tilebox_height);
-                    
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        ui.spacing_mut().item_spacing = egui::vec2(8.0, 0.0);
+                    ui.spacing_mut().item_spacing = egui::vec2(8.0, 10.0);
 
-                        for (url, (enabled, _)) in &mut chunck_manager.tile_web_origin.clone() {
-                            ui.horizontal(|ui| {
-                                if ui.checkbox(enabled, RichText::new(url.as_str())).clicked() {
-                                    chunck_manager.enable_only_tile_web_origin(url);
-                                }
+                    ui.vertical_centered( |ui| {
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            ui.spacing_mut().item_spacing = egui::vec2(8.0, 10.0);
+                            ui.set_max_width(tilebox_width);
+                            for (url, (enabled, _)) in &mut chunck_manager.tile_web_origin.clone() {
+                                ui.horizontal_wrapped(|ui| {
+                                    ui.set_max_width(tilebox_width);
+                                    if ui.checkbox(enabled, RichText::new(url.as_str())).clicked() {
+                                        chunck_manager.enable_only_tile_web_origin(url);
+                                    }
+                                });
+                            }
                             });
-                        }
-                    });
-
-                    if ui.button("Add URL -- Dummy").on_hover_text("Add xyz map").clicked() {
-                     
-                    }              
+        
+                            if ui.button("Add URL -- Dummy").on_hover_text("Add xyz map").clicked() {
+                            
+                            }   
+                        });
                 });
         });
 }
