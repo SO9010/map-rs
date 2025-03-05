@@ -2,13 +2,13 @@ use bevy::prelude::*;
 use bevy_egui::{egui::{self, Color32, RichText}, EguiContexts, EguiPreUpdateSet};
 
 
-use super::{Measure, Pins, SelectionSettings};
+use super::{Measure, Pins, SelectionAreas, SelectionSettings};
 
 pub struct ToolbarUiPlugin;
 
 impl Plugin for ToolbarUiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, tool_ui.after(EguiPreUpdateSet::InitContexts));
+        app.add_systems(Update, (tool_ui.after(EguiPreUpdateSet::InitContexts), tool_actions_ui.after(EguiPreUpdateSet::InitContexts)));
     }
 }
 
@@ -97,3 +97,47 @@ fn tool_ui(
 
 // Soon make overpass query. Also to view selected points and waypoints. This will be big when this is done.
 // Try and add more apis like weather. We want to be able to add layers.
+
+fn tool_actions_ui(
+    mut contexts: EguiContexts,
+    mut selections: ResMut<SelectionAreas>
+) {
+    let ctx = contexts.ctx_mut();
+
+    let tilebox_width = 250.0;
+    let tilebox_height = 100.0;
+    
+    let screen_rect = ctx.screen_rect();
+    let tilebox_pos = egui::pos2(
+        (screen_rect.width() - tilebox_width), 
+        10.0
+    );
+    
+    egui::Area::new("tool_action".into())
+        .fixed_pos(tilebox_pos)
+        .show(ctx, |ui| {
+            egui::Frame::new()
+                .fill(egui::Color32::from_rgba_premultiplied(30, 30, 30, 255))
+                .corner_radius(10.0)
+                .shadow(egui::epaint::Shadow {
+                    color: egui::Color32::from_black_alpha(60),
+                    offset: [5, 5],
+                    blur: 10,
+                    spread: 5,
+                })
+                .show(ui, |ui| {
+                    ui.set_width(tilebox_width);
+                    ui.set_height(tilebox_height);
+                    
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        ui.spacing_mut().item_spacing = egui::vec2(8.0, 0.0);
+
+                        for selection in selections.areas.iter_mut() {
+                            ui.horizontal(|ui| {
+                                ui.text_edit_singleline(&mut selection.selection_name);
+                            });
+                        }
+                    });
+                });
+        });
+}

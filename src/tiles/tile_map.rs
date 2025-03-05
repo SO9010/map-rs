@@ -23,7 +23,7 @@ impl Plugin for TileMapPlugin {
             .add_plugins(TilemapPlugin)
             .insert_resource(ChunkManager::default())
             .insert_resource(ZoomManager::default())
-            .add_systems(Update, (spawn_chunks_around_camera, spawn_to_needed_chunks))
+            .add_systems(FixedUpdate, (spawn_chunks_around_camera, spawn_to_needed_chunks))
             .add_systems(Update, detect_zoom_level)
             .add_systems(FixedUpdate, (despawn_outofrange_chunks, read_tile_map_receiver))
             .add_plugins(TilesUiPlugin);

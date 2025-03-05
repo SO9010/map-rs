@@ -55,7 +55,7 @@ impl SelectionType {
 // What we will want to do is have a ui for the selection points. We also want to be able to select it by clicking the edge then we can risize or annotate or change the things.
 #[derive(Resource)]
 pub struct SelectionAreas {
-    areas: RTree<Selection>,
+    pub areas: RTree<Selection>,
     unfinished_selection: Option<Selection>,
     pub respawn: bool,
 }
@@ -80,8 +80,9 @@ impl SelectionAreas {
     }
 }
 
-#[derive(Component, Clone)]
-struct Selection {
+#[derive(Component, Clone, Debug)]
+pub struct Selection {
+    pub selection_name: String,
     pub selection_type: SelectionType,
     pub start: Option<Coord>,
     pub end: Option<Coord>,
@@ -113,6 +114,7 @@ impl Selection {
 impl Selection {
     pub fn new(selection_type: SelectionType, start: Coord, end: Coord) -> Self {
         Self {
+            selection_name: format!("{:#?}-{:#?}", selection_type, start),
             selection_type,
             start: Some(start),
             end: Some(end),
@@ -198,6 +200,7 @@ pub fn handle_selection(
 
                 if let Some(selection) = selections.unfinished_selection.as_mut() {
                     selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
+                    selection.selection_name = format!("{:#?}-{:#?}", selection.selection_type, selection.start.unwrap());
                 }
                 if let Some(selection) = selections.unfinished_selection.take() {
                     selections.add(selection);

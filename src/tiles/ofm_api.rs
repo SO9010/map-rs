@@ -168,6 +168,7 @@ fn send_vector_request(x: u64, y: u64, zoom: u64, url: String) -> Vec<u8> {
 
 /// This converts it to an image which is as many meters as the tile width This would be AAAMAAZZZING to multithread
 /// It would also be good to add a settings struct to control the colors, perhaps add background images and select what specificlly is rendered.
+// What would be good is if we slipt tile tiles into 4 when we start getting a zoom over the amount which cant go in anymore like over zoom = 16
 fn ofm_to_data_image(data: Vec<u8>, size: u32, zoom: u32) -> Vec<u8> {
     let tile = Reader::new(data).unwrap();
     //let size_multiplyer = TILE_QUALITY as u32 / size ;
