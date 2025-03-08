@@ -1,7 +1,7 @@
 /// The purpose of this file will be to create a ui for customising the vector tiles and choosing which tiles to display!
 
 use bevy::prelude::*;
-use bevy_egui::{egui::{self, RichText}, EguiContexts, EguiPreUpdateSet};
+use bevy_egui::{egui::{self, Checkbox, RichText}, EguiContexts, EguiPreUpdateSet};
 
 
 use super::ChunkManager;
@@ -26,7 +26,7 @@ fn tile_ui(
     let screen_rect = ctx.screen_rect();
     let tilebox_pos = egui::pos2(
         (screen_rect.width() - tilebox_width) - 10.0, 
-        screen_rect.height() - tilebox_height - 38.0
+        screen_rect.height() - tilebox_height - 53.0
     );
     
     egui::Area::new("tilebox".into())
@@ -51,20 +51,22 @@ fn tile_ui(
                             ui.spacing_mut().item_spacing = egui::vec2(8.0, 10.0);
                             ui.set_max_width(tilebox_width);
                             for (url, (enabled, _)) in &mut chunck_manager.tile_web_origin.clone() {
-                                ui.horizontal_wrapped(|ui| {
+                                ui.vertical_centered(|ui| {
                                     ui.set_max_width(tilebox_width);
-                                    if ui.checkbox(enabled, RichText::new(url.as_str())).clicked() {
+                                    if ui.add_sized(
+                                        [tilebox_width - 10., 20.], Checkbox::new(enabled, RichText::new(url.as_str())),
+                                    ).clicked() {
                                         chunck_manager.enable_only_tile_web_origin(url);
-                                    }
-                                });
-                            }
+                                }
                             });
-        
-                            if ui.button("Add URL -- Dummy").on_hover_text("Add xyz map").clicked() {
+                        }
+                    });
+                    ui.separator();
+                    if ui.button("Add URL -- Dummy").on_hover_text("Add xyz map").clicked() {
                             
-                            }   
-                        });
+                    }   
                 });
+            });
         });
 }
 

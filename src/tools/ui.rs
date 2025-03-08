@@ -132,16 +132,19 @@ fn tool_actions_ui(
                     ui.set_max_width(tilebox_width);
                     ui.set_max_height(tilebox_height);
                     egui::ScrollArea::vertical().show(ui, |ui| {
-                        ui.vertical_centered( |ui| {
+                    ui.vertical_centered( |ui| {
                         let available_width = tilebox_width - 10.0; // 10px padding on each side
                         ui.set_max_width(available_width);
     
-                        for selection in selections.areas.iter_mut() {
-                                ui.horizontal_wrapped(|ui| {
-                                    ui.set_max_width(tilebox_width - 10.);
-                                    if ui.checkbox(&mut false, RichText::new(&selection.selection_name)).clicked() {
-                                    }
-                                });
+                        let selections_clone: Vec<_> = selections.areas.iter().cloned().collect();
+                        for selection in selections_clone {
+                            ui.vertical_centered(|ui| {
+                                ui.set_max_width(tilebox_width - 10.);
+                                if ui.checkbox(&mut false, RichText::new(selection.selection_name.clone())).clicked() {
+                                    selections.areas.remove(&selection);
+                                    selections.respawn = true;
+                                }
+                            });
                         }
                     });
                 });

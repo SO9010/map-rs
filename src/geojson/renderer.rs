@@ -2,7 +2,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
 use rstar::AABB;
 
-use crate::{camera::camera_space_to_lat_long_rect, tiles::{ChunkManager, ZoomManager}, types::MapBundle};
+use crate::{camera::camera_space_to_lat_long_rect, tiles::{ChunkManager, ZoomManager}, types::{MapBundle, SettingsOverlay}};
 
 // TODO: we need to make it so it only renders aproximations when we zoom
 #[derive(Component)]
@@ -14,6 +14,7 @@ pub fn respawn_shapes(
     mut map_bundle: ResMut<MapBundle>,
     zoom_manager: Res<ZoomManager>,
     chunk_manager: Res<ChunkManager>,
+    mut overpass_settings: ResMut<SettingsOverlay>,
     camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
     query: Query<&mut OrthographicProjection, With<Camera>>,
@@ -38,10 +39,21 @@ pub fn respawn_shapes(
         let intersection_candidates = map_bundle.features.locate_in_envelope_intersecting(&viewport_aabb).collect::<Vec<_>>();
         
         for feature in intersection_candidates {
-            let fill_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.5 };
-            let stroke_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.75 };
+            let mut fill_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.5 };
+            let mut stroke_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.75 };
             let line_width = 1.5;
             let elevation = 10.0;
+
+            for (cat, key) in overpass_settings.get_true_keys_with_category_with_individual().iter() {
+                if let Some(cate) = feature.properties.get(cat.to_lowercase()) {
+                    if cate.as_str().unwrap() != key {
+                        continue;
+                    }
+                    let color = overpass_settings.categories.get(cat).unwrap().items.get(key).unwrap().1;
+                    stroke_color = Srgba { red: (color.r() as f32) / 210., green: (color.g() as f32) / 210., blue: (color.b() as f32) / 210., alpha: 0.50 };
+                    fill_color = Srgba { red: (color.r() as f32) / 210., green: (color.g() as f32) / 210., blue: (color.b() as f32) / 210., alpha: 0.50 };
+                }
+            }
 
             let mut points = feature.get_in_world_space(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
 

@@ -857,7 +857,32 @@ impl SettingsOverlay {
                 "fuel",
             ],
         );
-
+        overlay.add_category(
+            "Boundary",
+            vec![
+                "aboriginal_lands ",
+                "administrative",
+                "border_zone",
+                "census",
+                "forest",
+                "forest_compartment",
+                "hazard",
+                "health",
+                "historic",
+                "local_authority",
+                "low_emission_zone",
+                "maritime",
+                "marker",
+                "national_park",
+                "place",
+                "political",
+                "religious_administration",
+                "special_economic_zone",
+                "statistical",
+                "disputed",
+                "timezone",
+            ],
+        );
         overlay
     }
 

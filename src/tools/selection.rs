@@ -80,7 +80,7 @@ impl SelectionAreas {
     }
 }
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, PartialEq)]
 pub struct Selection {
     pub selection_name: String,
     pub selection_type: SelectionType,
