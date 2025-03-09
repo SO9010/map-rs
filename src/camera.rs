@@ -76,15 +76,11 @@ pub fn camera_space_to_lat_long_rect(
     quality: f32,
     reference: Coord,
 ) -> Option<geo::Rect<f32>> {
-    // Get the window size
     let window_width = window.width(); 
     let window_height = window.height();
 
-    // Get the camera's position
     let camera_translation = transform.translation();
 
-    // Compute the world-space rectangle
-    // The reason for not dividing by 2 is to make the rectangle larger, as then it will mean that we can load more data
     let left = camera_translation.x - ((window_width * projection.scale) / 2.0);
     let right = camera_translation.x  + ((window_width * projection.scale) / 2.0);
     let bottom = camera_translation.y + ((window_height * projection.scale) / 2.0);
@@ -148,7 +144,9 @@ fn camera_change(
    
             tile_map_res.chunk_manager.update = true;
         }
-        
+    }
+    // TODO: Fix issue when the zoom level changes very quickly, it moves up.
+    if tile_map_res.zoom_manager.has_changed() {
         if tile_map_res.zoom_manager.zoom_level > 16 {
             map_bundle.get_more_data = true;
         }

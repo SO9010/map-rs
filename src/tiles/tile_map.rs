@@ -42,8 +42,10 @@ pub struct ZoomManager {
     pub zoom_level: u32,
     pub last_zoom_level: u32,
     pub last_projection_level: f32,
-    pub tile_size: f32
+    pub tile_size: f32,
+    zoom_level_changed: bool,
 }
+
 
 impl Default for ZoomManager {
     fn default() -> Self {
@@ -51,8 +53,15 @@ impl Default for ZoomManager {
             zoom_level: 14,
             last_zoom_level: 0,
             last_projection_level: 0.0,
-            tile_size: TILE_QUALITY as f32
+            tile_size: TILE_QUALITY as f32,
+            zoom_level_changed: false
         }
+    }
+}
+
+impl ZoomManager {
+    pub fn has_changed(&self) -> bool {
+        self.zoom_level_changed
     }
 }
 
@@ -164,8 +173,9 @@ fn detect_zoom_level(
                     res_manager.chunk_manager.refrence_long_lat *= Coord {lat: 2., long: 2.};
 
                     camera.translation = res_manager.location_manager.location.to_game_coords(res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size.into()).extend(1.0);
-                    
+                    res_manager.zoom_manager.zoom_level_changed = true;
                     projection.scale = 1.0;
+                    
                 } else if projection.scale < 1.0 && projection.scale != 0. && res_manager.zoom_manager.zoom_level < 19 {
                     res_manager.zoom_manager.last_zoom_level = res_manager.zoom_manager.zoom_level;
                     res_manager.zoom_manager.zoom_level += 1;
@@ -173,6 +183,7 @@ fn detect_zoom_level(
                     despawn_all_chunks(commands, chunk_query);
                     res_manager.chunk_manager.spawned_chunks.clear();
                     res_manager.chunk_manager.to_spawn_chunks.clear();
+                    res_manager.zoom_manager.zoom_level_changed = true;
 
                     // This ensures that the tile size stays correct
                     res_manager.chunk_manager.refrence_long_lat /= Coord {lat: 2., long: 2.};
