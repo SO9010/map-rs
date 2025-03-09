@@ -1,8 +1,7 @@
 use std::f32::consts::PI;
 
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_egui::egui::epaint::tessellator::path;
-use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder, shapes};
+use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder};
 use rstar::{RTree, RTreeObject, AABB};
 
 use crate::{tiles::TileMapResources, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState};
