@@ -1,24 +1,22 @@
-use bevy::{prelude::*, render::camera};
+use bevy::prelude::*;
 use bevy_egui::{egui::{self, Color32, RichText}, EguiContexts, EguiPreUpdateSet};
 
 
-use crate::{tiles::{ChunkManager, Location, ZoomManager}, types::Coord};
+use crate::{tiles::TileMapResources, types::Coord};
 
-use super::{Measure, Pins, SelectionAreas, SelectionSettings, SelectionType};
+use super::{SelectionType, ToolResources};
 
 pub struct ToolbarUiPlugin;
 
 impl Plugin for ToolbarUiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (tool_ui.after(EguiPreUpdateSet::InitContexts), tool_actions_ui.after(EguiPreUpdateSet::InitContexts)));
+        app.add_systems(Update, (tool_ui.after(EguiPreUpdateSet::InitContexts), workspace_actions_ui.after(EguiPreUpdateSet::InitContexts)));
     }
 }
 
 
 fn tool_ui(
-    mut selection_settings: ResMut<SelectionSettings>,
-    mut measure: ResMut<Measure>,
-    mut pins: ResMut<Pins>,
+    mut tools: ResMut<ToolResources>,
     mut contexts: EguiContexts,
 ) {
     let ctx = contexts.ctx_mut();
@@ -67,43 +65,35 @@ fn tool_ui(
 
                         if ui.add_sized(
                             [64.0, 30.0], 
-                            button_selected(selection_settings.selection_enabled, "Select")
+                            button_selected(tools.selection_settings.enabled, "Select")
                         ).clicked() {
-                            if selection_settings.selection_enabled {
-                                selection_settings.selection_tool_type.iterate();
+                            if tools.selection_settings.enabled {
+                                tools.selection_settings.tool_type.iterate();
                             }
-                            selection_settings.selection_enabled = true;
-                            measure.disable();
-                            pins.enabled = false;
+                            tools.select_tool("selection");
                         }
                         if ui.add_sized(
                             [64.0, 30.0], 
-                            button_selected(measure.enabled, "Measure")
+                            button_selected(tools.measure.enabled, "Measure")
                         ).clicked() {
-                            measure.enabled = true;
-                            selection_settings.selection_enabled = false;
-                            pins.enabled = false;
+                            tools.select_tool("measure");
                         }
                         if ui.add_sized(
                             [64.0, 30.0], 
-                            button_selected(pins.enabled, "Pin")
+                            button_selected(tools.pins.enabled, "Pin")
                         ).clicked() {
-                            pins.enabled = true;
-                            selection_settings.selection_enabled = false;
-                            measure.disable();
+                            tools.select_tool("pins");
                         }
                     });
                 });
         });
 }
 
-fn tool_actions_ui(
+fn workspace_actions_ui(
+    mut tile_map_res: ResMut<TileMapResources>,
     mut contexts: EguiContexts,
-    mut selections: ResMut<SelectionAreas>,
-    zoom_manager: Res<ZoomManager>,
-    chunk_manager: Res<ChunkManager>,
     mut camera: Query<(&Camera, &mut Transform), With<Camera2d>>,
-    mut location_manager: ResMut<Location>,
+    tools: Res<ToolResources>,
 ) {
     let ctx = contexts.ctx_mut();
 
@@ -116,7 +106,7 @@ fn tool_actions_ui(
         10.0
     );
     
-    egui::Area::new("tool_action".into())
+    egui::Area::new("Workspace".into())
         .fixed_pos(tilebox_pos)
         .fade_in(true)
         .show(ctx, |ui| {
@@ -134,31 +124,37 @@ fn tool_actions_ui(
                     ui.set_min_height(tilebox_height);
                     ui.set_max_width(tilebox_width);
                     ui.set_max_height(tilebox_height);
+
+                    ui.vertical_centered(|ui| {
+                        ui.add(egui::Label::new(RichText::new("Workspaces").color(Color32::WHITE)));
+                    });
+
                     egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.vertical_centered( |ui| {
                         let available_width = tilebox_width - 10.0; // 10px padding on each side
                         ui.set_max_width(available_width);
     
-                        let selections_clone: Vec<_> = selections.areas.iter().cloned().collect();
+                        let selections_clone: Vec<_> = tools.selection_areas.areas.iter().cloned().collect();
 
                         for selection in selections_clone {
                             ui.vertical_centered(|ui| {
                                 ui.set_max_width(tilebox_width - 10.);
                                 if ui.checkbox(&mut false, RichText::new(selection.selection_name.clone())).clicked() {
-                                    location_manager.location = selection.start.unwrap();
+                                    tile_map_res.location_manager.location = selection.start.unwrap();
                                     let mut camera_transform = camera.single_mut().1;
                                     match selection.selection_type {
                                         SelectionType::RECTANGLE => {
-                                            let starting = selection.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
-                                            let ending = selection.end.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
-                                            camera_transform.translation = Vec3::new(starting.x - ((starting.x - ending.x) / 2.0), starting.y - ((starting.y - ending.y) / 2.0), 1.0);
+                                            let starting = selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                            let ending = selection.end.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                            let movement = Coord::new(starting.x - ((starting.x - ending.x) / 2.0), starting.y - ((starting.y - ending.y) / 2.0));
+                                            camera_transform.translation = movement.to_vec2().extend(1.0);
                                         }
                                         SelectionType::POLYGON => {
-                                            let starting = selection.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
+                                            let starting = selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
                                             camera_transform.translation = Vec3::new(starting.x, starting.y, 1.0);  
                                         },
                                         SelectionType::CIRCLE => {
-                                            let starting = selection.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
+                                            let starting = selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
                                             camera_transform.translation = Vec3::new(starting.x, starting.y, 1.0);                                          
                                         },
                                         _ => {}

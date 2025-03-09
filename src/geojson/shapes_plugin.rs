@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::types::MapBundle;
 
-use super::{respawn_shapes};
+use super::respawn_shapes;
 
 pub struct RenderPlugin;
 

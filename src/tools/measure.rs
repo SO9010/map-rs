@@ -1,17 +1,20 @@
+use std::f32::consts::PI;
+
 use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::{tiles::{ChunkManager, ZoomManager}, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState};
+use crate::{tiles::TileMapResources, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState};
+
+use super::ToolResources;
 
 pub struct MeasurePlugin;
 
 impl Plugin for MeasurePlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(Measure::default())
-            .add_systems(Update, (render_measure, handle_measure));
+        app.add_systems(Update, (render_measure, handle_measure));
     }
 }
 
-#[derive(Resource, Component, Clone)]
+#[derive(Component, Clone, Default)]
 pub struct Measure {
     start: Option<Coord>,
     end: Option<Coord>,
@@ -41,58 +44,45 @@ impl Measure {
     }
 }
 
-/// These implementations are for constructors.
-impl Measure {
-    fn default() -> Self {
-        Measure {
-            start: None,
-            end: None,
-            enabled: false,
-            respawn: false,
-        }
-    }
-}
-
 pub fn handle_measure(
-    mut measure: ResMut<Measure>,
+    mut measure: ResMut<ToolResources>,
     camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
     buttons: Res<ButtonInput<MouseButton>>,
-    zoom_manager: Res<ZoomManager>,
-    chunk_manager: Res<ChunkManager>,
+    tile_map_manager: Res<TileMapResources>,
     state: Res<EguiBlockInputState>,
 ) {
     let (camera, camera_transform) = camera.single();
-    if measure.enabled {
+    if measure.measure.enabled {
         if let Some(position) = q_windows.single().cursor_position() {
             if buttons.just_pressed(MouseButton::Left) && !state.block_input {
                 let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
+                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), tile_map_manager.chunk_manager.refrence_long_lat, tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size);
 
                 let start = Coord::new(pos.lat as f32, pos.long as f32);
-                measure.start = Some(start);
-                measure.respawn = true;
+                measure.measure.start = Some(start);
+                measure.measure.respawn = true;
             }
             if buttons.pressed(MouseButton::Left) {
                 let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
+                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), tile_map_manager.chunk_manager.refrence_long_lat, tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size);
 
-                if measure.end != Some(Coord::new(pos.lat as f32, pos.long as f32)) {
-                    measure.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
-                    measure.respawn = true;
+                if measure.measure.end != Some(Coord::new(pos.lat as f32, pos.long as f32)) {
+                    measure.measure.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
+                    measure.measure.respawn = true;
                 }
             }
             if buttons.just_released(MouseButton::Left) {
                 let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
+                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), tile_map_manager.chunk_manager.refrence_long_lat, tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size);
 
-                measure.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
-                measure.respawn = true;
+                measure.measure.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
+                measure.measure.respawn = true;
             }
             if buttons.pressed(MouseButton::Right) {
-                measure.start = None;
-                measure.end = None;
-                measure.respawn = true;
+                measure.measure.start = None;
+                measure.measure.end = None;
+                measure.measure.respawn = true;
             }
         }
     }
@@ -110,22 +100,22 @@ struct MeasureTextTranslation;
 #[derive(Component)]
 struct MeasureText;
 
-
+// Find a way to reduce this by say using a ParamSet
+#[allow(clippy::too_many_arguments)]
 fn render_measure(
     mut commands: Commands,
     mut measure_query: Query<(Entity, &MeasureMarker)>,
-    text_query: Query<(Entity, &MeasureTextTranslation)>,
     mut text_trans: Query<&mut Transform, (With<Text2d>, With<MeasureTextTranslation>)>,
     mut measure_length: Query<&mut TextSpan, With<MeasureText>>,
-    zoom_manager: Res<ZoomManager>,
-    chunk_manager: Res<ChunkManager>,
-    mut measure: ResMut<Measure>,
+    mut tool_res: ResMut<ToolResources>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    asset_server: Res<AssetServer>
+    asset_server: Res<AssetServer>,
+    text_query: Query<(Entity, &MeasureTextTranslation)>,
+    tile_map_manager: Res<TileMapResources>,
 ) {
-    if measure.respawn {
-        measure.respawn = false;
+    if tool_res.measure.respawn {
+        tool_res.measure.respawn = false;
 
         let fill_color = Srgba { red: 0.75, green: 0., blue: 0., alpha: 1. };
         let line_width = 2.5;
@@ -136,19 +126,19 @@ fn render_measure(
         } 
 
         if let Ok((entity, _text)) = text_query.get_single() {
-            if measure.start.is_none() && measure.end.is_none() {
+            if tool_res.measure.start.is_none() && tool_res.measure.end.is_none() {
                 commands.entity(entity).despawn_recursive();
             } else {
                 for mut transform in &mut text_trans {
                     let points: Vec<Vec2> = vec![
-                        measure.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into()),
-                        measure.end.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into()),
+                        tool_res.measure.start.unwrap().to_game_coords(tile_map_manager.chunk_manager.refrence_long_lat, tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size.into()),
+                        tool_res.measure.end.unwrap().to_game_coords(tile_map_manager.chunk_manager.refrence_long_lat, tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size.into()),
                     ];
                     let direction = points[1] - points[0];
                     
                     let mut  angle = direction.y.atan2(direction.x);
-                    if angle > 1.5 || angle < -1.6 {
-                        angle -= 3.14;
+                    if !(-1.6..=1.5).contains(&angle) {
+                        angle -= PI;
                     }
 
                     let midpoint = Vec3::new(
@@ -157,7 +147,7 @@ fn render_measure(
                         elevation
                     );
 
-                    let distance = measure.start.unwrap().distance(&measure.end.unwrap());
+                    let distance = tool_res.measure.start.unwrap().distance(&tool_res.measure.end.unwrap());
                     for mut span in &mut measure_length {
                         **span = format!("{:.5} {:?}", distance.0, distance.1);
                     }
@@ -166,16 +156,16 @@ fn render_measure(
                     transform.rotation = Quat::from_rotation_z(angle);
                 };
             }
-        } else if measure.start.is_some() && measure.end.is_some() {
+        } else if tool_res.measure.start.is_some() && tool_res.measure.end.is_some() {
             let points: Vec<Vec2> = vec![
-                measure.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into()),
-                measure.end.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into()),
+                tool_res.measure.start.unwrap().to_game_coords(tile_map_manager.chunk_manager.refrence_long_lat, tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size.into()),
+                tool_res.measure.end.unwrap().to_game_coords(tile_map_manager.chunk_manager.refrence_long_lat, tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size.into()),
             ];
             let direction = points[1] - points[0];
             
             let mut  angle = direction.y.atan2(direction.x);
-            if angle > 1.5 || angle < -1.6 {
-                angle -= 3.14;
+            if !(-1.6..=1.5).contains(&angle) {
+                angle -= PI;
             }
 
             let midpoint = Vec3::new(
@@ -206,10 +196,10 @@ fn render_measure(
                 MeasureText,));
         }
 
-        if measure.start.is_some() && measure.end.is_some() {
+        if tool_res.measure.start.is_some() && tool_res.measure.end.is_some() {
             let points: Vec<Vec2> = vec![
-                measure.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into()),
-                measure.end.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into()),
+                tool_res.measure.start.unwrap().to_game_coords(tile_map_manager.chunk_manager.refrence_long_lat, tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size.into()),
+                tool_res.measure.end.unwrap().to_game_coords(tile_map_manager.chunk_manager.refrence_long_lat, tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size.into()),
             ];
             let direction = points[1] - points[0];
             

@@ -1,15 +1,14 @@
-use std::default;
+use bevy::{prelude::*, winit::{UpdateMode, WinitSettings}};
 
-use bevy::{
-    input::mouse::MouseWheel, prelude::*, winit::{UpdateMode, WinitSettings}
-};
 use bevy_egui::EguiPlugin;
 use bevy_prototype_lyon::plugin::ShapePlugin;
 use camera::CameraSystemPlugin;
+use debug::DebugPlugin;
 use geojson::RenderPlugin;
 use interaction::InteractionSystemPlugin;
 use overpass::OverpassPlugin;
 use settings::SettingsPlugin;
+use tiles::TileMapPlugin;
 use tools::ToolsPlugin;
 use types::Coord;
 
@@ -37,7 +36,9 @@ fn main() {
             }),
             ..Default::default()
         }))
+        .add_plugins(DebugPlugin)
         .add_plugins(EguiPlugin)
+        .add_plugins(TileMapPlugin)
         .insert_resource(EguiBlockInputState::default())
         .add_plugins((CameraSystemPlugin, InteractionSystemPlugin, ShapePlugin))
         .insert_resource(WinitSettings {
@@ -73,9 +74,5 @@ fn absorb_egui_inputs(
     mut state: ResMut<EguiBlockInputState>,
 ) {
     let ctx = contexts.ctx_mut();
-    if (ctx.wants_pointer_input() || ctx.is_pointer_over_area()) {
-        state.block_input = true;
-    } else {
-        state.block_input = false;
-    }
+    state.block_input = ctx.wants_pointer_input() || ctx.is_pointer_over_area();
 }

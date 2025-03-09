@@ -33,7 +33,7 @@ pub fn debug_draw_fps(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         Node {
             position_type: PositionType::Absolute,
-            top: Val::Px(5.0),
+            top: Val::Px(150.0),
             right: Val::Px(5.0),
             ..default()
         },
@@ -80,7 +80,7 @@ pub fn debug_draw_entity_no(mut commands: Commands, asset_server: Res<AssetServe
         },
         Node {
             position_type: PositionType::Absolute,
-            bottom: Val::Px(5.0),
+            bottom: Val::Px(150.0),
             right: Val::Px(5.0),
             ..default()
         },

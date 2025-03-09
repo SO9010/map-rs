@@ -4,7 +4,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
 use crossbeam_channel::{bounded, Receiver};
 
-use crate::{camera::camera_space_to_lat_long_rect, geojson::get_data_from_string_osm, tiles::{ChunkManager, ZoomManager}, types::{Coord, MapBundle, MapFeature, SettingsOverlay, WorldSpaceRect}};
+use crate::{camera::camera_space_to_lat_long_rect, geojson::get_data_from_string_osm, tiles::TileMapResources, types::{Coord, MapBundle, MapFeature, SettingsOverlay, WorldSpaceRect}};
 
 pub struct OverpassPlugin;
 
@@ -122,21 +122,26 @@ pub struct OverpassReceiver(Receiver<Vec<MapFeature>>);
 
 pub fn bbox_system(
     mut commands: Commands,
-    query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    camera_query: Query<(&Camera, &GlobalTransform, &OrthographicProjection), With<Camera2d>>,
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
-    ortho_projection_query: Query<&mut OrthographicProjection, With<Camera>>,
     mut map_bundle: ResMut<MapBundle>,
     overpass_settings: ResMut<SettingsOverlay>,
-    zoom_manager: Res<ZoomManager>,
-    chunk_manager: Res<ChunkManager>,
+    tile_map_manager: Res<TileMapResources>,
 ) {
     if map_bundle.get_more_data {
         map_bundle.get_more_data = false;
-        let (_camera, camera_transform) = query.single();
+        
+        let (_camera, camera_transform, projection) = camera_query.single();
         let window = primary_window_query.single();
 
-        if let Some(viewport) = camera_space_to_lat_long_rect(camera_transform, window, ortho_projection_query.single().clone(), zoom_manager.zoom_level, zoom_manager.tile_size, chunk_manager.refrence_long_lat) {
-            // Here we need to go through the bounding boxes and check if we have already gotten this bounding box 
+        if let Some(viewport) = camera_space_to_lat_long_rect(
+            camera_transform, 
+            window, 
+            projection.clone(), 
+            tile_map_manager.zoom_manager.zoom_level, 
+            tile_map_manager.zoom_manager.tile_size, 
+            tile_map_manager.chunk_manager.refrence_long_lat
+        ) {
             let (tx, rx) = bounded::<Vec<MapFeature>>(10);
             let _tx_clone = tx.clone();
             let mut map_bundle_clone = map_bundle.clone();
@@ -167,7 +172,6 @@ pub fn bbox_system(
                 Fill::color(Srgba {red: 0.071, green: 0.071, blue: 0.071, alpha: 1.0 })
             ));
             commands.insert_resource(OverpassReceiver(rx));
-
         }
     }
 }

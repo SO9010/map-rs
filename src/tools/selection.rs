@@ -1,30 +1,29 @@
-use bevy::{math::NormedVectorSpace, prelude::*, window::PrimaryWindow};
+use bevy::{prelude::*, window::PrimaryWindow};
 use rstar::{RTree, RTreeObject, AABB};
-use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
 
-use crate::{tiles::{ChunkManager, ZoomManager}, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState};
+use crate::{tiles::TileMapResources, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState};
+
+use super::ToolResources;
 
 pub struct SelectionPlugin;
 
 impl Plugin for SelectionPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(SelectionSettings::default())
-            .insert_resource(SelectionAreas::new())
-            .add_systems(Update, (render_selection_box, handle_selection));
+        app.add_systems(Update, handle_selection)
+            .add_systems(PostUpdate, render_selection_box);
     }
 }
 
-#[derive(Resource)]
 pub struct SelectionSettings {
-    pub selection_tool_type: SelectionType,
-    pub selection_enabled: bool,
+    pub tool_type: SelectionType,
+    pub enabled: bool,
 } 
 
-impl SelectionSettings {
-    pub fn default() -> Self {
+impl Default for SelectionSettings {
+    fn default() -> Self {
         Self {
-            selection_tool_type: SelectionType::CIRCLE,
-            selection_enabled: true,
+            tool_type: SelectionType::CIRCLE,
+            enabled: true,
         }
     }
 }
@@ -53,7 +52,6 @@ impl SelectionType {
 }
 
 // What we will want to do is have a ui for the selection points. We also want to be able to select it by clicking the edge then we can risize or annotate or change the things.
-#[derive(Resource)]
 pub struct SelectionAreas {
     pub areas: RTree<Selection>,
     unfinished_selection: Option<Selection>,
@@ -161,63 +159,58 @@ impl RTreeObject for Selection {
 }
 
 pub fn handle_selection(
-    mut selections: ResMut<SelectionAreas>,
+    mut tools: ResMut<ToolResources>,
     camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
     buttons: Res<ButtonInput<MouseButton>>,
-    zoom_manager: Res<ZoomManager>,
-    chunk_manager: Res<ChunkManager>,
-    selection_settings: Res<SelectionSettings>,
+    res_manager: ResMut<TileMapResources>,
     state: Res<EguiBlockInputState>,
 ) {
     let (camera, camera_transform) = camera.single();
-    if selection_settings.selection_enabled {
+    if tools.selection_settings.enabled {
         if let Some(position) = q_windows.single().cursor_position() {
             // TODO ADD POLYGON SELECTION
             if buttons.just_pressed(MouseButton::Left) && !state.block_input {
                 let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
+                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size);
 
                 let start = Coord::new(pos.lat as f32, pos.long as f32);
-                selections.unfinished_selection = Some(Selection::new(selection_settings.selection_tool_type.clone(), start, start));
-                selections.respawn = true;
+                tools.selection_areas.unfinished_selection = Some(Selection::new(tools.selection_settings.tool_type.clone(), start, start));
+                tools.selection_areas.respawn = true;
             }
             if buttons.pressed(MouseButton::Left) {
                 let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
+                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size);
 
-                if let Some(selection) = selections.unfinished_selection.as_mut() {
+                if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
                     if selection.end != Some(Coord::new(pos.lat as f32, pos.long as f32)) {
                         selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
-                        selections.respawn = true;
+                        tools.selection_areas.respawn = true;
                     }
                 }
             }
-            if !buttons.pressed(MouseButton::Left) {
-                if selections.unfinished_selection.is_some() {
-                    let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-                    let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
-                    let areas_size = selections.areas.size();
-                    if let Some(selection) = selections.unfinished_selection.as_mut() {
-                    if selection.end != selection.start {
-                        selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
-                        selection.selection_name = format!("{:#?}-{}", selection.selection_type, areas_size);
-                    } else {
-                        selections.unfinished_selection = None;
-                        selections.respawn = true;
-                        return;
-                    }
-                    }
-                    if let Some(selection) = selections.unfinished_selection.take() {
-                        selections.add(selection);
-                    }
-                    selections.respawn = true;
+            if !buttons.pressed(MouseButton::Left) && tools.selection_areas.unfinished_selection.is_some() {
+                let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
+                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size);
+                let areas_size = tools.selection_areas.areas.size();
+                if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
+                if selection.end != selection.start {
+                    selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
+                    selection.selection_name = format!("{:#?}-{}", selection.selection_type, areas_size);
+                } else {
+                    tools.selection_areas.unfinished_selection = None;
+                    tools.selection_areas.respawn = true;
+                    return;
                 }
-
+                }
+                if let Some(selection) = tools.selection_areas.unfinished_selection.take() {
+                    tools.selection_areas.add(selection);
+                }
+                tools.selection_areas.respawn = true;
             }
             if buttons.pressed(MouseButton::Right) {
-                selections.unfinished_selection = None;
-                selections.respawn = true;
+                tools.selection_areas.unfinished_selection = None;
+                tools.selection_areas.respawn = true;
             }
         }
     }
@@ -226,85 +219,98 @@ pub fn handle_selection(
 #[derive(Component)]
 pub struct SelectionMarker;
 
+// TODO: We want to have the currently selected area to be highlighted.
+// We want to darken everything else.
+// We want to have the selected area to be on the side in a bar.
 fn render_selection_box(
-    mut commands: Commands,
-    mut selections: ResMut<SelectionAreas>,
-    selections_query: Query<(Entity, &Transform, &SelectionMarker)>,
-    zoom_manager: Res<ZoomManager>,
-    chunk_manager: Res<ChunkManager>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut gizmos: Gizmos,
+    tools: ResMut<ToolResources>,
+    res_manager: ResMut<TileMapResources>,
 ) {
-    if selections.respawn {
-        selections.respawn = false;
-        for (entity, _, _) in selections_query.iter() {
-            commands.entity(entity).despawn_recursive();
-        }
-
-        let mut batch_commands_closed: Vec<(ShapeBundle, Fill, Stroke, SelectionMarker)> = Vec::new();
-
-        let mut intersection_candidates = selections.areas.clone().into_iter().collect::<Vec<_>>();
-        
-        if selections.unfinished_selection.is_some() {
-            intersection_candidates.push(selections.unfinished_selection.as_ref().unwrap().clone());
-        }
-
-        for feature in intersection_candidates {
-            let fill_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.5 };
-            let stroke_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.75 };
-            let line_width = 5.;
-            let elevation = 10.0;
-
-            let points: Vec<Vec2> = feature.get_in_world_space(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
-            match feature.selection_type {
-                SelectionType::RECTANGLE => {
-                    let midpoint = Vec3::new(
-                        (points[0].x + points[1].x) / 2.0,  // x midpoint
-                        (points[0].y + points[1].y) / 2.0,  // y midpoint
-                        elevation
-                    );
-                    
-                    let width = points[0].x.distance(points[1].x);
-                    let height = points[0].y.distance(points[1].y);
-                    
-                    commands.spawn((
-                        Mesh2d(meshes.add(Rectangle::new(width, height))),
-                        Transform::from_translation(midpoint),
-                        MeshMaterial2d(materials.add(Color::from(fill_color))),
-                        SelectionMarker,
-                    ));
-                },
-                SelectionType::POLYGON => {
-                    let shape = shapes::Polygon {
-                        points: points.clone(),
-                        closed: true,
-                    };
+    let mut intersection_candidates = tools.selection_areas.areas.clone().into_iter().collect::<Vec<_>>();
     
-                    batch_commands_closed.push((
-                        ShapeBundle {
-                            path: GeometryBuilder::build_as(&shape),
-                            transform: Transform::from_xyz(0.0, 0.0, elevation),
-                            ..default()
-                        },
-                        Fill::color(fill_color),
-                        Stroke::new(stroke_color, line_width as f32),
-                        SelectionMarker,
-                    ));
-                },
-                SelectionType::CIRCLE => {
-                    let radius = points[0].distance(points[1]);
-                    
-                    commands.spawn((
-                        Mesh2d(meshes.add(Circle::new(radius))),
-                        Transform::from_translation(points[0].extend(elevation)),
-                        MeshMaterial2d(materials.add(Color::from(fill_color))),
-                        SelectionMarker,
-                    ));
-                },
-                _ => {},
-            }
-        }
+    if tools.selection_areas.unfinished_selection.is_some() {
+        intersection_candidates.push(tools.selection_areas.unfinished_selection.as_ref().unwrap().clone());
+    }
 
-        commands.spawn_batch(batch_commands_closed);
+    let stroke_color = Color::srgba(0.5, 0.5, 0.9, 0.9); // Bright green
+    let elevation = 1100.0; // Keep this slightly above other elements
+
+    for feature in intersection_candidates {
+        let points: Vec<Vec2> = feature.get_in_world_space(
+            res_manager.chunk_manager.refrence_long_lat, 
+            res_manager.zoom_manager.zoom_level, 
+            res_manager.zoom_manager.tile_size.into()
+        );
+
+        match feature.selection_type {
+            SelectionType::RECTANGLE => {
+                // Calculate rectangle corners
+                let min_x = points[0].x.min(points[1].x);
+                let max_x = points[0].x.max(points[1].x);
+                let min_y = points[0].y.min(points[1].y);
+                let max_y = points[0].y.max(points[1].y);
+
+                // Create rectangle corners
+                let corners = [
+                    Vec3::new(min_x, min_y, elevation),
+                    Vec3::new(max_x, min_y, elevation),
+                    Vec3::new(max_x, max_y, elevation),
+                    Vec3::new(min_x, max_y, elevation),
+                ];
+
+                // Draw rectangle
+                gizmos.line_2d(
+                    Vec2::new(corners[0].x, corners[0].y),
+                    Vec2::new(corners[1].x, corners[1].y),
+                    stroke_color
+                );
+                gizmos.line_2d(
+                    Vec2::new(corners[1].x, corners[1].y),
+                    Vec2::new(corners[2].x, corners[2].y),
+                    stroke_color
+                );
+                gizmos.line_2d(
+                    Vec2::new(corners[2].x, corners[2].y),
+                    Vec2::new(corners[3].x, corners[3].y),
+                    stroke_color
+                );
+                gizmos.line_2d(
+                    Vec2::new(corners[3].x, corners[3].y),
+                    Vec2::new(corners[0].x, corners[0].y),
+                    stroke_color
+                );
+            },
+            SelectionType::POLYGON => {
+                // Draw polygon by connecting points
+                if points.len() >= 2 {
+                    for i in 0..points.len() - 1 {
+                        gizmos.line_2d(
+                            points[i],
+                            points[i + 1],
+                            stroke_color
+                        );
+                    }
+                    
+                    // Close the polygon
+                    if points.len() >= 3 {
+                        gizmos.line_2d(
+                            points[points.len() - 1],
+                            points[0],
+                            stroke_color
+                        );
+                    }
+                }
+            },
+            SelectionType::CIRCLE => {
+                // Calculate center and radius
+                let center = points[0];
+                let radius = points[0].distance(points[1]);
+                
+                // Draw circle
+                gizmos.circle_2d(center, radius, stroke_color);
+            },
+            _ => {},
+        }
     }
 }

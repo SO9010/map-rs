@@ -2,22 +2,21 @@ use bevy::{core_pipeline::bloom::Bloom, prelude::*};
 use bevy_pancam::{DirectionKeys, PanCam, PanCamPlugin};
 use rstar::RTree;
 
-use crate::{debug::DebugPlugin, tiles::{Location, OfmTiles, TileMapPlugin}, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
+use crate::{tiles::{OfmTiles, TileMapResources}, tools::ToolResources, types::{world_mercator_to_lat_lon, Coord, MapBundle}, EguiBlockInputState, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
 
 pub struct CameraSystemPlugin;
 
 impl Plugin for CameraSystemPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((PanCamPlugin, TileMapPlugin))
-            .insert_resource(Location::default())
-            .add_plugins(DebugPlugin)
+        app.add_plugins(PanCamPlugin)
             .insert_resource(OfmTiles {
                 tiles: RTree::new(),
                 tiles_to_render: Vec::new(),
             })
+            .insert_resource(CameraPosition::default())
             // This is being allowed, as it can't get the managers and location
             .add_systems(Startup, setup_camera)
-            .add_systems(Update, handle_pancam);
+            .add_systems(Update, (handle_pancam, track_camera_position, camera_change));
     }
 }
 
@@ -64,11 +63,7 @@ fn handle_pancam(
 ) {
     if state.is_changed() {
         for mut pancam in &mut query {
-            if state.block_input {
-                pancam.enabled = false;
-            } else {
-                pancam.enabled = true;
-            }
+            pancam.enabled = !state.block_input;
         }
     }
 }
@@ -109,4 +104,55 @@ pub fn camera_middle_to_lat_long(
 ) -> Coord {
     let camera_translation = transform.translation();
     world_mercator_to_lat_lon(camera_translation.x.into(), camera_translation.y.into(), reference, zoom, quality)
+}
+
+#[derive(Resource, Default)]
+pub struct CameraPosition {
+    pub position: Vec3,
+    pub changed: bool,
+}
+
+fn track_camera_position(
+    camera_query: Query<&GlobalTransform, (With<Camera2d>, Changed<GlobalTransform>)>,
+    mut camera_position: ResMut<CameraPosition>,
+) {
+    camera_position.changed = false;
+    
+    if let Ok(transform) = camera_query.get_single() {
+        let new_position = transform.translation();
+        
+        // Check if position has changed
+        if new_position != camera_position.position {
+            camera_position.position = new_position;
+            camera_position.changed = true;
+        }
+    }
+}
+
+fn camera_change(
+    camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    camera_position: Res<CameraPosition>,
+    mut tile_map_res: ResMut<TileMapResources>,
+    mut map_bundle: ResMut<MapBundle>,
+    mut tools: ResMut<ToolResources>,
+) {
+    if camera_position.is_changed() {
+        let (_, camera_transform) = camera.single();
+        let movement = camera_middle_to_lat_long(camera_transform, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size, tile_map_res.chunk_manager.refrence_long_lat);
+        if movement != tile_map_res.location_manager.location {
+            tile_map_res.location_manager.location = movement;
+
+            if tile_map_res.zoom_manager.zoom_level > 16 {
+                map_bundle.get_more_data = true;
+            }
+   
+            tile_map_res.chunk_manager.update = true;
+        }
+        
+        if tile_map_res.zoom_manager.zoom_level > 16 {
+            map_bundle.get_more_data = true;
+        }
+        map_bundle.respawn = true;
+        tools.respawn();
+    }
 }

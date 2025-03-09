@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy_egui::{egui::{self, Checkbox, RichText}, EguiContexts, EguiPreUpdateSet};
 
 
-use super::ChunkManager;
+use super::TileMapResources;
 
 pub struct TilesUiPlugin;
 
@@ -15,7 +15,7 @@ impl Plugin for TilesUiPlugin {
 }
 
 fn tile_ui(
-    mut chunck_manager: ResMut<ChunkManager>,
+    mut res_manager: ResMut<TileMapResources>,
     mut contexts: EguiContexts,
 ) {
     let ctx = contexts.ctx_mut();
@@ -50,13 +50,13 @@ fn tile_ui(
                         egui::ScrollArea::vertical().show(ui, |ui| {
                             ui.spacing_mut().item_spacing = egui::vec2(8.0, 10.0);
                             ui.set_max_width(tilebox_width);
-                            for (url, (enabled, _)) in &mut chunck_manager.tile_web_origin.clone() {
+                            for (url, (enabled, _)) in &mut res_manager.chunk_manager.tile_web_origin.clone() {
                                 ui.vertical_centered(|ui| {
                                     ui.set_max_width(tilebox_width);
                                     if ui.add_sized(
                                         [tilebox_width - 10., 20.], Checkbox::new(enabled, RichText::new(url.as_str())),
                                     ).clicked() {
-                                        chunck_manager.enable_only_tile_web_origin(url);
+                                        res_manager.chunk_manager.enable_only_tile_web_origin(url);
                                 }
                             });
                         }

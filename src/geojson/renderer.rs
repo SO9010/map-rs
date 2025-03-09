@@ -2,7 +2,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
 use rstar::AABB;
 
-use crate::{camera::camera_space_to_lat_long_rect, tiles::{ChunkManager, ZoomManager}, types::{MapBundle, SettingsOverlay}};
+use crate::{camera::camera_space_to_lat_long_rect, tiles::TileMapResources, types::{MapBundle, SettingsOverlay}};
 
 #[derive(Component)]
 pub struct ShapeMarker;
@@ -11,12 +11,10 @@ pub fn respawn_shapes(
     mut commands: Commands,
     shapes_query: Query<(Entity, &ShapeMarker)>,
     mut map_bundle: ResMut<MapBundle>,
-    zoom_manager: Res<ZoomManager>,
-    chunk_manager: Res<ChunkManager>,
-    mut overpass_settings: ResMut<SettingsOverlay>,
-    camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    tile_map_manager: Res<TileMapResources>,
+    overpass_settings: Res<SettingsOverlay>,
+    camera_query: Query<(&Camera, &GlobalTransform, &OrthographicProjection), With<Camera2d>>,
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
-    query: Query<&mut OrthographicProjection, With<Camera>>,
 ) {
     if map_bundle.respawn {
         map_bundle.respawn = false;
@@ -27,8 +25,8 @@ pub fn respawn_shapes(
         let mut batch_commands_closed: Vec<(ShapeBundle, Fill, Stroke, ShapeMarker)> = Vec::new();
         let mut batch_commands_open: Vec<(ShapeBundle, Stroke, ShapeMarker)> = Vec::new();
         // Determine the viewport bounds
-        let (_, camera_transform) = camera_query.single();
-        let viewport: geo::Rect<f32> = camera_space_to_lat_long_rect(camera_transform, primary_window_query.single(), query.single().clone(), zoom_manager.zoom_level, zoom_manager.tile_size, chunk_manager.refrence_long_lat).unwrap();
+        let (_, camera_transform, zoom) = camera_query.single();
+        let viewport: geo::Rect<f32> = camera_space_to_lat_long_rect(camera_transform, primary_window_query.single(), zoom.clone(), tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size, tile_map_manager.chunk_manager.refrence_long_lat).unwrap();
 
         let viewport_aabb = AABB::from_corners(
             [viewport.min().x as f64, viewport.min().y as f64],
@@ -54,7 +52,7 @@ pub fn respawn_shapes(
                 }
             }
 
-            let mut points = feature.get_in_world_space(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
+            let mut points = feature.get_in_world_space(tile_map_manager.chunk_manager.refrence_long_lat, tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size.into());
 
             points.pop();
 

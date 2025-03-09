@@ -32,8 +32,8 @@ impl RTreeObject for MapFeature {
     }
 }
 
-// Unused but coule be useful in the future
-fn _polygon_area(geometry: &Vec<Vec2>) -> f32 {
+#[allow(dead_code)]
+fn polygon_area(geometry: &[Vec2]) -> f32 {
     let mut area: f32 = 0.0;
     let j = geometry.len() - 1;
     for i in 0..geometry.len() {
