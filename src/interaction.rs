@@ -12,6 +12,7 @@ impl Plugin for InteractionSystemPlugin {
     }
 }
 
+// TODO: Change this all to a on detect camera change. 
 fn handle_mouse(
     buttons: Res<ButtonInput<MouseButton>>,
     camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,

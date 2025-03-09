@@ -100,7 +100,6 @@ fn ui_example_system(
                                             map_bundle.get_more_data = true;
                                         }
                                         if color_edit_button_srgba(ui, clr, Opaque).changed() {
-                                            // TODO: Find a way to not update as soon as it changes but only when the user is done.
                                             map_bundle.respawn = true;
                                         }
                                     });

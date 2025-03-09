@@ -3,7 +3,6 @@ use crate::EguiBlockInputState;
 
 use super::{Measure, MeasurePlugin, PinPlugin, Pins, SelectionPlugin, SelectionSettings, ToolbarUiPlugin};
 
-// TODO: !IMPORTANT! make it so that the clicks dont go through the ui.
 pub struct ToolsPlugin;
 
 impl Plugin for ToolsPlugin {

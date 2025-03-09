@@ -2,9 +2,9 @@ use bevy::{prelude::*, render::camera};
 use bevy_egui::{egui::{self, Color32, RichText}, EguiContexts, EguiPreUpdateSet};
 
 
-use crate::tiles::{ChunkManager, Location, ZoomManager};
+use crate::{tiles::{ChunkManager, Location, ZoomManager}, types::Coord};
 
-use super::{Measure, Pins, SelectionAreas, SelectionSettings};
+use super::{Measure, Pins, SelectionAreas, SelectionSettings, SelectionType};
 
 pub struct ToolbarUiPlugin;
 
@@ -142,14 +142,28 @@ fn tool_actions_ui(
                         let selections_clone: Vec<_> = selections.areas.iter().cloned().collect();
 
                         for selection in selections_clone {
-                            let starting = selection.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
                             ui.vertical_centered(|ui| {
                                 ui.set_max_width(tilebox_width - 10.);
                                 if ui.checkbox(&mut false, RichText::new(selection.selection_name.clone())).clicked() {
                                     location_manager.location = selection.start.unwrap();
-                                    
                                     let mut camera_transform = camera.single_mut().1;
-                                    camera_transform.translation = Vec3::new(starting.x, starting.y, 1.0);                                
+                                    match selection.selection_type {
+                                        SelectionType::RECTANGLE => {
+                                            let starting = selection.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
+                                            let ending = selection.end.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
+                                            camera_transform.translation = Vec3::new(starting.x - ((starting.x - ending.x) / 2.0), starting.y - ((starting.y - ending.y) / 2.0), 1.0);
+                                        }
+                                        SelectionType::POLYGON => {
+                                            let starting = selection.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
+                                            camera_transform.translation = Vec3::new(starting.x, starting.y, 1.0);  
+                                        },
+                                        SelectionType::CIRCLE => {
+                                            let starting = selection.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
+                                            camera_transform.translation = Vec3::new(starting.x, starting.y, 1.0);                                          
+                                        },
+                                        _ => {}
+                                    }
+                              
                                 }
                             });
                         }

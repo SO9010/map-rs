@@ -62,7 +62,6 @@ pub struct ChunkManager {
     pub to_spawn_chunks: HashMap<IVec2, Vec<u8>>, // Store raw image data
     pub update: bool, // Store raw image data
     pub refrence_long_lat: Coord,
-    // Todo: Have a way to store this in a config file.
     pub tile_web_origin: HashMap<String, (bool, TileType)>,
     pub tile_web_origin_changed: bool,
 }

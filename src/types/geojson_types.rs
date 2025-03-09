@@ -50,9 +50,6 @@ pub struct MapBundle {
 
     pub respawn: bool,
     pub get_more_data: bool,
-
-    // TODO REMOVE THIS 
-    pub get_green_data: bool,
 }
 
 impl Default for MapBundle {
@@ -67,9 +64,6 @@ impl MapBundle {
             features: RTree::new(),
             respawn: false,
             get_more_data: false,
-
-            // TODO REMOVE THIS 
-            get_green_data: false,
         }
     }
 }

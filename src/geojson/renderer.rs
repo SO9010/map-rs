@@ -4,10 +4,9 @@ use rstar::AABB;
 
 use crate::{camera::camera_space_to_lat_long_rect, tiles::{ChunkManager, ZoomManager}, types::{MapBundle, SettingsOverlay}};
 
-// TODO: we need to make it so it only renders aproximations when we zoom
 #[derive(Component)]
 pub struct ShapeMarker;
-
+// TODO: Change to a mesh 2d
 pub fn respawn_shapes(
     mut commands: Commands,
     shapes_query: Query<(Entity, &ShapeMarker)>,
