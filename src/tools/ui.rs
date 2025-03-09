@@ -1,6 +1,8 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::camera};
 use bevy_egui::{egui::{self, Color32, RichText}, EguiContexts, EguiPreUpdateSet};
 
+
+use crate::tiles::{ChunkManager, Location, ZoomManager};
 
 use super::{Measure, Pins, SelectionAreas, SelectionSettings};
 
@@ -95,12 +97,13 @@ fn tool_ui(
         });
 }
 
-// Soon make overpass query. Also to view selected points and waypoints. This will be big when this is done.
-// Try and add more apis like weather. We want to be able to add layers.
-
 fn tool_actions_ui(
     mut contexts: EguiContexts,
-    mut selections: ResMut<SelectionAreas>
+    mut selections: ResMut<SelectionAreas>,
+    zoom_manager: Res<ZoomManager>,
+    chunk_manager: Res<ChunkManager>,
+    mut camera: Query<(&Camera, &mut Transform), With<Camera2d>>,
+    mut location_manager: ResMut<Location>,
 ) {
     let ctx = contexts.ctx_mut();
 
@@ -137,12 +140,16 @@ fn tool_actions_ui(
                         ui.set_max_width(available_width);
     
                         let selections_clone: Vec<_> = selections.areas.iter().cloned().collect();
+
                         for selection in selections_clone {
+                            let starting = selection.start.unwrap().to_game_coords(chunk_manager.refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size.into());
                             ui.vertical_centered(|ui| {
                                 ui.set_max_width(tilebox_width - 10.);
                                 if ui.checkbox(&mut false, RichText::new(selection.selection_name.clone())).clicked() {
-                                    selections.areas.remove(&selection);
-                                    selections.respawn = true;
+                                    location_manager.location = selection.start.unwrap();
+                                    
+                                    let mut camera_transform = camera.single_mut().1;
+                                    camera_transform.translation = Vec3::new(starting.x, starting.y, 1.0);                                
                                 }
                             });
                         }
@@ -152,3 +159,6 @@ fn tool_actions_ui(
         });
 
 }
+
+// Soon make overpass query. Also to view selected points and waypoints. This will be big when this is done.
+// Try and add more apis like weather. We want to be able to add layers.
