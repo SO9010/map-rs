@@ -3,6 +3,7 @@ use std::default;
 use bevy::{
     input::mouse::MouseWheel, prelude::*, winit::{UpdateMode, WinitSettings}
 };
+use bevy_egui::EguiPlugin;
 use bevy_prototype_lyon::plugin::ShapePlugin;
 use camera::CameraSystemPlugin;
 use geojson::RenderPlugin;
@@ -36,6 +37,7 @@ fn main() {
             }),
             ..Default::default()
         }))
+        .add_plugins(EguiPlugin)
         .insert_resource(EguiBlockInputState::default())
         .add_plugins((CameraSystemPlugin, InteractionSystemPlugin, ShapePlugin))
         .insert_resource(WinitSettings {
