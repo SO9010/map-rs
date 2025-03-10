@@ -66,12 +66,12 @@ fn tool_ui(
 
                         if ui.add_sized(
                             [64.0, 30.0], 
-                            button_selected(tools.selection_settings.enabled, "Select")
+                            button_selected(tools.selection_settings.enabled, "Workspace")
                         ).clicked() {
                             if tools.selection_settings.enabled {
                                 tools.selection_settings.tool_type.iterate();
                             }
-                            tools.select_tool("selection");
+                            tools.select_tool("workspace");
                         }
                         if ui.add_sized(
                             [64.0, 30.0], 

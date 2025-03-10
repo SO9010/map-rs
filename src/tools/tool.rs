@@ -21,7 +21,7 @@ impl ToolResources {
 
     pub fn select_tool(&mut self, tool: &str) {
         match tool {
-            "selection" => {
+            "workspace" => {
                 self.selection_settings.enabled = true;
                 self.measure.disable();
                 self.pins.enabled = false;
@@ -67,7 +67,7 @@ fn handle_tool_keybinds(
             if tools.selection_settings.enabled {
                 tools.selection_settings.tool_type.iterate();
             }
-            tools.select_tool("selection");
+            tools.select_tool("workspace");
         }
         if keys.just_pressed(KeyCode::KeyM) {
             tools.select_tool("measure");

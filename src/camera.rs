@@ -142,6 +142,7 @@ fn camera_change(
                 map_bundle.get_more_data = true;
             }
    
+            map_bundle.respawn = true;
             tile_map_res.chunk_manager.update = true;
             tools.respawn();
         }
