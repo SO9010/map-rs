@@ -178,7 +178,6 @@ pub fn handle_selection(
     let (camera, camera_transform) = camera.single();
     if tools.selection_settings.enabled {
         if let Some(position) = q_windows.single().cursor_position() {
-            // TODO ADD POLYGON SELECTION
             if buttons.just_pressed(MouseButton::Left) && !state.block_input {
                 let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
                 let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size);
@@ -217,7 +216,6 @@ pub fn handle_selection(
                 let areas_size = tools.selection_areas.areas.size();
 
                 if tools.selection_settings.tool_type != SelectionType::POLYGON {
-
                     if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
                         if selection.end != selection.start {
                             selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
