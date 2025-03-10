@@ -34,6 +34,8 @@ impl Default for SelectionSettings {
 /// For example someone should be able to select an eare for turbo overpass data to be downloaded. 
 /// Or this area can be selected to modify how the map looks in that area.
 /// Or this will be used for the user to select their work space area, with in this the data will be permentanly stored and the user can modify it.
+/// When someone selects something it would be cool to make it sticky so someone has to pull further than a certian amount to leave the workspace.
+/// We could use some movment smoothing.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SelectionType {
     NONE,
