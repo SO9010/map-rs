@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder};
+use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::{tess::geom::euclid::default, GeometryBuilder}};
 use rstar::{RTree, RTreeObject, AABB};
 
 use crate::{tiles::TileMapResources, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState};
@@ -57,6 +57,7 @@ impl SelectionType {
 
 // What we will want to do is have a ui for the selection points. We also want to be able to select it by clicking the edge then we can risize or annotate or change the things.
 pub struct SelectionAreas {
+    pub focused_selection: Option<Selection>,
     pub areas: RTree<Selection>,
     unfinished_selection: Option<Selection>,
     pub respawn: bool,
@@ -71,6 +72,7 @@ impl Default for SelectionAreas {
 impl SelectionAreas {
     pub fn new() -> Self {
         Self { 
+            focused_selection: None,
             areas: RTree::new(),
             unfinished_selection: None,
             respawn: false

@@ -94,7 +94,7 @@ fn workspace_actions_ui(
     mut tile_map_res: ResMut<TileMapResources>,
     mut contexts: EguiContexts,
     mut camera: Query<(&Camera, &mut Transform), With<Camera2d>>,
-    tools: Res<ToolResources>,
+    mut tools: ResMut<ToolResources>,
 ) {
     let ctx = contexts.ctx_mut();
 
@@ -106,6 +106,8 @@ fn workspace_actions_ui(
         screen_rect.width() - 210., 
         10.0
     );
+    
+    let mut camera_transform = camera.single_mut().1;
     
     egui::Area::new("Workspace".into())
         .fixed_pos(tilebox_pos)
@@ -128,6 +130,48 @@ fn workspace_actions_ui(
 
                     ui.vertical_centered(|ui| {
                         ui.add(egui::Label::new(RichText::new("Workspaces").color(Color32::WHITE)));
+                        ui.separator();
+                        
+                        if let Some(focused_selection) = &tools.selection_areas.focused_selection {
+                            if ui.button(RichText::new(focused_selection.selection_name.clone())).clicked() {
+                                match focused_selection.selection_type {
+                                    SelectionType::RECTANGLE => {
+                                        let starting = focused_selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                        let ending = focused_selection.end.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                        let movement = Coord::new(starting.x - ((starting.x - ending.x) / 2.0), starting.y - ((starting.y - ending.y) / 2.0));
+                                        camera_transform.translation = movement.to_vec2().extend(1.0);
+                                    }
+                                    SelectionType::POLYGON => {
+                                        let mut min = [f64::MAX, f64::MAX];
+                                        let mut max = [f64::MIN, f64::MIN];
+                                        for point in focused_selection.points.as_ref().unwrap() {
+                                            if point.long < min[0] as f32 {
+                                                min[0] = point.long as f64 ;
+                                            }
+                                            if point.lat < min[1] as f32 {
+                                                min[1] = point.lat as f64;
+                                            }
+                                            if point.long > max[0] as f32 {
+                                                max[0] = point.long as f64;
+                                            }
+                                            if point.lat > max[1] as f32 {
+                                                max[1] = point.lat as f64;
+                                            }
+                                        }
+                                        let center = AABB::from_corners(min, max).center().to_vec();
+                                        let movement = Coord::new(center[1] as f32, center[0] as f32).to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                        camera_transform.translation = movement.extend(1.0);
+                                    },
+                                    SelectionType::CIRCLE => {
+                                        let starting = focused_selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                        camera_transform.translation = Vec3::new(starting.x, starting.y, 1.0);                                          
+                                    },
+                                    _ => {}
+                                }
+                            }
+                        }
+                        ui.separator();
+
                     });
 
                     egui::ScrollArea::vertical().show(ui, |ui| {
@@ -140,9 +184,13 @@ fn workspace_actions_ui(
                         for selection in selections_clone {
                             ui.vertical_centered(|ui| {
                                 ui.set_max_width(tilebox_width - 10.);
-                                if ui.checkbox(&mut false, RichText::new(selection.selection_name.clone())).clicked() {
+                                let mut enabled = false;
+                                if tools.selection_areas.focused_selection.is_some() && tools.selection_areas.focused_selection.as_ref().unwrap().selection_name == selection.selection_name {
+                                    enabled = true;
+                                }
+                                if ui.checkbox(&mut enabled, RichText::new(selection.selection_name.clone())).clicked() {
                                     tile_map_res.location_manager.location = selection.start.unwrap_or_default();
-                                    let mut camera_transform = camera.single_mut().1;
+                                    tools.selection_areas.focused_selection = Some(selection.clone());
                                     match selection.selection_type {
                                         SelectionType::RECTANGLE => {
                                             let starting = selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
