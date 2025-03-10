@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_egui::{egui::{self, Color32, RichText}, EguiContexts, EguiPreUpdateSet};
+use rstar::{Envelope, AABB};
 
 
 use crate::{tiles::TileMapResources, types::Coord};
@@ -140,7 +141,7 @@ fn workspace_actions_ui(
                             ui.vertical_centered(|ui| {
                                 ui.set_max_width(tilebox_width - 10.);
                                 if ui.checkbox(&mut false, RichText::new(selection.selection_name.clone())).clicked() {
-                                    tile_map_res.location_manager.location = selection.start.unwrap();
+                                    tile_map_res.location_manager.location = selection.start.unwrap_or_default();
                                     let mut camera_transform = camera.single_mut().1;
                                     match selection.selection_type {
                                         SelectionType::RECTANGLE => {
@@ -150,8 +151,25 @@ fn workspace_actions_ui(
                                             camera_transform.translation = movement.to_vec2().extend(1.0);
                                         }
                                         SelectionType::POLYGON => {
-                                            let starting = selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
-                                            camera_transform.translation = Vec3::new(starting.x, starting.y, 1.0);  
+                                            let mut min = [f64::MAX, f64::MAX];
+                                            let mut max = [f64::MIN, f64::MIN];
+                                            for point in selection.points.as_ref().unwrap() {
+                                                if point.long < min[0] as f32 {
+                                                    min[0] = point.long as f64 ;
+                                                }
+                                                if point.lat < min[1] as f32 {
+                                                    min[1] = point.lat as f64;
+                                                }
+                                                if point.long > max[0] as f32 {
+                                                    max[0] = point.long as f64;
+                                                }
+                                                if point.lat > max[1] as f32 {
+                                                    max[1] = point.lat as f64;
+                                                }
+                                            }
+                                            let center = AABB::from_corners(min, max).center().to_vec();
+                                            let movement = Coord::new(center[1] as f32, center[0] as f32).to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                            camera_transform.translation = movement.extend(1.0);
                                         },
                                         SelectionType::CIRCLE => {
                                             let starting = selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());

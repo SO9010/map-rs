@@ -121,10 +121,19 @@ impl Selection {
             points: None,
         }
     }
+
+    pub fn new_poly(selection_type: SelectionType, start: Coord) -> Self {
+        Self {
+            selection_name: format!("{:#?}-{:#?}", selection_type, start),
+            selection_type,
+            start: None,
+            end: None,
+            points: Some(vec![start]),
+        }
+    }
 }
 
 /// These implementations are for the RTreeObject trait.
-// TODO: Hmm find out how to do the polygon selection properly.
 impl RTreeObject for Selection {
     type Envelope = AABB<[f64; 2]>;
     
@@ -133,27 +142,23 @@ impl RTreeObject for Selection {
             SelectionType::RECTANGLE => AABB::from_corners([self.start.unwrap().long, self.start.unwrap().lat], [self.end.unwrap().long, self.end.unwrap().lat]),
             SelectionType::CIRCLE => AABB::from_corners([self.start.unwrap().long, self.start.unwrap().lat], [self.end.unwrap().long, self.end.unwrap().lat]),
             SelectionType::POLYGON => {
-                /*
-                    let mut min = [f64::MAX, f64::MAX];
-                    let mut max = [f64::MIN, f64::MIN];
-                    for point in self.points.as_ref().unwrap() {
-                        if point.long < min[0] as f32 {
-                            min[0] = point.long as f64 ;
-                        }
-                        if point.lat < min[1] as f32 {
-                            min[1] = point.lat as f64;
-                        }
-                        if point.long > max[0] as f32 {
-                            max[0] = point.long as f64;
-                        }
-                        if point.lat > max[1] as f32 {
-                            max[1] = point.lat as f64;
-                        }
+                let mut min = [f64::MAX, f64::MAX];
+                let mut max = [f64::MIN, f64::MIN];
+                for point in self.points.as_ref().unwrap() {
+                    if point.long < min[0] as f32 {
+                        min[0] = point.long as f64 ;
                     }
-                    return AABB::from_corners(min, max);
-                
-                */
-                AABB::from_corners([self.start.unwrap().long, self.start.unwrap().lat], [self.end.unwrap().long, self.end.unwrap().lat])
+                    if point.lat < min[1] as f32 {
+                        min[1] = point.lat as f64;
+                    }
+                    if point.long > max[0] as f32 {
+                        max[0] = point.long as f64;
+                    }
+                    if point.lat > max[1] as f32 {
+                        max[1] = point.lat as f64;
+                    }
+                }
+                return AABB::from_corners(min, max);
             },
             _ => AABB::from_corners([0.0, 0.0], [0.0, 0.0]),
         };
@@ -168,6 +173,7 @@ pub fn handle_selection(
     buttons: Res<ButtonInput<MouseButton>>,
     res_manager: ResMut<TileMapResources>,
     state: Res<EguiBlockInputState>,
+    keys: Res<ButtonInput<KeyCode>>,
 ) {
     let (camera, camera_transform) = camera.single();
     if tools.selection_settings.enabled {
@@ -177,18 +183,31 @@ pub fn handle_selection(
                 let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
                 let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size);
 
-                let start = Coord::new(pos.lat as f32, pos.long as f32);
-                tools.selection_areas.unfinished_selection = Some(Selection::new(tools.selection_settings.tool_type.clone(), start, start));
-                tools.selection_areas.respawn = true;
+                let point = Coord::new(pos.lat as f32, pos.long as f32);
+
+                if tools.selection_settings.tool_type == SelectionType::POLYGON {
+                    if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
+                        selection.points.as_mut().unwrap().push(point);
+                        tools.selection_areas.respawn = true;
+                    } else {
+                        tools.selection_areas.unfinished_selection = Some(Selection::new_poly(tools.selection_settings.tool_type.clone(), point));
+                        tools.selection_areas.respawn = true;
+                    }
+                } else {
+                    tools.selection_areas.unfinished_selection = Some(Selection::new(tools.selection_settings.tool_type.clone(), point, point));
+                    tools.selection_areas.respawn = true;
+                }
             }
             if buttons.pressed(MouseButton::Left) {
                 let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
                 let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size);
 
-                if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
-                    if selection.end != Some(Coord::new(pos.lat as f32, pos.long as f32)) {
-                        selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
-                        tools.selection_areas.respawn = true;
+                if tools.selection_settings.tool_type != SelectionType::POLYGON {
+                    if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
+                        if selection.end != Some(Coord::new(pos.lat as f32, pos.long as f32)) {
+                            selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
+                            tools.selection_areas.respawn = true;
+                        }
                     }
                 }
             }
@@ -197,24 +216,34 @@ pub fn handle_selection(
                 let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size);
                 let areas_size = tools.selection_areas.areas.size();
 
-                if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
-                    if selection.end != selection.start {
-                        selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
-                        selection.selection_name = format!("{:#?}-{}", selection.selection_type, areas_size);
-                    } else {
-                        tools.selection_areas.unfinished_selection = None;
-                        tools.selection_areas.respawn = true;
-                        return;
+                if tools.selection_settings.tool_type != SelectionType::POLYGON {
+
+                    if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
+                        if selection.end != selection.start {
+                            selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
+                            selection.selection_name = format!("{:#?}-{}", selection.selection_type, areas_size);
+                        } else {
+                            tools.selection_areas.unfinished_selection = None;
+                            tools.selection_areas.respawn = true;
+                            return;
+                        }
                     }
+                    if let Some(selection) = tools.selection_areas.unfinished_selection.take() {
+                        tools.selection_areas.add(selection);
+                    }
+                    tools.selection_areas.respawn = true;
                 }
-                if let Some(selection) = tools.selection_areas.unfinished_selection.take() {
-                    tools.selection_areas.add(selection);
-                }
-                tools.selection_areas.respawn = true;
             }
             if buttons.pressed(MouseButton::Right) {
                 tools.selection_areas.unfinished_selection = None;
                 tools.selection_areas.respawn = true;
+            }
+            if keys.just_pressed(KeyCode::Enter) {
+                if tools.selection_settings.tool_type == SelectionType::POLYGON {
+                    if let Some(selection) = tools.selection_areas.unfinished_selection.take() {
+                        tools.selection_areas.add(selection);
+                    }
+                }
             }
         }
     }
