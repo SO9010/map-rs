@@ -143,6 +143,7 @@ fn camera_change(
             }
    
             tile_map_res.chunk_manager.update = true;
+            tools.respawn();
         }
     }
     // TODO: Fix issue when the zoom level changes very quickly, it moves up.

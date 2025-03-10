@@ -5,7 +5,6 @@ use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, pr
 use rstar::{RTree, RTreeObject, AABB};
 
 use crate::{tiles::TileMapResources, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState};
-
 use super::ToolResources;
 
 pub struct SelectionPlugin;
@@ -125,6 +124,7 @@ impl Selection {
 }
 
 /// These implementations are for the RTreeObject trait.
+// TODO: Hmm find out how to do the polygon selection properly.
 impl RTreeObject for Selection {
     type Envelope = AABB<[f64; 2]>;
     
@@ -196,15 +196,16 @@ pub fn handle_selection(
                 let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
                 let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size);
                 let areas_size = tools.selection_areas.areas.size();
+
                 if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
-                if selection.end != selection.start {
-                    selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
-                    selection.selection_name = format!("{:#?}-{}", selection.selection_type, areas_size);
-                } else {
-                    tools.selection_areas.unfinished_selection = None;
-                    tools.selection_areas.respawn = true;
-                    return;
-                }
+                    if selection.end != selection.start {
+                        selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
+                        selection.selection_name = format!("{:#?}-{}", selection.selection_type, areas_size);
+                    } else {
+                        tools.selection_areas.unfinished_selection = None;
+                        tools.selection_areas.respawn = true;
+                        return;
+                    }
                 }
                 if let Some(selection) = tools.selection_areas.unfinished_selection.take() {
                     tools.selection_areas.add(selection);
