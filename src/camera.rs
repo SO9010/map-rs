@@ -137,10 +137,6 @@ fn camera_change(
         let movement = camera_middle_to_lat_long(camera_transform, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size, tile_map_res.chunk_manager.refrence_long_lat);
         if movement != tile_map_res.location_manager.location {
             tile_map_res.location_manager.location = movement;
-
-            if tile_map_res.zoom_manager.zoom_level > 16 {
-                map_bundle.get_more_data = true;
-            }
    
             map_bundle.respawn = true;
             tile_map_res.chunk_manager.update = true;

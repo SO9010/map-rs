@@ -1,5 +1,5 @@
 use std::io::{BufRead, BufReader, Read};
-
+// TODO: FIX THIS AS IT WILL CONSTANTLY REQUEST  NEW DATA
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
 use crossbeam_channel::{bounded, Receiver};
