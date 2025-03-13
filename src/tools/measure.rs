@@ -149,7 +149,7 @@ fn render_measure(
 
                     let distance = tool_res.measure.start.unwrap().distance(&tool_res.measure.end.unwrap());
                     for mut span in &mut measure_length {
-                        **span = format!("{:.5} {:?}", distance.0, distance.1);
+                        **span = format!("{:.3} {:?}", distance.0, distance.1);
                     }
 
                     transform.translation = midpoint;

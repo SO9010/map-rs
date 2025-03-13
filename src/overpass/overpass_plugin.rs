@@ -4,14 +4,16 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
 use crossbeam_channel::{bounded, Receiver};
 
-use crate::{camera::camera_space_to_lat_long_rect, geojson::get_data_from_string_osm, tiles::TileMapResources, types::{Coord, MapBundle, MapFeature, SettingsOverlay, WorldSpaceRect}};
+use crate::{camera::camera_space_to_lat_long_rect, geojson::get_data_from_string_osm, tiles::TileMapResources, tools::{Selection, SelectionType, ToolResources}, types::{Coord, MapBundle, MapFeature, SettingsOverlay, WorldSpaceRect}};
+
+use super::{OverpassReceiver, OverpassWorkerPlugin};
 
 pub struct OverpassPlugin;
 
 impl Plugin for OverpassPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(MapBundle::new())
-            .add_systems(Update, bbox_system)
+            .add_plugins(OverpassWorkerPlugin)
             .add_systems(FixedUpdate, read_overpass_receiver);
     }
 }
@@ -50,6 +52,77 @@ fn build_overpass_query(bounds: Vec<WorldSpaceRect>, overpass_settings: &mut Set
     query
 }
 
+pub fn build_overpass_query_string(bounds: String, overpass_settings: &mut SettingsOverlay) -> String {
+    let mut query = String::default();
+    let opening = "[out:json];";
+    let closing = "\nout body geom;";
+
+    for (category, key) in overpass_settings.get_true_keys_with_category() {
+            if key == "n/a" {
+                continue;
+            } else if key == "*" {
+                query.push_str(&format!(r#"
+                (
+                way["{}"]({bounds}); 
+                );
+                "#, category.to_lowercase()));
+            } else {
+                query.push_str(&format!(r#"
+                (
+                way["{}"="{}"]({bounds}); 
+                );
+                "#, category.to_lowercase(), key.to_lowercase()));
+            }
+        }
+
+    if !query.is_empty() {
+        query.insert_str(0, opening);
+        query.push_str(closing);
+    } else {
+        return "ERR".to_string();
+    }
+    query
+}
+
+
+pub fn get_overpass_query(selection: Selection, overpass_settings: &mut SettingsOverlay) -> String {
+    let mut bounds: String = String::default();
+    if selection.points.is_some() {
+        if selection.selection_type == SelectionType::POLYGON {
+            let points_string = selection.points.unwrap().iter().map(|point| {
+                format!("{} {}", point.lat, point.long)
+            }).collect::<Vec<String>>().join(" ");
+            bounds = format!("poly:\"{}\"", points_string);
+        }
+    } else if selection.start.is_some() && selection.end.is_some() {
+        match selection.selection_type {
+            SelectionType::RECTANGLE => {
+                let start = selection.start.unwrap();
+                let end = selection.end.unwrap();
+                bounds = format!(
+                    "poly:\"{} {} {} {} {} {} {} {}\"", 
+                    start.lat, start.long,
+                    start.lat, end.long,
+                    end.lat, end.long,
+                    end.lat, start.long
+                );       
+            },
+            SelectionType::CIRCLE => {
+                let start = selection.start.unwrap();
+                let end = selection.end.unwrap();
+                bounds = format!("around:{}, {}, {}", start.distance(&end).0, start.lat, start.long);
+            }
+            _ => {}
+        }
+    }
+
+    let query = build_overpass_query_string(bounds, overpass_settings);
+    if query != "ERR" {
+        return query;
+    } 
+    "ERR".to_string()
+}
+
 pub fn get_overpass_data(bounds: Vec<WorldSpaceRect>, map_bundle: &mut MapBundle, overpass_settings: &mut SettingsOverlay,
 ) -> Vec<MapFeature>  {
     if bounds.is_empty() {
@@ -58,15 +131,14 @@ pub fn get_overpass_data(bounds: Vec<WorldSpaceRect>, map_bundle: &mut MapBundle
     let query = build_overpass_query(bounds, overpass_settings);
     if query != "ERR" {
         info!("Sending query: {}", query);
-        let result = send_overpass_query(query, map_bundle);
+        let result = send_overpass_query(query);
         info!("Got {} features", result.len());
         return result;
     } 
     vec![]
 }
 
-fn send_overpass_query(query: String, map_bundle: &mut MapBundle,
-) -> Vec<MapFeature> {
+pub fn send_overpass_query(query: String) -> Vec<MapFeature> {
     if query.is_empty() {
         return vec![];
     }
@@ -76,6 +148,8 @@ fn send_overpass_query(query: String, map_bundle: &mut MapBundle,
     while status == 429 {
         if let Ok(response) = ureq::post(url).send_string(&query) {
             if response.status() == 200 {
+                info!("asdd");
+
                 let reader: BufReader<Box<dyn Read + Send + Sync>> = BufReader::new(response.into_reader());
             
                 let mut response_body = String::default();
@@ -90,18 +164,9 @@ fn send_overpass_query(query: String, map_bundle: &mut MapBundle,
                     }
                 }
     
-                let map_features = map_bundle.features.clone();
                 let features = get_data_from_string_osm(&response_body);
                 if features.is_ok() {
-                    let new_features: Vec<_> = features.unwrap()
-                    .into_iter()
-                    .filter(|feature| {
-                        !map_features
-                            .iter()
-                            .any(|existing| existing.id.contains(&feature.id))
-                    })
-                    .collect();
-                    return new_features
+                    return features.unwrap();
                 } else {
                     info!("Error parsing response: {:?}", features.err());
                 }
@@ -115,65 +180,6 @@ fn send_overpass_query(query: String, map_bundle: &mut MapBundle,
         }
     }
     vec![]
-}
-
-#[derive(Resource, Deref)]
-pub struct OverpassReceiver(Receiver<Vec<MapFeature>>);
-
-pub fn bbox_system(
-    mut commands: Commands,
-    camera_query: Query<(&Camera, &GlobalTransform, &OrthographicProjection), With<Camera2d>>,
-    primary_window_query: Query<&Window, With<PrimaryWindow>>,
-    mut map_bundle: ResMut<MapBundle>,
-    overpass_settings: ResMut<SettingsOverlay>,
-    tile_map_manager: Res<TileMapResources>,
-) {
-    if map_bundle.get_more_data {
-        map_bundle.get_more_data = false;
-        
-        let (_camera, camera_transform, projection) = camera_query.single();
-        let window = primary_window_query.single();
-
-        if let Some(viewport) = camera_space_to_lat_long_rect(
-            camera_transform, 
-            window, 
-            projection.clone(), 
-            tile_map_manager.zoom_manager.zoom_level, 
-            tile_map_manager.zoom_manager.tile_size, 
-            tile_map_manager.chunk_manager.refrence_long_lat
-        ) {
-            let (tx, rx) = bounded::<Vec<MapFeature>>(10);
-            let _tx_clone = tx.clone();
-            let mut map_bundle_clone = map_bundle.clone();
-            let mut overpass_settings_clone = overpass_settings.clone();
-            let converted_rect = WorldSpaceRect {
-                top_left: Coord::new(viewport.max().x, viewport.max().y),
-                bottom_right: Coord::new(viewport.min().x, viewport.min().y),
-            };
-            std::thread::spawn(move || {
-                let _ = tx.send(get_overpass_data(vec![converted_rect], &mut map_bundle_clone, &mut overpass_settings_clone));
-            });
-
-            let shape = shapes::RoundedPolygon {
-                points: vec![
-                    Vec2::new(viewport.min().x, viewport.max().y),
-                    Vec2::new(viewport.max().x, viewport.max().y),
-                    Vec2::new(viewport.max().x, viewport.min().y),
-                    Vec2::new(viewport.min().x, viewport.min().y),
-                ],
-                radius: 25.0,
-                closed: true,
-            };
-            commands.spawn((ShapeBundle {
-                path: GeometryBuilder::build_as(&shape),
-                transform: Transform::from_xyz(0.0, 0.0, -0.1),
-                ..default()
-            },
-                Fill::color(Srgba {red: 0.071, green: 0.071, blue: 0.071, alpha: 1.0 })
-            ));
-            commands.insert_resource(OverpassReceiver(rx));
-        }
-    }
 }
 
 pub fn read_overpass_receiver(
