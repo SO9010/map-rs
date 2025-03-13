@@ -6,7 +6,8 @@ use crate::{camera::camera_space_to_lat_long_rect, tiles::TileMapResources, type
 
 #[derive(Component)]
 pub struct ShapeMarker;
-// TODO: Change to a mesh 2d
+// TODO: Change to a mesh 2d]
+// We need to find a way to render it with each different part having its own settings. I recon we could possibly add the data as a child or refrence to the selection? So for the selection we have selection settigns.
 pub fn respawn_shapes(
     mut commands: Commands,
     shapes_query: Query<(Entity, &ShapeMarker)>,

@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::{tess::geom::euclid::default, GeometryBuilder}};
+use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder};
 use rstar::{RTree, RTreeObject, AABB};
 
 use crate::{tiles::TileMapResources, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState};
@@ -240,11 +240,9 @@ pub fn handle_selection(
                 tools.selection_areas.unfinished_selection = None;
                 tools.selection_areas.respawn = true;
             }
-            if keys.just_pressed(KeyCode::Enter) {
-                if tools.selection_settings.tool_type == SelectionType::POLYGON {
-                    if let Some(selection) = tools.selection_areas.unfinished_selection.take() {
-                        tools.selection_areas.add(selection);
-                    }
+            if keys.just_pressed(KeyCode::Enter) && tools.selection_settings.tool_type == SelectionType::POLYGON {
+                if let Some(selection) = tools.selection_areas.unfinished_selection.take() {
+                    tools.selection_areas.add(selection);
                 }
             }
         }

@@ -12,7 +12,6 @@ use super::{get_overpass_query, send_overpass_query};
 #[derive(Resource)]
 pub struct OverpassWorker {
     pending_requests: Arc<Mutex<Vec<OverpassRequest>>>,
-    active: bool,
     max_concurrent: usize,
     active_tasks: Arc<Mutex<usize>>,
 }
@@ -30,7 +29,6 @@ impl OverpassWorker {
     pub fn new(max_workers: usize) -> Self {
         OverpassWorker {
             pending_requests: Arc::new(Mutex::new(Vec::new())),
-            active: true,
             max_concurrent: max_workers,
             active_tasks: Arc::new(Mutex::new(0)),
         }
@@ -107,7 +105,7 @@ pub fn process_requests(
 #[derive(Component)]
 struct TaskComponent(Task<()>);
 
-pub fn cleanup_tasks(
+fn cleanup_tasks(
     mut commands: Commands,
     mut tasks: Query<(Entity, &mut TaskComponent)>,
 ) {

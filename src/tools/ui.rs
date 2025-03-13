@@ -96,7 +96,7 @@ fn workspace_actions_ui(
     mut camera: Query<(&Camera, &mut Transform), With<Camera2d>>,
     mut tools: ResMut<ToolResources>,
     worker: Res<OverpassWorker>,
-    mut overpass_settings: ResMut<SettingsOverlay>,
+    overpass_settings: Res<SettingsOverlay>,
     mut commands: Commands,
 ) {
     let ctx = contexts.ctx_mut();
@@ -171,7 +171,7 @@ fn workspace_actions_ui(
                                     },
                                     _ => {}
                                 }
-                                
+
                                 let rx = worker.queue_request(
                                     focused_selection.clone(),
                                     overpass_settings.clone()

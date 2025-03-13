@@ -1,55 +1,18 @@
 use std::io::{BufRead, BufReader, Read};
-// TODO: FIX THIS AS IT WILL CONSTANTLY REQUEST  NEW DATA
-use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
-use crossbeam_channel::{bounded, Receiver};
+use bevy::prelude::*;
 
-use crate::{camera::camera_space_to_lat_long_rect, geojson::get_data_from_string_osm, tiles::TileMapResources, tools::{Selection, SelectionType, ToolResources}, types::{Coord, MapBundle, MapFeature, SettingsOverlay, WorldSpaceRect}};
+use crate::{geojson::get_data_from_string_osm, tools::{Selection, SelectionType}, types::{DistanceType, MapBundle, MapFeature, SettingsOverlay}};
 
 use super::{OverpassReceiver, OverpassWorkerPlugin};
 
 pub struct OverpassPlugin;
-
+// TODO: Fix requests for routes.
 impl Plugin for OverpassPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(MapBundle::new())
             .add_plugins(OverpassWorkerPlugin)
             .add_systems(FixedUpdate, read_overpass_receiver);
     }
-}
-
-fn build_overpass_query(bounds: Vec<WorldSpaceRect>, overpass_settings: &mut SettingsOverlay) -> String {
-    let mut query = String::default();
-    let opening = "[out:json];(";
-    let closing = ");(._;>;);\nout body geom;";
-
-    for bound in bounds {
-        for (category, key) in overpass_settings.get_true_keys_with_category() {
-            if key == "n/a" {
-                continue;
-            } else if key == "*" {
-                query.push_str(&format!(r#"
-                (
-                way["{}"]({},{},{},{}); 
-                );
-                "#, category.to_lowercase(), bound.bottom_right.lat, bound.bottom_right.long, bound.top_left.lat, bound.top_left.long));
-            } else {
-                query.push_str(&format!(r#"
-                (
-                way["{}"="{}"]({},{},{},{}); 
-                );
-                "#, category.to_lowercase(), key.to_lowercase(), bound.bottom_right.lat, bound.bottom_right.long, bound.top_left.lat, bound.top_left.long));
-            }
-        }
-    }
-
-    if !query.is_empty() {
-        query.insert_str(0, opening);
-        query.push_str(closing);
-    } else {
-        return "ERR".to_string();
-    }
-    query
 }
 
 pub fn build_overpass_query_string(bounds: String, overpass_settings: &mut SettingsOverlay) -> String {
@@ -110,7 +73,13 @@ pub fn get_overpass_query(selection: Selection, overpass_settings: &mut Settings
             SelectionType::CIRCLE => {
                 let start = selection.start.unwrap();
                 let end = selection.end.unwrap();
-                bounds = format!("around:{}, {}, {}", start.distance(&end).0, start.lat, start.long);
+                let (mut dist, dist_type) = start.distance(&end);
+                match dist_type {
+                    DistanceType::Km => dist *= 1000.0,
+                    DistanceType::M => {},
+                    DistanceType::CM => dist /= 100.0,
+                }
+                bounds = format!("around:{}, {}, {}", dist, start.lat, start.long);
             }
             _ => {}
         }
@@ -121,21 +90,6 @@ pub fn get_overpass_query(selection: Selection, overpass_settings: &mut Settings
         return query;
     } 
     "ERR".to_string()
-}
-
-pub fn get_overpass_data(bounds: Vec<WorldSpaceRect>, map_bundle: &mut MapBundle, overpass_settings: &mut SettingsOverlay,
-) -> Vec<MapFeature>  {
-    if bounds.is_empty() {
-        return vec![];
-    }
-    let query = build_overpass_query(bounds, overpass_settings);
-    if query != "ERR" {
-        info!("Sending query: {}", query);
-        let result = send_overpass_query(query);
-        info!("Got {} features", result.len());
-        return result;
-    } 
-    vec![]
 }
 
 pub fn send_overpass_query(query: String) -> Vec<MapFeature> {
@@ -165,8 +119,8 @@ pub fn send_overpass_query(query: String) -> Vec<MapFeature> {
                 }
     
                 let features = get_data_from_string_osm(&response_body);
-                if features.is_ok() {
-                    return features.unwrap();
+                if let Ok(features) = features {
+                    return features;
                 } else {
                     info!("Error parsing response: {:?}", features.err());
                 }
