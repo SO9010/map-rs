@@ -114,6 +114,39 @@ impl Coord {
     }
 }
 
+impl std::ops::Div for Coord {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        Coord {
+            lat: self.lat / rhs.lat,
+            long: self.long / rhs.long,
+        }
+    }
+}
+
+impl std::ops::Sub for Coord {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Coord {
+            lat: self.lat - rhs.lat,
+            long: self.long - rhs.long,
+        }
+    }
+}
+
+impl std::ops::Add for Coord {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Coord {
+            lat: self.lat + rhs.lat,
+            long: self.long + rhs.long,
+        }
+    }
+}
+
 impl SubAssign for Coord {
     fn sub_assign(&mut self, rhs: Self) {
         self.lat -= rhs.lat;

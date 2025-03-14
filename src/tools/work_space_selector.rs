@@ -143,8 +143,21 @@ impl RTreeObject for Selection {
     
     fn envelope(&self) -> Self::Envelope {
         match self.selection_type {
-            SelectionType::RECTANGLE => AABB::from_corners([self.start.unwrap().long, self.start.unwrap().lat], [self.end.unwrap().long, self.end.unwrap().lat]),
-            SelectionType::CIRCLE => AABB::from_corners([self.start.unwrap().long, self.start.unwrap().lat], [self.end.unwrap().long, self.end.unwrap().lat]),
+            SelectionType::RECTANGLE => return AABB::from_corners([self.start.unwrap().lat.into(), self.start.unwrap().long as f64], [self.end.unwrap().lat as f64, self.end.unwrap().long as f64]),
+            SelectionType::CIRCLE => {
+                if let (Some(center), Some(edge)) = (self.start, self.end) {
+                    let radius = center.to_vec2().distance(edge.to_vec2());
+                    
+                    let lat_radius = radius as f64;  // Approximation - adjust if needed
+                    let long_radius = radius as f64;
+                    
+                    return AABB::from_corners(
+                        [center.lat as f64 - lat_radius, center.long as f64 - long_radius],
+                        [center.lat as f64 + lat_radius, center.long as f64 + long_radius]
+                    );
+                }
+                return AABB::from_corners([0.0, 0.0], [0.0, 0.0]);
+            },
             SelectionType::POLYGON => {
                 let mut min = [f64::MAX, f64::MAX];
                 let mut max = [f64::MIN, f64::MIN];
@@ -369,9 +382,13 @@ fn render_darkening_overlay(
         for entity in overlay_query.iter() {
             commands.entity(entity).despawn();
         }
+
+        let mut intersection_candidates: Vec<Selection> = Vec::new();
     
-        let mut intersection_candidates = tools.selection_areas.areas.clone().into_iter().collect::<Vec<_>>();
-        
+        if let Some(selection_areas) = tools.selection_areas.focused_selection.clone() {
+            intersection_candidates.push(selection_areas);
+        }
+
         if tools.selection_areas.unfinished_selection.is_some() {
             intersection_candidates.push(tools.selection_areas.unfinished_selection.as_ref().unwrap().clone());
         }

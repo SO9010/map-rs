@@ -40,7 +40,6 @@ pub struct TileMapResources {
 #[derive(Debug, Clone)]
 pub struct ZoomManager {
     pub zoom_level: u32,
-    pub last_zoom_level: u32,
     pub last_projection_level: f32,
     pub tile_size: f32,
     zoom_level_changed: bool,
@@ -51,7 +50,6 @@ impl Default for ZoomManager {
     fn default() -> Self {
         Self {
             zoom_level: 14,
-            last_zoom_level: 0,
             last_projection_level: 0.0,
             tile_size: TILE_QUALITY as f32,
             zoom_level_changed: false
@@ -162,7 +160,6 @@ fn detect_zoom_level(
             if projection.scale != res_manager.zoom_manager.last_projection_level && !state.block_input {
                 res_manager.zoom_manager.last_projection_level = projection.scale;
                 if projection.scale > 1. && projection.scale != 0. && res_manager.zoom_manager.zoom_level > 3 {
-                    res_manager.zoom_manager.last_zoom_level = res_manager.zoom_manager.zoom_level;
                     res_manager.zoom_manager.zoom_level -= 1;
 
                     despawn_all_chunks(commands, chunk_query);
@@ -177,7 +174,6 @@ fn detect_zoom_level(
                     projection.scale = 1.0;
                     
                 } else if projection.scale < 1.0 && projection.scale != 0. && res_manager.zoom_manager.zoom_level < 19 {
-                    res_manager.zoom_manager.last_zoom_level = res_manager.zoom_manager.zoom_level;
                     res_manager.zoom_manager.zoom_level += 1;
 
                     despawn_all_chunks(commands, chunk_query);
@@ -199,6 +195,8 @@ fn detect_zoom_level(
                 res_manager.chunk_manager.spawned_chunks.clear();
                 res_manager.chunk_manager.to_spawn_chunks.clear();
                 res_manager.chunk_manager.update = true;
+            } else {
+                res_manager.zoom_manager.zoom_level_changed = false;
             }
         }
     }
