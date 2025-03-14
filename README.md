@@ -36,7 +36,7 @@ A fast, open-source GIS tool for urban planning, spatial analysis, and geospatia
 
 ### **Building from Source**  
 ```sh
-git clone https://github.com/yourusername/gis-app.git
+https://github.com/SO9010/map-rs.git
 cd gis-app
 cargo run
 ```
@@ -66,4 +66,4 @@ Contributions are welcome! Feel free to fork the repository, submit issues, or s
 ---
 
 ## **License**  
-[MIT License](LICENSE)  
+[Apache 2.0 License](LICENSE)  
