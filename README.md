@@ -17,7 +17,7 @@ A fast, open-source GIS tool for urban planning, spatial analysis, and geospatia
 - Measure areas, distances, and proximity between features.  
 - Overlay datasets such as solar potential, pollution, or transit accessibility.  
 
-### **🛠️ Workspace & Project Management**  
+### **🛠️ Workspace & Project Management**  *(Next working on)*
 - Save and load workspaces with selected areas and layers.  
 - Export workspaces for future analysis or collaboration.  
 
@@ -31,12 +31,10 @@ A fast, open-source GIS tool for urban planning, spatial analysis, and geospatia
 ## **Installation** *(WIP - Currently for Developers Only)*  
 ### **Prerequisites**  
 - **Rust** (for compiling the app).  
-- **Bevy** (for rendering and UI).  
-- **bevy_ecs_tilemap** (for vector tiles and map rendering).  
 
 ### **Building from Source**  
 ```sh
-git clone https://github.com/yourusername/gis-app.git
+https://github.com/SO9010/map-rs.git
 cd gis-app
 cargo run
 ```
@@ -66,4 +64,4 @@ Contributions are welcome! Feel free to fork the repository, submit issues, or s
 ---
 
 ## **License**  
-[MIT License](LICENSE)  
+[Apache 2.0 License](LICENSE)  
