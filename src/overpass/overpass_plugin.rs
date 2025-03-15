@@ -6,7 +6,7 @@ use crate::{geojson::get_data_from_string_osm, tools::{Selection, SelectionType}
 use super::{OverpassReceiver, OverpassWorkerPlugin};
 
 pub struct OverpassPlugin;
-// TODO: Fix requests for routes.
+// TODO: Fix requests for routes, relations and points. THESE ARE A MATTER OF PRIORITY!
 impl Plugin for OverpassPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(MapBundle::new())
@@ -26,13 +26,13 @@ pub fn build_overpass_query_string(bounds: String, overpass_settings: &mut Setti
             } else if key == "*" {
                 query.push_str(&format!(r#"
                 (
-                way["{}"]({bounds}); 
+                relation["{}"]({bounds}); 
                 );
                 "#, category.to_lowercase()));
             } else {
                 query.push_str(&format!(r#"
                 (
-                way["{}"="{}"]({bounds}); 
+                relation["{}"="{}"]({bounds}); 
                 );
                 "#, category.to_lowercase(), key.to_lowercase()));
             }
