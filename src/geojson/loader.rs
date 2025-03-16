@@ -25,6 +25,7 @@ pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn s
             });
         }
     }
+
     Ok(features)
 }
 
@@ -152,6 +153,7 @@ struct Section {
     pub lon: Option<f64>,
     pub tags: Option<serde_json::Value>,
     pub bounds: Option<Bounds>,
+    pub members: Option<Vec<Member>>,
     #[serde(default)]
     pub nodes: Vec<i64>,
     #[serde(default)]
@@ -166,4 +168,15 @@ struct Bounds {
     pub minlon: f64,
     pub maxlat: f64,
     pub maxlon: f64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Member {
+    #[serde(rename = "type")]
+    pub type_field: String,
+    #[serde(rename = "ref")]
+    pub ref_field: i64,
+    pub role: String,
+    pub geometry: Vec<Coord>,
 }

@@ -26,15 +26,19 @@ pub fn build_overpass_query_string(bounds: String, overpass_settings: &mut Setti
             } else if key == "*" {
                 query.push_str(&format!(r#"
                 (
+                way["{}"]({bounds}); 
+                node["{}"]({bounds}); 
                 relation["{}"]({bounds}); 
                 );
-                "#, category.to_lowercase()));
+                "#, category.to_lowercase(), category.to_lowercase(), category.to_lowercase()));
             } else {
                 query.push_str(&format!(r#"
                 (
+                way["{}"="{}"]({bounds}); 
+                node["{}"="{}"]({bounds}); 
                 relation["{}"="{}"]({bounds}); 
                 );
-                "#, category.to_lowercase(), key.to_lowercase()));
+                "#, category.to_lowercase(), key.to_lowercase(), category.to_lowercase(), key.to_lowercase(), category.to_lowercase(), key.to_lowercase()));
             }
         }
 
