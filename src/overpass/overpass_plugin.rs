@@ -106,8 +106,6 @@ pub fn send_overpass_query(query: String) -> Vec<MapFeature> {
     while status == 429 {
         if let Ok(response) = ureq::post(url).send_string(&query) {
             if response.status() == 200 {
-                info!("asdd");
-
                 let reader: BufReader<Box<dyn Read + Send + Sync>> = BufReader::new(response.into_reader());
             
                 let mut response_body = String::default();

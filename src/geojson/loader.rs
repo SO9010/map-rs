@@ -14,16 +14,33 @@ pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn s
     let mut features = Vec::new();
 
     for way in response.elements {
-        let geometry = way.geometry;
-        if !geometry.is_empty() {
+        if let Some(members) = way.members {
+            for member in members {
+                let tags = way.tags.clone().unwrap_or_default();
+                if let Some(geo) = member.geometry {
+                    info!("{:?}", tags);
+                    features.push(MapFeature {
+                        id: way.id.to_string(),
+                        properties: tags.clone(),
+                        closed: !geo.is_empty() && geo.first() == geo.last(),
+                        geometry: geo::Polygon::new(geo::LineString(geo.into_iter().map(|p| geo::Coord { x: p.lat as f64, y: p.long as f64 }).collect()), vec![]),
+                    });
+                }
+            }
+            continue;
+        }
+
+        /* 
+        if let Some(geo) = way.geometry {
             let tags = way.tags.unwrap_or_default();
             features.push(MapFeature {
                 id: way.id.to_string(),
                 properties: tags.clone(),
-                closed: !geometry.is_empty() && geometry.first() == geometry.last(),
-                geometry: geo::Polygon::new(geo::LineString(geometry.into_iter().map(|p| geo::Coord { x: p.lat as f64, y: p.long as f64 }).collect()), vec![]),
+                closed: !geo.is_empty() && geo.first() == geo.last(),
+                geometry: geo::Polygon::new(geo::LineString(geo.into_iter().map(|p| geo::Coord { x: p.lat as f64, y: p.long as f64 }).collect()), vec![]),
             });
         }
+        */
     }
 
     Ok(features)
@@ -153,11 +170,12 @@ struct Section {
     pub lon: Option<f64>,
     pub tags: Option<serde_json::Value>,
     pub bounds: Option<Bounds>,
+    #[serde(default)]
     pub members: Option<Vec<Member>>,
     #[serde(default)]
-    pub nodes: Vec<i64>,
+    pub nodes: Option<Vec<i64>>,
     #[serde(default)]
-    pub geometry: Vec<Coord>,
+    pub geometry: Option<Vec<Coord>>,
 }
 
 
@@ -178,5 +196,5 @@ pub struct Member {
     #[serde(rename = "ref")]
     pub ref_field: i64,
     pub role: String,
-    pub geometry: Vec<Coord>,
+    pub geometry: Option<Vec<Coord>>,
 }

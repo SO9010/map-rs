@@ -28,8 +28,6 @@ pub fn respawn_shapes(
         let mut intersection_candidates: Vec<&crate::types::MapFeature> = Vec::new();
         if let Some(selection) = &tools.selection_areas.focused_selection {
             intersection_candidates = map_bundle.features.locate_in_envelope_intersecting(&selection.envelope()).collect::<Vec<_>>();
-            info!("{:?}", selection.envelope());
-            info!("Found {} intersection candidates", intersection_candidates.len());
         }
 
         for feature in intersection_candidates {
