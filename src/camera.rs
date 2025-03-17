@@ -98,6 +98,7 @@ pub fn camera_middle_to_lat_long(
     quality: f32,
     reference: Coord,
 ) -> Coord {
+    info!("dsaasd");
     let camera_translation = transform.translation();
     world_mercator_to_lat_lon(camera_translation.x.into(), camera_translation.y.into(), reference, zoom, quality)
 }
@@ -132,8 +133,8 @@ fn camera_change(
     mut map_bundle: ResMut<MapBundle>,
     mut tools: ResMut<ToolResources>,
 ) {
-    if camera_position.is_changed() {
-        let (_, camera_transform) = camera.single();
+    let (_, camera_transform) = camera.single();
+    if camera_position.changed {
         let movement = camera_middle_to_lat_long(camera_transform, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size, tile_map_res.chunk_manager.refrence_long_lat);
         if movement != tile_map_res.location_manager.location {
             tile_map_res.location_manager.location = movement;
