@@ -14,6 +14,7 @@ pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn s
     let mut features = Vec::new();
 
     for way in response.elements {
+        /* 
         if let Some(members) = way.members {
             for member in members {
                 let tags = way.tags.clone().unwrap_or_default();
@@ -30,7 +31,7 @@ pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn s
             continue;
         }
 
-        /* 
+        */
         if let Some(geo) = way.geometry {
             let tags = way.tags.unwrap_or_default();
             features.push(MapFeature {
@@ -40,7 +41,6 @@ pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn s
                 geometry: geo::Polygon::new(geo::LineString(geo.into_iter().map(|p| geo::Coord { x: p.lat as f64, y: p.long as f64 }).collect()), vec![]),
             });
         }
-        */
     }
 
     Ok(features)

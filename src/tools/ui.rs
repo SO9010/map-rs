@@ -3,7 +3,7 @@ use bevy_egui::{egui::{self, Color32, RichText}, EguiContexts, EguiPreUpdateSet}
 use rstar::{Envelope, AABB};
 
 
-use crate::{overpass::OverpassWorker, overpass::worker::OverpassReceiver, tiles::TileMapResources, types::{Coord, SettingsOverlay}};
+use crate::{overpass::{worker::OverpassReceiver, OverpassWorker}, tiles::TileMapResources, types::{Coord, MapBundle, SettingsOverlay}};
 
 use super::{SelectionType, ToolResources};
 
@@ -97,6 +97,7 @@ fn workspace_actions_ui(
     mut tools: ResMut<ToolResources>,
     worker: Res<OverpassWorker>,
     overpass_settings: Res<SettingsOverlay>,
+    mut map_bundle: ResMut<MapBundle>,
     mut commands: Commands,
 ) {
     let ctx = contexts.ctx_mut();
@@ -167,7 +168,7 @@ fn workspace_actions_ui(
                                     },
                                     SelectionType::CIRCLE => {
                                         let starting = focused_selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
-                                        camera_transform.translation = Vec3::new(starting.x, starting.y, 1.0);                                          
+                                        camera_transform.translation = Vec3::new(starting.x, starting.y, 1.0);            
                                     },
                                     _ => {}
                                 }
@@ -176,6 +177,8 @@ fn workspace_actions_ui(
                                     focused_selection.clone(),
                                     overpass_settings.clone()
                                 );
+                                tools.selection_areas.respawn = true;
+                                map_bundle.respawn = true;
                                 
                                 commands.insert_resource(OverpassReceiver(rx));
                             }
@@ -235,7 +238,8 @@ fn workspace_actions_ui(
                                         },
                                         _ => {}
                                     }
-                              
+                                    tools.selection_areas.respawn = true;
+                                    map_bundle.respawn = true;
                                 }
                             });
                         }
