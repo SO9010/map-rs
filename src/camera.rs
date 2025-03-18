@@ -153,7 +153,6 @@ fn camera_change(
     }
     // TODO: Fix issue when the zoom level changes very quickly, it moves up.
     if tile_map_res.zoom_manager.has_changed() {
-        info!("uhhh");
         if tile_map_res.zoom_manager.zoom_level > 16 {
             map_bundle.get_more_data = true;
         } else {
