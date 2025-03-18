@@ -68,6 +68,16 @@ fn handle_pancam(
     }
 }
 
+/// Returns width and height of the camera rectangle
+pub fn camera_rect(    
+    window: &Window,
+    projection: OrthographicProjection,
+) -> (f32, f32) {
+    let window_width = window.width() * projection.scale; 
+    let window_height = window.height() * projection.scale;
+    (window_width, window_height)
+}
+
 pub fn camera_space_to_lat_long_rect(
     transform: &GlobalTransform,
     window: &Window,
@@ -143,6 +153,7 @@ fn camera_change(
     }
     // TODO: Fix issue when the zoom level changes very quickly, it moves up.
     if tile_map_res.zoom_manager.has_changed() {
+        info!("uhhh");
         if tile_map_res.zoom_manager.zoom_level > 16 {
             map_bundle.get_more_data = true;
         } else {

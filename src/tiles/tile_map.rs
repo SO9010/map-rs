@@ -1,11 +1,11 @@
 use std::thread;
 
 // Thank you for the example: https://github.com/StarArawn/bevy_ecs_tilemap/blob/main/examples/chunking.rs
-use bevy::{prelude::*, utils::{HashMap, HashSet}};
+use bevy::{input::mouse::MouseWheel, prelude::*, utils::{HashMap, HashSet}, window::PrimaryWindow};
 use bevy_ecs_tilemap::{map::{TilemapGridSize, TilemapId, TilemapTexture, TilemapTileSize}, tiles::{TileBundle, TilePos, TileStorage}, TilemapBundle, TilemapPlugin};
 use crossbeam_channel::{bounded, Receiver, Sender};
 
-use crate::{types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
+use crate::{camera::camera_rect, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState, STARTING_DISPLACEMENT, STARTING_LONG_LAT, TILE_QUALITY};
 use super::ui::TilesUiPlugin;
 #[allow(unused_imports)]
 use super::{buffer_to_bevy_image, get_mvt_data, get_rasta_data};
@@ -23,9 +23,10 @@ impl Plugin for TileMapPlugin {
             .insert_resource(ChunkSender(tx))
             .add_plugins(TilemapPlugin)
             .insert_resource(TileMapResources::default())
+            .insert_resource(Clean::default())
             .add_systems(FixedUpdate, (spawn_chunks_around_camera, spawn_to_needed_chunks))
             .add_systems(Update, detect_zoom_level)
-            .add_systems(FixedUpdate, (despawn_outofrange_chunks, read_tile_map_receiver))
+            .add_systems(FixedUpdate, (despawn_outofrange_chunks, read_tile_map_receiver, clean_tile_map).chain())
             .add_plugins(TilesUiPlugin);
     }
 }
@@ -50,7 +51,7 @@ impl Default for ZoomManager {
     fn default() -> Self {
         Self {
             zoom_level: 14,
-            last_projection_level: 0.0,
+            last_projection_level: 1.0,
             tile_size: TILE_QUALITY as f32,
             zoom_level_changed: false
         }
@@ -147,57 +148,66 @@ impl Default for Location {
     }
 }
 
+#[derive(Resource, Clone, Default)]
+struct Clean {
+    clean: bool,
+}
+
+fn clean_tile_map(
+    mut res_manager: ResMut<TileMapResources>,
+    mut commands: Commands,
+    chunk_query: Query<(Entity, &TileMarker)>,
+    mut clean: ResMut<Clean>,
+) {
+    if clean.clean {
+        clean.clean = false;
+        despawn_all_chunks(commands, chunk_query);
+        res_manager.chunk_manager.spawned_chunks.clear();
+        res_manager.chunk_manager.to_spawn_chunks.clear();
+    }
+}
+
 fn detect_zoom_level(
     mut res_manager: ResMut<TileMapResources>,
     mut ortho_projection_query: Query<&mut OrthographicProjection, With<Camera>>,
     mut camera_query: Query<&mut Transform, With<Camera>>,
-    commands: Commands,
-    chunk_query: Query<(Entity, &TileMarker)>,
     state: Res<EguiBlockInputState>,
+    q_windows: Query<&Window, With<PrimaryWindow>>,
+    evr_scroll: EventReader<MouseWheel>,
+    mut clean: ResMut<Clean>,
 ) {
-    if let Ok(mut projection) = ortho_projection_query.get_single_mut() {
-        if let Ok(mut camera) = camera_query.get_single_mut() {
-            if projection.scale != res_manager.zoom_manager.last_projection_level && !state.block_input {
-                res_manager.zoom_manager.last_projection_level = projection.scale;
-                if projection.scale > 1. && projection.scale != 0. && res_manager.zoom_manager.zoom_level > 3 {
-                    res_manager.zoom_manager.zoom_level -= 1;
+    if let (Ok(mut projection), Ok(mut camera)) = ( ortho_projection_query.get_single_mut(), camera_query.get_single_mut()) {            
+        if projection.scale != res_manager.zoom_manager.last_projection_level && !state.block_input && !evr_scroll.is_empty()  {
+            let width = camera_rect(q_windows.single(), projection.clone()).0 / res_manager.zoom_manager.tile_size as f32;
 
-                    despawn_all_chunks(commands, chunk_query);
-                    res_manager.chunk_manager.spawned_chunks.clear();
-                    res_manager.chunk_manager.to_spawn_chunks.clear();
+            if width > 7. && res_manager.zoom_manager.zoom_level > 3{
+                res_manager.zoom_manager.zoom_level -= 1;
 
-                    // This ensures that the tile size stays correct
-                    res_manager.chunk_manager.refrence_long_lat *= Coord {lat: 2., long: 2.};
-
-                    camera.translation = res_manager.location_manager.location.to_game_coords(res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size.into()).extend(1.0);
-                    res_manager.zoom_manager.zoom_level_changed = true;
-                    projection.scale = 1.0;
-                    
-                } else if projection.scale < 1.0 && projection.scale != 0. && res_manager.zoom_manager.zoom_level < 19 {
-                    res_manager.zoom_manager.zoom_level += 1;
-
-                    despawn_all_chunks(commands, chunk_query);
-                    res_manager.chunk_manager.spawned_chunks.clear();
-                    res_manager.chunk_manager.to_spawn_chunks.clear();
-                    res_manager.zoom_manager.zoom_level_changed = true;
-
-                    // This ensures that the tile size stays correct
-                    res_manager.chunk_manager.refrence_long_lat /= Coord {lat: 2., long: 2.};
-                    
-                    camera.translation = res_manager.location_manager.location.to_game_coords(res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size.into()).extend(1.0);
-
-                    projection.scale = 1.0;
-                }
+                // This ensures that the tile size stays correct
+                res_manager.chunk_manager.refrence_long_lat *= Coord {lat: 2., long: 2.};
+                camera.translation = res_manager.location_manager.location.to_game_coords(res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size.into()).extend(1.0);
+                res_manager.zoom_manager.zoom_level_changed = true;
+                projection.scale = 1.0;
                 res_manager.chunk_manager.update = true;
+                clean.clean = true;
+            } else if width < 3. && res_manager.zoom_manager.zoom_level < 20 {
+                res_manager.zoom_manager.zoom_level += 1;
+
+                // This ensures that the tile size stays correct
+                res_manager.chunk_manager.refrence_long_lat /= Coord {lat: 2., long: 2.};
+                res_manager.zoom_manager.zoom_level_changed = true;
+                camera.translation = res_manager.location_manager.location.to_game_coords(res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size.into()).extend(1.0);
+
+                projection.scale = 1.0;
+                res_manager.chunk_manager.update = true;
+                clean.clean = true;
             } else if res_manager.chunk_manager.tile_web_origin_changed {
                 res_manager.chunk_manager.tile_web_origin_changed = false;
-                despawn_all_chunks(commands, chunk_query);
-                res_manager.chunk_manager.spawned_chunks.clear();
-                res_manager.chunk_manager.to_spawn_chunks.clear();
                 res_manager.chunk_manager.update = true;
-            } else {
-                res_manager.zoom_manager.zoom_level_changed = false;
+                clean.clean = true;
             }
+        } else {
+            res_manager.zoom_manager.zoom_level_changed = false;
         }
     }
 }
