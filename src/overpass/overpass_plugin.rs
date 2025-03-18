@@ -104,9 +104,10 @@ pub fn send_overpass_query(query: String) -> Vec<MapFeature> {
     // let url = "http://localhost:12345/api/interpreter";
     let mut status = 429;
     while status == 429 {
-        if let Ok(response) = ureq::post(url).send_string(&query) {
+        if let Ok(mut response) = ureq::post(url)
+        .send(&query) {
             if response.status() == 200 {
-                let reader: BufReader<Box<dyn Read + Send + Sync>> = BufReader::new(response.into_reader());
+                let reader: BufReader<Box<dyn Read + Send + Sync>> = BufReader::new(Box::new(response.body_mut().as_reader()));
             
                 let mut response_body = String::default();
                 // Accumulate chunks into a single string

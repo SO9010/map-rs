@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{fs, io::{BufReader, Read}, path::Path};
 
 use bevy::{asset::RenderAssetUsages, ecs::system::Resource, image::Image, render::render_resource::{Extent3d, TextureDimension, TextureFormat}};
 use mvt_reader::Reader;
@@ -104,10 +104,10 @@ fn send_image_tile_request(x: u64, y: u64, zoom: u64, url: String) -> Vec<u8> {
     // If not in cache, fetch from the network
     let mut status = 429;
     while status == 429 {
-        if let Ok(response) = ureq::get(&req).call() {
+        if let Ok(mut response) = ureq::get(&req).call() {
             // info!("{}", format!("{}/{}/{}/{}.png", url, zoom, x, y));
             if response.status() == 200 {
-                let mut reader = response.into_reader();
+                let mut reader: BufReader<Box<dyn Read + Send + Sync>> = BufReader::new(Box::new(response.body_mut().as_reader()));
                 let mut bytes = Vec::new();
                 reader.read_to_end(&mut bytes).expect("Failed to read bytes from response");
 
@@ -145,9 +145,9 @@ fn send_vector_request(x: u64, y: u64, zoom: u64, url: String) -> Vec<u8> {
     // If not in cache, fetch from the network
     let mut status = 429;
     while status == 429 {
-        if let Ok(response) = ureq::get(format!("{}/{}/{}/{}.pbf", url, zoom, x, y).as_str()).call() {
+        if let Ok(mut response) = ureq::get(format!("{}/{}/{}/{}.pbf", url, zoom, x, y).as_str()).call() {
             if response.status() == 200 {
-                let mut reader = response.into_reader();
+                let mut reader: BufReader<Box<dyn Read + Send + Sync>> = BufReader::new(Box::new(response.body_mut().as_reader()));
                 let mut bytes = Vec::new();
                 reader.read_to_end(&mut bytes).expect("Failed to read bytes from response");
 

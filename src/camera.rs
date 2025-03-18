@@ -98,7 +98,6 @@ pub fn camera_middle_to_lat_long(
     quality: f32,
     reference: Coord,
 ) -> Coord {
-    info!("dsaasd");
     let camera_translation = transform.translation();
     world_mercator_to_lat_lon(camera_translation.x.into(), camera_translation.y.into(), reference, zoom, quality)
 }
