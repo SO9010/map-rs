@@ -179,8 +179,7 @@ fn detect_zoom_level(
     if let (Ok(mut projection), Ok(mut camera)) = ( ortho_projection_query.get_single_mut(), camera_query.get_single_mut()) {            
         if projection.scale != res_manager.zoom_manager.last_projection_level && !state.block_input && !evr_scroll.is_empty()  {
             let width = camera_rect(q_windows.single(), projection.clone()).0 / res_manager.zoom_manager.tile_size as f32;
-
-            if width > 7. && res_manager.zoom_manager.zoom_level > 3{
+            if width > 6.5 && res_manager.zoom_manager.zoom_level > 3 {
                 res_manager.zoom_manager.zoom_level -= 1;
 
                 // This ensures that the tile size stays correct
@@ -190,7 +189,7 @@ fn detect_zoom_level(
                 projection.scale = 1.0;
                 res_manager.chunk_manager.update = true;
                 clean.clean = true;
-            } else if width < 3. && res_manager.zoom_manager.zoom_level < 20 {
+            } else if width < 3.5 && res_manager.zoom_manager.zoom_level < 20 {
                 res_manager.zoom_manager.zoom_level += 1;
 
                 // This ensures that the tile size stays correct
@@ -201,13 +200,15 @@ fn detect_zoom_level(
                 projection.scale = 1.0;
                 res_manager.chunk_manager.update = true;
                 clean.clean = true;
-            } else if res_manager.chunk_manager.tile_web_origin_changed {
-                res_manager.chunk_manager.tile_web_origin_changed = false;
-                res_manager.chunk_manager.update = true;
-                clean.clean = true;
             }
         } else {
             res_manager.zoom_manager.zoom_level_changed = false;
+        }
+        if res_manager.chunk_manager.tile_web_origin_changed {
+            res_manager.chunk_manager.tile_web_origin_changed = false;
+            res_manager.zoom_manager.zoom_level_changed = true;
+            res_manager.chunk_manager.update = true;
+            clean.clean = true;
         }
     }
 }
@@ -299,41 +300,41 @@ fn spawn_chunks_around_camera(
                 let camera_chunk_pos = camera_pos_to_chunk_pos(&transform.translation.xy(), res_manager.zoom_manager.tile_size);
                 let range = 4;
 
-            for y in (camera_chunk_pos.y - range)..=(camera_chunk_pos.y + range) {
-                for x in (camera_chunk_pos.x - range)..=(camera_chunk_pos.x + range) {
-                    let chunk_pos = IVec2::new(x, y);
-                    if !res_manager.chunk_manager.spawned_chunks.contains(&chunk_pos) {
-                        let tx = chunk_sender.clone(); // Clone existing sender
-                        let zoom_manager = res_manager.zoom_manager.clone();
-                        let refrence_long_lat = res_manager.chunk_manager.refrence_long_lat;
-                        let world_pos = chunk_pos_to_world_pos(chunk_pos, zoom_manager.tile_size);
-                        let position = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
-                        let url = url.clone();
-                        let tile_type = tile_type.clone();
-                        thread::spawn(move || {
-                            let tile_coords = position.to_tile_coords(zoom_manager.zoom_level);
+                for y in (camera_chunk_pos.y - range)..=(camera_chunk_pos.y + range) {
+                    for x in (camera_chunk_pos.x - range)..=(camera_chunk_pos.x + range) {
+                        let chunk_pos = IVec2::new(x, y);
+                        if !res_manager.chunk_manager.spawned_chunks.contains(&chunk_pos) {
+                            let tx = chunk_sender.clone(); // Clone existing sender
+                            let zoom_manager = res_manager.zoom_manager.clone();
+                            let refrence_long_lat = res_manager.chunk_manager.refrence_long_lat;
+                            let world_pos = chunk_pos_to_world_pos(chunk_pos, zoom_manager.tile_size);
+                            let position = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), refrence_long_lat, zoom_manager.zoom_level, zoom_manager.tile_size);
+                            let url = url.clone();
+                            let tile_type = tile_type.clone();
+                            thread::spawn(move || {
+                                let tile_coords = position.to_tile_coords(zoom_manager.zoom_level);
 
-                            match tile_type {
-                                TileType::Raster => {
-                                    let tile_image = get_rasta_data(tile_coords.x as u64, tile_coords.y as u64, zoom_manager.zoom_level as u64, url.to_string());
-                                    if let Err(e) = tx.send((chunk_pos, tile_image)) {
-                                        eprintln!("Failed to send chunk data: {:?}", e);
-                                    }
-                                },
-                                TileType::Vector => {
-                                    let tile_image = get_mvt_data(tile_coords.x as u64, tile_coords.y as u64, zoom_manager.zoom_level as u64, zoom_manager.tile_size as u32, url.to_string());
-                                    if let Err(e) = tx.send((chunk_pos, tile_image)) {
-                                        eprintln!("Failed to send chunk data: {:?}", e);
+                                match tile_type {
+                                    TileType::Raster => {
+                                        let tile_image = get_rasta_data(tile_coords.x as u64, tile_coords.y as u64, zoom_manager.zoom_level as u64, url.to_string());
+                                        if let Err(e) = tx.send((chunk_pos, tile_image)) {
+                                            eprintln!("Failed to send chunk data: {:?}", e);
+                                        }
+                                    },
+                                    TileType::Vector => {
+                                        let tile_image = get_mvt_data(tile_coords.x as u64, tile_coords.y as u64, zoom_manager.zoom_level as u64, zoom_manager.tile_size as u32, url.to_string());
+                                        if let Err(e) = tx.send((chunk_pos, tile_image)) {
+                                            eprintln!("Failed to send chunk data: {:?}", e);
+                                        }
                                     }
                                 }
-                            }
-                        });
+                            });
 
-                        res_manager.chunk_manager.spawned_chunks.insert(chunk_pos);
+                            res_manager.chunk_manager.spawned_chunks.insert(chunk_pos);
+                        }
                     }
                 }
             }
-        }
         }
     }
 }
