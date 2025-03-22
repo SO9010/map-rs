@@ -36,9 +36,6 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins(ScheduleRunnerPlugin::run_loop(
-            std::time::Duration::from_secs_f64(1.0 / 30.0),
-        ))
         .add_plugins(DebugPlugin)
         .add_plugins(EguiPlugin)
         .add_plugins(TileMapPlugin)
