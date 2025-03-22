@@ -265,9 +265,9 @@ pub fn handle_selection(
 #[derive(Component)]
 pub struct SelectionMarker;
 
-// TODO: We want to have the currently selected area to be highlighted.
 // We want to darken everything else.
 // We want to have the selected area to be on the side in a bar.
+// TODO: change this to a shader, so that it gradually gets darker too. Also this causes some issues sometimes.
 fn render_selection_box(
     mut gizmos: Gizmos,
     tools: ResMut<ToolResources>,
