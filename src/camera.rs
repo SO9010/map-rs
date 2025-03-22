@@ -14,7 +14,6 @@ impl Plugin for CameraSystemPlugin {
                 tiles_to_render: Vec::new(),
             })
             .insert_resource(CameraPosition::default())
-            // This is being allowed, as it can't get the managers and location
             .add_systems(Startup, setup_camera)
             .add_systems(Update, (handle_pancam, track_camera_position, camera_change));
     }

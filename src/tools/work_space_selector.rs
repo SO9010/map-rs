@@ -368,6 +368,7 @@ pub struct DarkeningOverlay;
 #[derive(Component)]
 pub struct SelectionCutout;
 
+// TODO: For some reason this doesnt work properly if the zooming isnt quite right.
 fn render_darkening_overlay(
     mut commands: Commands,
     mut tools: ResMut<ToolResources>,

@@ -10,12 +10,10 @@ use super::ui::TilesUiPlugin;
 #[allow(unused_imports)]
 use super::{buffer_to_bevy_image, get_mvt_data, get_rasta_data};
 
-// For this example, don't choose too large a chunk size.
 const CHUNK_SIZE: UVec2 = UVec2 { x: 1, y: 1 };
 
 pub struct TileMapPlugin;
 
-// TODO: We probably want to change it so that the left tile changes where the center is.
 impl Plugin for TileMapPlugin {
     fn build(&self, app: &mut App) {
         let (tx, rx): (ChunkSenderType, ChunkReceiverType) = bounded(10);
@@ -24,9 +22,11 @@ impl Plugin for TileMapPlugin {
             .add_plugins(TilemapPlugin)
             .insert_resource(TileMapResources::default())
             .insert_resource(Clean::default())
+            .add_event::<ZoomEvent>()
             .add_systems(FixedUpdate, (spawn_chunks_around_camera, spawn_to_needed_chunks))
-            .add_systems(Update, detect_zoom_level)
+            .add_systems(Update, (detect_zoom_level, zoom_system))
             .add_systems(FixedUpdate, (despawn_outofrange_chunks, read_tile_map_receiver, clean_tile_map).chain())
+            .insert_resource(ZoomCooldown(Timer::from_seconds(0.2, TimerMode::Repeating)))
             .add_plugins(TilesUiPlugin);
     }
 }
@@ -167,163 +167,11 @@ fn clean_tile_map(
     }
 }
 
-// TODO: Fix the fact that if you zoom out too fast it goes to the wrong location, and fix that it loads too many chunks causeing this error: 
-/*
-2025-03-20T10:22:08.759979Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760053Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760245Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760254Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760273Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760277Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760290Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760294Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760307Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760311Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760342Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760352Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760364Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760368Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760382Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760387Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760400Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760404Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760468Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760474Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760487Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760492Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760519Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760528Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760542Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760547Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760559Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760563Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760580Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760584Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760596Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760600Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760611Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760615Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760637Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760640Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760647Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760650Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760657Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760660Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760667Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760671Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760678Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760681Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760688Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760691Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760698Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760702Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760709Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760712Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760747Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760750Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760835Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760840Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760897Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760901Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:08.760986Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:08.760990Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.886408Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.886532Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.886719Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.886731Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.886768Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.886776Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.886803Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.886812Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.886857Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.886865Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.886886Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.886895Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.886932Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.886940Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.886967Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.886979Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.887020Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.887027Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.887036Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.887043Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.887063Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.887073Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.887085Z ERROR wgpu_core::device::global: Device::create_texture error: Not enough memory left.    
-2025-03-20T10:22:11.888293Z ERROR wgpu::backend::wgpu_core: Handling wgpu errors as fatal by default    
 
-thread 'Compute Task Pool (7)' panicked at /home/samioldham/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-23.0.1/src/backend/wgpu_core.rs:1219:18:
-wgpu error: Validation Error
-
-Caused by:
-  In Device::create_texture, label = 'texture_array'
-    Not enough memory left.
-
-
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-Encountered a panic in system `bevy_ecs_tilemap::render::prepare_textures`!
-2025-03-20T10:22:11.942671Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.942707Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.942719Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.942727Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.942735Z ERROR wgpu_hal::vulkan::instance: GENERAL [../src/intel/vulkan/anv_device.c:4308 (0x0)]
-        VK_ERROR_OUT_OF_DEVICE_MEMORY    
-2025-03-20T10:22:11.942740Z ERROR wgpu_hal::vulkan::instance:   objects: (type: DEVICE, hndl: 0x55658e6713b0, name: ?)    
-2025-03-20T10:22:11.942751Z ERROR wgpu_core::device::global: Device::create_texture error: Not enough memory left.    
-2025-03-20T10:22:11.942777Z ERROR wgpu::backend::wgpu_core: Handling wgpu errors as fatal by default    
-
-thread 'Compute Task Pool (7)' panicked at /home/samioldham/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-23.0.1/src/backend/wgpu_core.rs:1219:18:
-wgpu error: Validation Error
-
-Caused by:
-  In Device::create_texture
-    Not enough memory left.
-
-
-Encountered a panic in system `bevy_render::render_asset::prepare_assets<bevy_render::texture::gpu_image::GpuImage>`!
-*/ 
+#[derive(Event)]
+struct ZoomEvent();
+#[derive(Resource)]
+struct ZoomCooldown(pub Timer);
 
 fn detect_zoom_level(
     mut res_manager: ResMut<TileMapResources>,
@@ -332,44 +180,59 @@ fn detect_zoom_level(
     state: Res<EguiBlockInputState>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
     evr_scroll: EventReader<MouseWheel>,
+    mut cooldown: ResMut<ZoomCooldown>,
+    time: Res<Time>,
     mut clean: ResMut<Clean>,
 ) {
-    if let (Ok(mut projection), Ok(mut camera)) = ( ortho_projection_query.get_single_mut(), camera_query.get_single_mut()) {            
-        if projection.scale != res_manager.zoom_manager.last_projection_level && !state.block_input && !evr_scroll.is_empty()  {
+    cooldown.0.tick(time.delta());
+
+    if cooldown.0.finished() && !state.block_input && !evr_scroll.is_empty() {
+        if let (Ok(mut projection), Ok(mut camera)) = ( ortho_projection_query.get_single_mut(), camera_query.get_single_mut()) {
             let width = camera_rect(q_windows.single(), projection.clone()).0 / res_manager.zoom_manager.tile_size as f32;
             if width > 6.5 && res_manager.zoom_manager.zoom_level > 3 {
                 res_manager.zoom_manager.zoom_level -= 1;
-
-                // This ensures that the tile size stays correct
                 res_manager.chunk_manager.refrence_long_lat *= Coord {lat: 2., long: 2.};
-                camera.translation = res_manager.location_manager.location.to_game_coords(res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size.into()).extend(1.0);
-                res_manager.zoom_manager.zoom_level_changed = true;
-                projection.scale = 1.0;
-                res_manager.chunk_manager.update = true;
-                clean.clean = true;
             } else if width < 3.5 && res_manager.zoom_manager.zoom_level < 20 {
                 res_manager.zoom_manager.zoom_level += 1;
-
-                // This ensures that the tile size stays correct
                 res_manager.chunk_manager.refrence_long_lat /= Coord {lat: 2., long: 2.};
-                res_manager.zoom_manager.zoom_level_changed = true;
-                camera.translation = res_manager.location_manager.location.to_game_coords(res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size.into()).extend(1.0);
-
-                projection.scale = 1.0;
-                res_manager.chunk_manager.update = true;
-                clean.clean = true;
+            } else {
+                return;
             }
-        } else {
-            res_manager.zoom_manager.zoom_level_changed = false;
-        }
-        if res_manager.chunk_manager.tile_web_origin_changed {
-            res_manager.chunk_manager.tile_web_origin_changed = false;
+
             res_manager.zoom_manager.zoom_level_changed = true;
+            projection.scale = 1.0;
+            camera.translation = res_manager.location_manager.location
+                .to_game_coords(res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size.into())
+                .extend(1.0);
+
             res_manager.chunk_manager.update = true;
             clean.clean = true;
+            cooldown.0.reset();
         }
+    } else {
+        res_manager.zoom_manager.zoom_level_changed = false;
+    }
+    if res_manager.chunk_manager.tile_web_origin_changed {
+        res_manager.chunk_manager.tile_web_origin_changed = false;
+        res_manager.zoom_manager.zoom_level_changed = true;
+        res_manager.chunk_manager.update = true;
+        clean.clean = true;
+        cooldown.0.reset();
     }
 }
+
+fn zoom_system(
+    mut event_writer: EventWriter<ZoomEvent>,
+    mut cooldown: ResMut<ZoomCooldown>,
+    time: Res<Time>,
+) {
+    if cooldown.0.tick(time.delta()).finished() {
+        event_writer.send(ZoomEvent());
+
+        cooldown.0.reset();
+    }
+}
+
 
 pub type ChunkData = (IVec2, Vec<u8>);
 pub type ChunkSenderType = Sender<ChunkData>;
