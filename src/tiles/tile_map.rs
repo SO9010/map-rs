@@ -23,13 +23,13 @@ impl Plugin for TileMapPlugin {
             .insert_resource(TileMapResources::default())
             .insert_resource(Clean::default())
             .add_event::<ZoomEvent>()
+            // Having a zoom cooldown to prevent zooming too fast which would cause a lot of chunk loading and then crashing the gpu
+            .insert_resource(ZoomCooldown(Timer::from_seconds(0.5, TimerMode::Repeating)))
             .add_systems(FixedUpdate, (
                 spawn_chunks_around_location, spawn_to_needed_chunks,
                 read_tile_map_receiver, detect_zoom_level, 
                 despawn_outofrange_chunks, clean_tile_map
             ).chain())
-            // Having a zoom cooldown to prevent zooming too fast which would cause a lot of chunk loading and then crashing the gpu
-            .insert_resource(ZoomCooldown(Timer::from_seconds(0.5, TimerMode::Repeating)))
             .add_plugins(TilesUiPlugin);
     }
 }
