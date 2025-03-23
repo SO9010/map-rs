@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::{collections::HashSet, f32::consts::PI};
 
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder};
@@ -369,6 +369,7 @@ pub struct DarkeningOverlay;
 pub struct SelectionCutout;
 
 // TODO: For some reason this doesnt work properly if the zooming isnt quite right.
+// Convert this to a shader!
 fn render_darkening_overlay(
     mut commands: Commands,
     mut tools: ResMut<ToolResources>,
