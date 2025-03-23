@@ -1,4 +1,4 @@
-use bevy::{app::ScheduleRunnerPlugin, prelude::*, winit::{UpdateMode, WinitSettings}};
+use bevy::{prelude::*, winit::{UpdateMode, WinitSettings}};
 
 use bevy_egui::EguiPlugin;
 use bevy_prototype_lyon::plugin::ShapePlugin;

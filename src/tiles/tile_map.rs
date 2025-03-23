@@ -1,7 +1,7 @@
 use std::thread;
 
 // Thank you for the example: https://github.com/StarArawn/bevy_ecs_tilemap/blob/main/examples/chunking.rs
-use bevy::{input::mouse::MouseWheel, prelude::*, utils::{HashMap, HashSet}, window::PrimaryWindow};
+use bevy::{prelude::*, utils::{HashMap, HashSet}, window::PrimaryWindow};
 use bevy_ecs_tilemap::{map::{TilemapGridSize, TilemapId, TilemapTexture, TilemapTileSize}, tiles::{TileBundle, TilePos, TileStorage}, TilemapBundle, TilemapPlugin};
 use crossbeam_channel::{bounded, Receiver, Sender};
 
@@ -23,10 +23,10 @@ impl Plugin for TileMapPlugin {
             .insert_resource(TileMapResources::default())
             .insert_resource(Clean::default())
             .add_event::<ZoomEvent>()
-            .add_systems(FixedUpdate, (spawn_chunks_around_camera, spawn_to_needed_chunks))
-            .add_systems(Update, (detect_zoom_level, zoom_system))
+            .add_systems(FixedUpdate, (spawn_chunks_around_camera, spawn_to_needed_chunks, detect_zoom_level))
             .add_systems(FixedUpdate, (despawn_outofrange_chunks, read_tile_map_receiver, clean_tile_map).chain())
-            .insert_resource(ZoomCooldown(Timer::from_seconds(0.2, TimerMode::Repeating)))
+            // Having a zoom cooldown to prevent zooming too fast which would cause a lot of chunk loading and then crashing the gpu
+            .insert_resource(ZoomCooldown(Timer::from_seconds(0.5, TimerMode::Repeating)))
             .add_plugins(TilesUiPlugin);
     }
 }
@@ -155,7 +155,7 @@ struct Clean {
 
 fn clean_tile_map(
     mut res_manager: ResMut<TileMapResources>,
-    mut commands: Commands,
+    commands: Commands,
     chunk_query: Query<(Entity, &TileMarker)>,
     mut clean: ResMut<Clean>,
 ) {
@@ -179,14 +179,11 @@ fn detect_zoom_level(
     mut camera_query: Query<&mut Transform, With<Camera>>,
     state: Res<EguiBlockInputState>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
-    evr_scroll: EventReader<MouseWheel>,
     mut cooldown: ResMut<ZoomCooldown>,
     time: Res<Time>,
     mut clean: ResMut<Clean>,
 ) {
-    cooldown.0.tick(time.delta());
-
-    if cooldown.0.finished() && !state.block_input {
+    if cooldown.0.tick(time.delta()).finished() && !state.block_input {
         if let (Ok(mut projection), Ok(mut camera)) = ( ortho_projection_query.get_single_mut(), camera_query.get_single_mut()) {
             let width = camera_rect(q_windows.single(), projection.clone()).0 / res_manager.zoom_manager.tile_size as f32;
             if width > 6.5 && res_manager.zoom_manager.zoom_level > 3 {
@@ -220,19 +217,6 @@ fn detect_zoom_level(
         cooldown.0.reset();
     }
 }
-
-fn zoom_system(
-    mut event_writer: EventWriter<ZoomEvent>,
-    mut cooldown: ResMut<ZoomCooldown>,
-    time: Res<Time>,
-) {
-    if cooldown.0.tick(time.delta()).finished() {
-        event_writer.send(ZoomEvent());
-
-        cooldown.0.reset();
-    }
-}
-
 
 pub type ChunkData = (IVec2, Vec<u8>);
 pub type ChunkSenderType = Sender<ChunkData>;
