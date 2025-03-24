@@ -181,7 +181,6 @@ struct ZoomCooldown(pub Timer);
 fn detect_zoom_level(
     mut res_manager: ResMut<TileMapResources>,
     mut ortho_projection_query: Query<&mut OrthographicProjection, With<Camera>>,
-    mut camera_query: Query<&mut Transform, With<Camera>>,
     state: Res<EguiBlockInputState>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
     mut cooldown: ResMut<ZoomCooldown>,
@@ -189,7 +188,7 @@ fn detect_zoom_level(
     mut clean: ResMut<Clean>,
 ) {
     if cooldown.0.tick(time.delta()).finished() && !state.block_input {
-        if let (Ok(mut projection), Ok(mut camera)) = ( ortho_projection_query.get_single_mut(), camera_query.get_single_mut()) {
+        if let Ok(mut projection) = ortho_projection_query.get_single_mut() {
             let width = camera_rect(q_windows.single(), projection.clone()).0 / res_manager.zoom_manager.tile_size as f32;
             if width > 6.5 && res_manager.zoom_manager.zoom_level > 3 {
                 res_manager.zoom_manager.zoom_level -= 1;
@@ -346,9 +345,7 @@ pub fn spawn_chunks_around_location(
 fn read_tile_map_receiver(
     map_receiver: Res<ChunkReceiver>,
     mut res_manager: ResMut<TileMapResources>,
-    mut ortho_projection_query: Query<&mut OrthographicProjection, With<Camera>>,
     mut camera_query: Query<&mut Transform, With<Camera>>,
-    mut clean: ResMut<Clean>,
 ) {
     let mut reposition = false;
     while let Ok((chunk_pos, raw_image_data)) = map_receiver.try_recv() {
@@ -358,7 +355,7 @@ fn read_tile_map_receiver(
         }
     }
     if reposition {
-        if let (Ok(mut projection), Ok(mut camera)) = ( ortho_projection_query.get_single_mut(), camera_query.get_single_mut()) {
+        if let Ok(mut camera) = camera_query.get_single_mut() {
             camera.translation = res_manager.location_manager.location
                 .to_game_coords(res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size.into())
                 .extend(1.0);

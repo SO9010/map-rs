@@ -157,6 +157,7 @@ fn camera_change(
         } else {
             map_bundle.respawn = true;
         }
-        tools.respawn();
     }
+
+    tools.respawn();
 }

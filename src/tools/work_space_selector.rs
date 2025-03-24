@@ -1,4 +1,4 @@
-use std::{collections::HashSet, f32::consts::PI};
+use std::f32::consts::PI;
 
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder};
