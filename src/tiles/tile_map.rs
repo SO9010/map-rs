@@ -46,7 +46,7 @@ pub struct ZoomManager {
     pub zoom_level: u32,
     pub last_projection_level: f32,
     pub tile_size: f32,
-    zoom_level_changed: bool,
+    pub zoom_level_changed: bool,
 }
 
 
@@ -206,10 +206,6 @@ fn detect_zoom_level(
             clean.clean = true;
             res_manager.chunk_manager.update = true;
             cooldown.0.reset();
-        }
-    } else {
-        if res_manager.zoom_manager.zoom_level_changed {
-            res_manager.zoom_manager.zoom_level_changed = false;
         }
     }
     if res_manager.chunk_manager.tile_web_origin_changed {

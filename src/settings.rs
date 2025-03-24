@@ -69,7 +69,6 @@ fn ui_example_system(
                                             category.all = true;
                                             category.set_children(true);
                                             map_bundle.respawn = true;
-                                            map_bundle.get_more_data = true;
                                         }
                                         if category.none {
                                             category.none = false;
@@ -82,7 +81,6 @@ fn ui_example_system(
                                             category.none = true;
                                             category.set_children(false);
                                             map_bundle.respawn = true;
-                                            map_bundle.get_more_data = true;
                                         }
                                         if category.all {
                                             category.all = false;
@@ -97,7 +95,6 @@ fn ui_example_system(
                                             category.all = false;
                                             category.none = false;
                                             map_bundle.respawn = true;
-                                            map_bundle.get_more_data = true;
                                         }
                                         if color_edit_button_srgba(ui, clr, Opaque).changed() {
                                             map_bundle.respawn = true;

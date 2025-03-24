@@ -49,7 +49,6 @@ pub struct MapBundle {
     pub features: RTree<MapFeature>,
 
     pub respawn: bool,
-    pub get_more_data: bool,
 }
 
 impl Default for MapBundle {
@@ -63,7 +62,6 @@ impl MapBundle {
         Self {
             features: RTree::new(),
             respawn: false,
-            get_more_data: false,
         }
     }
 }
