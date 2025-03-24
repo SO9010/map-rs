@@ -31,11 +31,12 @@ A fast, open-source GIS tool for urban planning, spatial analysis, and geospatia
 ## **Installation** *(WIP - Currently for Developers Only)*  
 ### **Prerequisites**  
 - **Rust** (for compiling the app).  
+??? 
 
 ### **Building from Source**  
 ```sh
 https://github.com/SO9010/map-rs.git
-cd gis-app
+cd map-rs
 cargo run
 ```
 
