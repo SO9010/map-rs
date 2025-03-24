@@ -3,9 +3,9 @@ use bevy_egui::{egui::{self, Color32, RichText}, EguiContexts, EguiPreUpdateSet}
 use rstar::{Envelope, AABB};
 
 
-use crate::{overpass::{worker::OverpassReceiver, OverpassWorker}, tiles::TileMapResources, types::{Coord, MapBundle, SettingsOverlay}};
+use crate::{overpass::{worker::OverpassReceiver, OverpassWorker}, tiles::TileMapResources, types::{Coord, MapBundle, SelectionType, SettingsOverlay}};
 
-use super::{SelectionType, ToolResources};
+use super::ToolResources;
 
 pub struct ToolbarUiPlugin;
 
@@ -198,23 +198,23 @@ fn workspace_actions_ui(
                             ui.vertical_centered(|ui| {
                                 ui.set_max_width(tilebox_width - 10.);
                                 let mut enabled = false;
-                                if tools.selection_areas.focused_selection.is_some() && tools.selection_areas.focused_selection.as_ref().unwrap().selection_name == selection.selection_name {
+                                if tools.selection_areas.focused_selection.is_some() && tools.selection_areas.focused_selection.as_ref().unwrap().selection_name == selection.selection.selection_name {
                                     enabled = true;
                                 }
-                                if ui.checkbox(&mut enabled, RichText::new(selection.selection_name.clone())).clicked() {
-                                    tile_map_res.location_manager.location = selection.start.unwrap_or_default();
-                                    tools.selection_areas.focused_selection = Some(selection.clone());
-                                    match selection.selection_type {
+                                if ui.checkbox(&mut enabled, RichText::new(selection.selection.selection_name.clone())).clicked() {
+                                    tile_map_res.location_manager.location = selection.selection.start.unwrap_or_default();
+                                    tools.selection_areas.focused_selection = Some(selection.selection.clone());
+                                    match selection.selection.selection_type {
                                         SelectionType::RECTANGLE => {
-                                            let starting = selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
-                                            let ending = selection.end.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                            let starting = selection.selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                            let ending = selection.selection.end.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
                                             let movement = Coord::new(starting.x - ((starting.x - ending.x) / 2.0), starting.y - ((starting.y - ending.y) / 2.0));
                                             camera_transform.translation = movement.to_vec2().extend(1.0);
                                         }
                                         SelectionType::POLYGON => {
                                             let mut min = [f64::MAX, f64::MAX];
                                             let mut max = [f64::MIN, f64::MIN];
-                                            for point in selection.points.as_ref().unwrap() {
+                                            for point in selection.selection.points.as_ref().unwrap() {
                                                 if point.long < min[0] as f32 {
                                                     min[0] = point.long as f64 ;
                                                 }
@@ -233,7 +233,7 @@ fn workspace_actions_ui(
                                             camera_transform.translation = movement.extend(1.0);
                                         },
                                         SelectionType::CIRCLE => {
-                                            let starting = selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                            let starting = selection.selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
                                             camera_transform.translation = Vec3::new(starting.x, starting.y, 1.0);                                          
                                         },
                                         _ => {}

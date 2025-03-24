@@ -154,7 +154,6 @@ fn camera_change(
     if tile_map_res.zoom_manager.zoom_level_changed {
         tile_map_res.zoom_manager.zoom_level_changed = false;
         map_bundle.respawn = true;
-
     }
 
     tools.respawn();

@@ -18,7 +18,6 @@ pub fn respawn_shapes(
 ) {
     if map_bundle.respawn {
         map_bundle.respawn = false;
-        info!("Respawning shapes");
         for (entity, _) in shapes_query.iter() {
             commands.entity(entity).despawn_recursive();
         }

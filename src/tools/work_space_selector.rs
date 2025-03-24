@@ -2,9 +2,8 @@ use std::f32::consts::PI;
 
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder};
-use rstar::{RTree, RTreeObject, AABB};
 
-use crate::{tiles::TileMapResources, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState};
+use crate::{tiles::TileMapResources, types::{world_mercator_to_lat_lon, Coord, Selection, SelectionType, WorkspaceData}, EguiBlockInputState};
 use super::ToolResources;
 
 pub struct SelectionPlugin;
@@ -27,159 +26,6 @@ impl Default for SelectionSettings {
             tool_type: SelectionType::CIRCLE,
             enabled: true,
         }
-    }
-}
-
-/// The goal for this module is to provide a way to select a region of the map, to be able to select featurtes in that region.
-/// For example someone should be able to select an eare for turbo overpass data to be downloaded. 
-/// Or this area can be selected to modify how the map looks in that area.
-/// Or this will be used for the user to select their work space area, with in this the data will be permentanly stored and the user can modify it.
-/// When someone selects something it would be cool to make it sticky so someone has to pull further than a certian amount to leave the workspace.
-/// We could use some movment smoothing.
-#[derive(Debug, Clone, PartialEq)]
-pub enum SelectionType {
-    NONE,
-    RECTANGLE,
-    POLYGON,
-    CIRCLE,
-}
-
-impl SelectionType {
-    pub fn iterate(&mut self) {
-        match self {
-            SelectionType::NONE => *self = SelectionType::RECTANGLE,
-            SelectionType::RECTANGLE => *self = SelectionType::POLYGON,
-            SelectionType::POLYGON => *self = SelectionType::CIRCLE,
-            SelectionType::CIRCLE => *self = SelectionType::RECTANGLE,
-        }
-    }
-}
-
-// What we will want to do is have a ui for the selection points. We also want to be able to select it by clicking the edge then we can risize or annotate or change the things.
-pub struct SelectionAreas {
-    pub focused_selection: Option<Selection>,
-    pub areas: RTree<Selection>,
-    unfinished_selection: Option<Selection>,
-    pub respawn: bool,
-}
-
-impl Default for SelectionAreas {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl SelectionAreas {
-    pub fn new() -> Self {
-        Self { 
-            focused_selection: None,
-            areas: RTree::new(),
-            unfinished_selection: None,
-            respawn: false
-        }
-    }
-    
-    fn add(&mut self, selection: Selection) {
-        self.areas.insert(selection);
-    }
-}
-
-#[derive(Component, Clone, Debug, PartialEq)]
-pub struct Selection {
-    pub selection_name: String,
-    pub selection_type: SelectionType,
-    pub start: Option<Coord>,
-    pub end: Option<Coord>,
-    pub points: Option<Vec<Coord>>,
-}
-
-impl Selection {
-    pub fn get_in_world_space(&self, reference: Coord, zoom: u32, tile_quality: f64) -> Vec<Vec2> {
-        if self.points.is_some() {
-            let mut new_points = Vec::new();
-            for point in self.points.as_ref().unwrap() {
-                new_points.push(point.to_game_coords(reference, zoom, tile_quality));
-            }
-            new_points
-        } else {
-            let mut new_points = Vec::new();
-            if self.start.is_some() {
-                new_points.push(self.start.unwrap().to_game_coords(reference, zoom, tile_quality));
-            }
-            if self.end.is_some() {
-                new_points.push(self.end.unwrap().to_game_coords(reference, zoom, tile_quality));
-            }
-            new_points
-        }
-    }
-}
-
-/// These implementations are for constructors.
-impl Selection {
-    pub fn new(selection_type: SelectionType, start: Coord, end: Coord) -> Self {
-        Self {
-            selection_name: format!("{:#?}-{:#?}", selection_type, start),
-            selection_type,
-            start: Some(start),
-            end: Some(end),
-            points: None,
-        }
-    }
-
-    pub fn new_poly(selection_type: SelectionType, start: Coord) -> Self {
-        Self {
-            selection_name: format!("{:#?}-{:#?}", selection_type, start),
-            selection_type,
-            start: None,
-            end: None,
-            points: Some(vec![start]),
-        }
-    }
-}
-
-/// These implementations are for the RTreeObject trait.
-impl RTreeObject for Selection {
-    type Envelope = AABB<[f64; 2]>;
-    
-    fn envelope(&self) -> Self::Envelope {
-        match self.selection_type {
-            SelectionType::RECTANGLE => return AABB::from_corners([self.start.unwrap().lat.into(), self.start.unwrap().long as f64], [self.end.unwrap().lat as f64, self.end.unwrap().long as f64]),
-            SelectionType::CIRCLE => {
-                if let (Some(center), Some(edge)) = (self.start, self.end) {
-                    let radius = center.to_vec2().distance(edge.to_vec2());
-                    
-                    let lat_radius = radius as f64;  // Approximation - adjust if needed
-                    let long_radius = radius as f64;
-                    
-                    return AABB::from_corners(
-                        [center.lat as f64 - lat_radius, center.long as f64 - long_radius],
-                        [center.lat as f64 + lat_radius, center.long as f64 + long_radius]
-                    );
-                }
-                return AABB::from_corners([0.0, 0.0], [0.0, 0.0]);
-            },
-            SelectionType::POLYGON => {
-                let mut min = [f64::MAX, f64::MAX];
-                let mut max = [f64::MIN, f64::MIN];
-                for point in self.points.as_ref().unwrap() {
-                    if point.long < min[0] as f32 {
-                        min[0] = point.long as f64 ;
-                    }
-                    if point.lat < min[1] as f32 {
-                        min[1] = point.lat as f64;
-                    }
-                    if point.long > max[0] as f32 {
-                        max[0] = point.long as f64;
-                    }
-                    if point.lat > max[1] as f32 {
-                        max[1] = point.lat as f64;
-                    }
-                }
-                return AABB::from_corners(min, max);
-            },
-            _ => AABB::from_corners([0.0, 0.0], [0.0, 0.0]),
-        };
-        AABB::from_corners([0.0, 0.0], [0.0, 0.0])
     }
 }
 
@@ -244,7 +90,7 @@ pub fn handle_selection(
                         }
                     }
                     if let Some(selection) = tools.selection_areas.unfinished_selection.take() {
-                        tools.selection_areas.add(selection);
+                        tools.selection_areas.add(WorkspaceData::new(selection.selection_name.clone(), selection));
                     }
                     tools.selection_areas.respawn = true;
                 }
@@ -255,7 +101,7 @@ pub fn handle_selection(
             }
             if keys.just_pressed(KeyCode::Enter) && tools.selection_settings.tool_type == SelectionType::POLYGON {
                 if let Some(selection) = tools.selection_areas.unfinished_selection.take() {
-                    tools.selection_areas.add(selection);
+                    tools.selection_areas.add(WorkspaceData::new(selection.selection_name.clone(), selection));
                 }
             }
         }
@@ -276,20 +122,20 @@ fn render_selection_box(
     let mut intersection_candidates = tools.selection_areas.areas.clone().into_iter().collect::<Vec<_>>();
     
     if tools.selection_areas.unfinished_selection.is_some() {
-        intersection_candidates.push(tools.selection_areas.unfinished_selection.as_ref().unwrap().clone());
+        intersection_candidates.push(WorkspaceData::new("unfinised".to_string(), tools.selection_areas.unfinished_selection.as_ref().unwrap().clone()));
     }
 
     let stroke_color = Color::srgba(0.5, 0.5, 0.9, 0.9); // Bright green
     let elevation = 1100.0; // Keep this slightly above other elements
 
     for feature in intersection_candidates {
-        let points: Vec<Vec2> = feature.get_in_world_space(
+        let points: Vec<Vec2> = feature.selection.get_in_world_space(
             res_manager.chunk_manager.refrence_long_lat, 
             res_manager.zoom_manager.zoom_level, 
             res_manager.zoom_manager.tile_size.into()
         );
 
-        match feature.selection_type {
+        match feature.selection.selection_type {
             SelectionType::RECTANGLE => {
                 // Calculate rectangle corners
                 let min_x = points[0].x.min(points[1].x);

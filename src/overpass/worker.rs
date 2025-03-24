@@ -3,9 +3,7 @@ use bevy::tasks::{AsyncComputeTaskPool, Task};
 use bevy_tasks::futures_lite::future;
 use crossbeam_channel::{bounded, Receiver};
 use std::sync::{Arc, Mutex};
-
-use crate::tools::Selection;
-use crate::types::{MapFeature, SettingsOverlay};
+use crate::types::{MapFeature, Selection, SettingsOverlay};
 
 use super::{get_overpass_query, send_overpass_query};
 
@@ -35,20 +33,20 @@ impl OverpassWorker {
     }
     
     pub fn queue_request(&self, selection: Selection, 
-                        settings: SettingsOverlay) -> Receiver<Vec<MapFeature>> {
-        let (tx, rx) = bounded(1);
-        let request = OverpassRequest {
-            selection,
-            settings_snapshot: settings,
-            tx,
-        };
-        {
-            let mut pending = self.pending_requests.lock().unwrap();
-            pending.push(request);
+        settings: SettingsOverlay) -> Receiver<Vec<MapFeature>> {
+            let (tx, rx) = bounded(1);
+            let request = OverpassRequest {
+                selection,
+                settings_snapshot: settings,
+                tx,
+            };
+            {
+                let mut pending = self.pending_requests.lock().unwrap();
+                pending.push(request);
+            }
+            
+            rx
         }
-        
-        rx
-    }
 }
 
 pub fn process_requests(

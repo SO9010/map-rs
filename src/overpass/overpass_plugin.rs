@@ -1,7 +1,7 @@
 use std::io::{BufRead, BufReader, Read};
 use bevy::prelude::*;
 
-use crate::{geojson::get_data_from_string_osm, tools::{Selection, SelectionType}, types::{DistanceType, MapBundle, MapFeature, SettingsOverlay}};
+use crate::{geojson::get_data_from_string_osm, types::{DistanceType, MapBundle, MapFeature, Selection, SelectionType, SettingsOverlay}};
 
 use super::{OverpassReceiver, OverpassWorkerPlugin};
 

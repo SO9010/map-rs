@@ -122,8 +122,8 @@ impl ChunkManager {
 impl Default for ChunkManager {
     fn default() -> Self {
         let mut tile_web_origin = HashMap::default();
-        tile_web_origin.insert("https://tile.openstreetmap.org".to_string(), (false, TileType::Raster));
-        tile_web_origin.insert("https://mt1.google.com/vt/lyrs=y".to_string(), (true, TileType::Raster));
+        tile_web_origin.insert("https://tile.openstreetmap.org".to_string(), (true, TileType::Raster));
+        tile_web_origin.insert("https://mt1.google.com/vt/lyrs=y".to_string(), (false, TileType::Raster));
         tile_web_origin.insert("https://mt1.google.com/vt/lyrs=m".to_string(), (false, TileType::Raster));
         tile_web_origin.insert("https://mt1.google.com/vt/lyrs=s".to_string(), (false, TileType::Raster));
         tile_web_origin.insert("https://tiles.openfreemap.org/planet/20250122_001001_pt".to_string(), (false, TileType::Vector));
@@ -165,6 +165,7 @@ fn clean_tile_map(
     mut clean: ResMut<Clean>,
 ) {
     if clean.clean {
+        info!("sadsa");
         clean.clean = false;
         despawn_all_chunks(commands, chunk_query);
         res_manager.chunk_manager.spawned_chunks.clear();
