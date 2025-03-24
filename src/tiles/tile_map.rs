@@ -165,7 +165,6 @@ fn clean_tile_map(
     mut clean: ResMut<Clean>,
 ) {
     if clean.clean {
-        info!("sadsa");
         clean.clean = false;
         despawn_all_chunks(commands, chunk_query);
         res_manager.chunk_manager.spawned_chunks.clear();
