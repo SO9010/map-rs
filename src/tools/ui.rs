@@ -1,9 +1,10 @@
 use bevy::prelude::*;
 use bevy_egui::{egui::{self, Color32, RichText}, EguiContexts, EguiPreUpdateSet};
+use bevy_map_viewer::{Coord, TileMapResources};
 use rstar::{Envelope, AABB};
 
 
-use crate::{overpass::{worker::OverpassReceiver, OverpassWorker}, tiles::TileMapResources, types::{Coord, MapBundle, SelectionType, SettingsOverlay}};
+use crate::{overpass::{worker::OverpassReceiver, OverpassWorker}, types::{MapBundle, SelectionType, SettingsOverlay}};
 
 use super::ToolResources;
 
@@ -140,8 +141,8 @@ fn workspace_actions_ui(
                             if ui.button(RichText::new(focused_selection.selection_name.clone())).clicked() {
                                 match focused_selection.selection_type {
                                     SelectionType::RECTANGLE => {
-                                        let starting = focused_selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
-                                        let ending = focused_selection.end.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                        let starting = focused_selection.start.unwrap().to_game_coords(tile_map_res.clone());
+                                        let ending = focused_selection.end.unwrap().to_game_coords(tile_map_res.clone());
                                         let movement = Coord::new(starting.x - ((starting.x - ending.x) / 2.0), starting.y - ((starting.y - ending.y) / 2.0));
                                         camera_transform.translation = movement.to_vec2().extend(1.0);
                                     }
@@ -163,11 +164,11 @@ fn workspace_actions_ui(
                                             }
                                         }
                                         let center = AABB::from_corners(min, max).center().to_vec();
-                                        let movement = Coord::new(center[1] as f32, center[0] as f32).to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                        let movement = Coord::new(center[1] as f32, center[0] as f32).to_game_coords(tile_map_res.clone());
                                         camera_transform.translation = movement.extend(1.0);
                                     },
                                     SelectionType::CIRCLE => {
-                                        let starting = focused_selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                        let starting = focused_selection.start.unwrap().to_game_coords(tile_map_res.clone());
                                         camera_transform.translation = Vec3::new(starting.x, starting.y, 1.0);            
                                     },
                                     _ => {}
@@ -206,8 +207,8 @@ fn workspace_actions_ui(
                                     tools.selection_areas.focused_selection = Some(selection.selection.clone());
                                     match selection.selection.selection_type {
                                         SelectionType::RECTANGLE => {
-                                            let starting = selection.selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
-                                            let ending = selection.selection.end.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                            let starting = selection.selection.start.unwrap().to_game_coords(tile_map_res.clone());
+                                            let ending = selection.selection.end.unwrap().to_game_coords(tile_map_res.clone());
                                             let movement = Coord::new(starting.x - ((starting.x - ending.x) / 2.0), starting.y - ((starting.y - ending.y) / 2.0));
                                             camera_transform.translation = movement.to_vec2().extend(1.0);
                                         }
@@ -229,11 +230,11 @@ fn workspace_actions_ui(
                                                 }
                                             }
                                             let center = AABB::from_corners(min, max).center().to_vec();
-                                            let movement = Coord::new(center[1] as f32, center[0] as f32).to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                            let movement = Coord::new(center[1] as f32, center[0] as f32).to_game_coords(tile_map_res.clone());
                                             camera_transform.translation = movement.extend(1.0);
                                         },
                                         SelectionType::CIRCLE => {
-                                            let starting = selection.selection.start.unwrap().to_game_coords(tile_map_res.chunk_manager.refrence_long_lat, tile_map_res.zoom_manager.zoom_level, tile_map_res.zoom_manager.tile_size.into());
+                                            let starting = selection.selection.start.unwrap().to_game_coords(tile_map_res.clone());
                                             camera_transform.translation = Vec3::new(starting.x, starting.y, 1.0);                                          
                                         },
                                         _ => {}

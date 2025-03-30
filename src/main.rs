@@ -1,6 +1,7 @@
 use bevy::{prelude::*, winit::{UpdateMode, WinitSettings}};
 
 use bevy_egui::EguiPlugin;
+use bevy_map_viewer::EguiBlockInputState;
 use bevy_prototype_lyon::plugin::ShapePlugin;
 use camera::CameraSystemPlugin;
 use debug::DebugPlugin;
@@ -8,9 +9,7 @@ use geojson::RenderPlugin;
 use interaction::InteractionSystemPlugin;
 use overpass::OverpassPlugin;
 use settings::SettingsPlugin;
-use tiles::TileMapPlugin;
 use tools::ToolsPlugin;
-use types::Coord;
 
 pub mod camera;
 pub mod debug;
@@ -22,11 +21,6 @@ pub mod types;
 pub mod settings;
 pub mod interaction;
 
-pub const STARTING_LONG_LAT: Coord = Coord::new(0.011, 0.011);
-pub const STARTING_DISPLACEMENT: Coord = Coord::new(52.1951, 0.1313);
-// This can be changed, it changes the size of each tile too.
-pub const TILE_QUALITY: i32 = 256;
-
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -36,11 +30,9 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins(DebugPlugin)
-        .add_plugins(EguiPlugin)
-        .add_plugins(TileMapPlugin)
-        .insert_resource(EguiBlockInputState::default())
         .add_plugins((CameraSystemPlugin, InteractionSystemPlugin, ShapePlugin))
+        .add_plugins(EguiPlugin)
+        .add_plugins(DebugPlugin)
         .insert_resource(WinitSettings {
             unfocused_mode: UpdateMode::Reactive {
                 wait: std::time::Duration::from_secs(1),
@@ -65,10 +57,6 @@ fn main() {
         .run();
 }
 
-#[derive(Resource, Default)]
-pub struct EguiBlockInputState {
-    pub block_input: bool,
-}
 fn absorb_egui_inputs(
     mut contexts: bevy_egui::EguiContexts,
     mut state: ResMut<EguiBlockInputState>,

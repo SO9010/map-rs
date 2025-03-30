@@ -1,11 +1,12 @@
 use std::{fs::File, io::BufReader};
 
 use bevy::log::info;
+use bevy_map_viewer::Coord;
 use geojson::GeoJson;
 use rstar::RTree;
 use serde::{Deserialize, Serialize};
 
-use crate::types::{Coord, MapFeature};
+use crate::types::MapFeature;
 
 /// Parses OSM data from a string and returns a vector of map features.
 pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn std::error::Error>> {

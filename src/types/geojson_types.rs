@@ -1,8 +1,7 @@
 use bevy::prelude::*;
+use bevy_map_viewer::{Coord, TileMapResources};
 use geo::BoundingRect;
 use rstar::{RTree, RTreeObject, AABB};
-
-use super::Coord;
 
 #[derive(Component, Clone, Debug, PartialEq)]
 pub struct MapFeature {
@@ -12,12 +11,12 @@ pub struct MapFeature {
     pub geometry: geo::Polygon,
 }
 impl MapFeature {
-    pub fn get_in_world_space(&self, reference: Coord, zoom: u32, tile_quality: f64) -> Vec<Vec2> {
+    pub fn get_in_world_space(&self, tile_map_resources: TileMapResources) -> Vec<Vec2> {
         let new_geo = self.geometry.clone();
         let exterior = new_geo.exterior().clone();
         let mut new_points = Vec::new();
         for coord in exterior {
-            let point = Coord::new(coord.x as f32, coord.y as f32).to_game_coords(reference, zoom, tile_quality);
+            let point = Coord::new(coord.x as f32, coord.y as f32).to_game_coords(tile_map_resources.clone());
             new_points.push(Vec2::new(point.x, point.y));
         }
         new_points

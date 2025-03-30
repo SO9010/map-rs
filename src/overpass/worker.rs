@@ -87,6 +87,7 @@ pub fn process_requests(
                 info!("Query: {}", query);
                 if query != "ERR" {
                     result.extend(send_overpass_query(query));
+                    info!("Received {} features", result.len());
                 }
             
                 let _ = request.tx.send(result);

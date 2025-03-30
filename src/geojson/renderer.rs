@@ -1,8 +1,9 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::RenderLayers};
+use bevy_map_viewer::TileMapResources;
 use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
 use rstar::RTreeObject;
 
-use crate::{tiles::TileMapResources, tools::ToolResources, types::{MapBundle, SettingsOverlay}};
+use crate::{tools::ToolResources, types::{MapBundle, SettingsOverlay}};
 
 #[derive(Component)]
 pub struct ShapeMarker;
@@ -22,8 +23,8 @@ pub fn respawn_shapes(
             commands.entity(entity).despawn_recursive();
         }
 
-        let mut batch_commands_closed: Vec<(ShapeBundle, Fill, Stroke, ShapeMarker)> = Vec::new();
-        let mut batch_commands_open: Vec<(ShapeBundle, Stroke, ShapeMarker)> = Vec::new();
+        let mut batch_commands_closed: Vec<(ShapeBundle, Fill, Stroke, ShapeMarker, RenderLayers)> = Vec::new();
+        let mut batch_commands_open: Vec<(ShapeBundle, Stroke, ShapeMarker, RenderLayers)> = Vec::new();
 
         let mut intersection_candidates: Vec<&crate::types::MapFeature> = Vec::new();
         if let Some(selection) = &tools.selection_areas.focused_selection {
@@ -33,8 +34,8 @@ pub fn respawn_shapes(
         for feature in intersection_candidates {
             let mut fill_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.5 };
             let mut stroke_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.75 };
-            let line_width = 1.5;
-            let elevation = 10.0;
+            let line_width = 0.025;
+            let elevation = 1000.0;
 
             for (cat, key) in overpass_settings.get_true_keys_with_category_with_individual().iter() {
                 if let Some(cate) = feature.properties.get(cat.to_lowercase()) {
@@ -47,7 +48,7 @@ pub fn respawn_shapes(
                 }
             }
 
-            let mut points = feature.get_in_world_space(tile_map_manager.chunk_manager.refrence_long_lat, tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size.into());
+            let mut points = feature.get_in_world_space(tile_map_manager.clone());
 
             points.pop();
 
@@ -66,6 +67,7 @@ pub fn respawn_shapes(
                     Fill::color(fill_color),
                     Stroke::new(stroke_color, line_width as f32),
                     ShapeMarker,
+                    RenderLayers::layer(1),
                 ));
             } else {
                 let shape = shapes::Polygon {
@@ -80,6 +82,7 @@ pub fn respawn_shapes(
                     },
                     Stroke::new(stroke_color, line_width as f32),
                     ShapeMarker,
+                    RenderLayers::layer(1),
                 ));
             }
         }

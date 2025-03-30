@@ -1,7 +1,6 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{prelude::*, render::view::RenderLayers, window::PrimaryWindow};
+use bevy_map_viewer::{Coord, EguiBlockInputState, TileMapResources};
 use rstar::{RTree, RTreeObject, AABB};
-
-use crate::{tiles::TileMapResources, types::{world_mercator_to_lat_lon, Coord}, EguiBlockInputState};
 
 use super::ToolResources;
 
@@ -51,8 +50,8 @@ impl RTreeObject for Pin {
 }
 
 impl Pin {
-    pub fn get_in_world_space(&self, reference: Coord, zoom: u32, tile_quality: f64) -> Vec2 {
-        self.location.to_game_coords(reference, zoom, tile_quality)
+    pub fn get_in_world_space(&self, tile_map_resources: TileMapResources) -> Vec2 {
+        self.location.to_game_coords(tile_map_resources)
     }
 }
 
@@ -68,8 +67,7 @@ pub fn handle_pin(
     if pin.pins.enabled && !state.block_input{
         if let Some(position) = q_windows.single().cursor_position() {
             if buttons.just_pressed(MouseButton::Left) {
-                let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), tile_map_manager.chunk_manager.refrence_long_lat, tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size);
+                let pos = tile_map_manager.point_to_coord(camera.viewport_to_world_2d(camera_transform, position).unwrap());
                 pin.pins.add_pin(Pin {
                     location: Coord::new(pos.lat as f32, pos.long as f32),
                 });
@@ -98,12 +96,13 @@ fn render_pins(
         let elevation = 10.0;
 
         for pin in pin.pins.pins.iter() {
-            let loc = pin.get_in_world_space(tile_map_manager.chunk_manager.refrence_long_lat, tile_map_manager.zoom_manager.zoom_level, tile_map_manager.zoom_manager.tile_size.into());
+            let loc = pin.get_in_world_space(tile_map_manager.clone());
             commands.spawn((
                 Mesh2d(meshes.add(Circle::new(width))),
                 Transform::from_translation(Vec3::new(loc.x, loc.y, elevation)),
                 MeshMaterial2d(materials.add(Color::from(fill_color))),
                 pin.clone(),
+                RenderLayers::layer(1),
             ));
         }
         

@@ -2,9 +2,8 @@
 
 use bevy::prelude::*;
 use bevy_egui::{egui::{self, Checkbox, RichText}, EguiContexts, EguiPreUpdateSet};
+use bevy_map_viewer::TileMapResources;
 
-
-use super::TileMapResources;
 
 pub struct TilesUiPlugin;
 

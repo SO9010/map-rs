@@ -1,9 +1,11 @@
 use std::f32::consts::PI;
 
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{prelude::*, render::view::RenderLayers, window::PrimaryWindow};
+use bevy_map_viewer::{Coord, EguiBlockInputState, TileMapResources};
 use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder};
 
-use crate::{tiles::TileMapResources, types::{world_mercator_to_lat_lon, Coord, Selection, SelectionType, WorkspaceData}, EguiBlockInputState};
+use crate::types::{Selection, SelectionType, WorkspaceData};
+
 use super::ToolResources;
 
 pub struct SelectionPlugin;
@@ -41,29 +43,23 @@ pub fn handle_selection(
     let (camera, camera_transform) = camera.single();
     if tools.selection_settings.enabled {
         if let Some(position) = q_windows.single().cursor_position() {
+            let pos = res_manager.point_to_coord(camera.viewport_to_world_2d(camera_transform, position).unwrap());
+
             if buttons.just_pressed(MouseButton::Left) && !state.block_input {
-                let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size);
-
-                let point = Coord::new(pos.lat as f32, pos.long as f32);
-
                 if tools.selection_settings.tool_type == SelectionType::POLYGON {
                     if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
-                        selection.points.as_mut().unwrap().push(point);
+                        selection.points.as_mut().unwrap().push(pos);
                         tools.selection_areas.respawn = true;
                     } else {
-                        tools.selection_areas.unfinished_selection = Some(Selection::new_poly(tools.selection_settings.tool_type.clone(), point));
+                        tools.selection_areas.unfinished_selection = Some(Selection::new_poly(tools.selection_settings.tool_type.clone(), pos));
                         tools.selection_areas.respawn = true;
                     }
                 } else {
-                    tools.selection_areas.unfinished_selection = Some(Selection::new(tools.selection_settings.tool_type.clone(), point, point));
+                    tools.selection_areas.unfinished_selection = Some(Selection::new(tools.selection_settings.tool_type.clone(), pos, pos));
                     tools.selection_areas.respawn = true;
                 }
             }
             if buttons.pressed(MouseButton::Left) {
-                let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size);
-
                 if tools.selection_settings.tool_type != SelectionType::POLYGON {
                     if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
                         if selection.end != Some(Coord::new(pos.lat as f32, pos.long as f32)) {
@@ -74,10 +70,7 @@ pub fn handle_selection(
                 }
             }
             if !buttons.pressed(MouseButton::Left) && tools.selection_areas.unfinished_selection.is_some() {
-                let world_pos = camera.viewport_to_world_2d(camera_transform, position).unwrap();
-                let pos = world_mercator_to_lat_lon(world_pos.x.into(), world_pos.y.into(), res_manager.chunk_manager.refrence_long_lat, res_manager.zoom_manager.zoom_level, res_manager.zoom_manager.tile_size);
                 let areas_size = tools.selection_areas.areas.size();
-
                 if tools.selection_settings.tool_type != SelectionType::POLYGON {
                     if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
                         if selection.end != selection.start {
@@ -129,12 +122,7 @@ fn render_selection_box(
     let elevation = 1100.0; // Keep this slightly above other elements
 
     for feature in intersection_candidates {
-        let points: Vec<Vec2> = feature.selection.get_in_world_space(
-            res_manager.chunk_manager.refrence_long_lat, 
-            res_manager.zoom_manager.zoom_level, 
-            res_manager.zoom_manager.tile_size.into()
-        );
-
+        let points: Vec<Vec2> = feature.selection.get_in_world_space(res_manager.clone());
         match feature.selection.selection_type {
             SelectionType::RECTANGLE => {
                 // Calculate rectangle corners
@@ -189,7 +177,7 @@ fn render_selection_box(
                         gizmos.line_2d(
                             points[points.len() - 1],
                             points[0],
-                            stroke_color
+                            stroke_color,
                         );
                     }
                 }
@@ -214,116 +202,107 @@ pub struct DarkeningOverlay;
 #[derive(Component)]
 pub struct SelectionCutout;
 
-// TODO: For some reason this doesnt work properly if the zooming isnt quite right.
-// Convert this to a shader!
 fn render_darkening_overlay(
     mut commands: Commands,
-    mut tools: ResMut<ToolResources>,
+    tools: Res<ToolResources>,
     res_manager: ResMut<TileMapResources>,
     camera_query: Query<(&Camera, &GlobalTransform, &OrthographicProjection), With<Camera2d>>,
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
     overlay_query: Query<Entity, With<DarkeningOverlay>>,
 ) {
-    if tools.selection_areas.respawn {
-        tools.selection_areas.respawn = false;
-
-        for entity in overlay_query.iter() {
-            commands.entity(entity).despawn();
-        }
-
-        let mut intersection_candidates: Vec<Selection> = Vec::new();
-    
-        if let Some(selection_areas) = tools.selection_areas.focused_selection.clone() {
-            intersection_candidates.push(selection_areas);
-        }
-
-        if tools.selection_areas.unfinished_selection.is_some() {
-            intersection_candidates.push(tools.selection_areas.unfinished_selection.as_ref().unwrap().clone());
-        }
-        
-        if intersection_candidates.is_empty() {
-            return;
-        }
-        
-        let (camera, camera_transform, _) = camera_query.single();
-        let window = match primary_window_query.get_single() {
-            Ok(window) => window,
-            Err(_) => return, // Exit early if window not available
-        };
-        
-        let top_left = camera.viewport_to_world_2d(camera_transform, Vec2::ZERO).unwrap();
-        let bottom_right = camera
-            .viewport_to_world_2d(camera_transform, Vec2::new(window.width(), window.height()))
-            .unwrap();
-    
-        let mut path_builder = PathBuilder::new();
-        path_builder.move_to(top_left);
-        path_builder.line_to(Vec2::new(bottom_right.x, top_left.y));
-        path_builder.line_to(bottom_right);
-        path_builder.line_to(Vec2::new(top_left.x, bottom_right.y));
-        path_builder.close();
-    
-        for feature in intersection_candidates {
-            let points = feature.get_in_world_space(
-                res_manager.chunk_manager.refrence_long_lat,
-                res_manager.zoom_manager.zoom_level,
-                res_manager.zoom_manager.tile_size.into(),
-            );
-    
-            match feature.selection_type {
-                SelectionType::RECTANGLE => {
-                    if points.len() < 2 {
-                        continue;
-                    }
-                    let min_x = points[0].x.min(points[1].x);
-                    let max_x = points[0].x.max(points[1].x);
-                    let min_y = points[0].y.min(points[1].y);
-                    let max_y = points[0].y.max(points[1].y);
-    
-                    path_builder.move_to(Vec2::new(min_x, min_y));
-                    path_builder.line_to(Vec2::new(max_x, min_y));
-                    path_builder.line_to(Vec2::new(max_x, max_y));
-                    path_builder.line_to(Vec2::new(min_x, max_y));
-                    path_builder.close();
-                }
-                SelectionType::CIRCLE => {
-                    if points.len() < 2 {
-                        continue;
-                    }
-                    let center = points[0];
-                    let radius = points[0].distance(points[1]);
-    
-                    path_builder.move_to(center + Vec2::new(radius, 0.0));
-                    path_builder.arc(center, Vec2::splat(radius), PI*2.0, std::f32::consts::TAU);
-                    path_builder.close();
-                }
-                SelectionType::POLYGON => {
-                    if points.len() < 3 {
-                        continue;
-                    }
-    
-                    path_builder.move_to(points[0]);
-                    for &point in points.iter().skip(1) {
-                        path_builder.line_to(point);
-                    }
-                    path_builder.close();
-                }
-                _ => {}
-            }
-        }
-    
-        // Build the final shape
-        let path = path_builder.build();
-    
-        // Spawn the darkening overlay with holes
-        commands.spawn((
-            ShapeBundle {
-                path: GeometryBuilder::build_as(&path),
-                transform: Transform::from_xyz(0.0, 0.0, 900.0),
-                ..default()
-            },
-            Fill::color(Color::srgba(0.0, 0.0, 0.0, 0.5)), // Dark overlay with holes
-            DarkeningOverlay,
-        ));
+    for entity in overlay_query.iter() {
+        commands.entity(entity).despawn();
     }
+
+    let mut intersection_candidates: Vec<Selection> = Vec::new();
+
+    if let Some(selection_areas) = tools.selection_areas.focused_selection.clone() {
+        intersection_candidates.push(selection_areas);
+    }
+
+    if tools.selection_areas.unfinished_selection.is_some() {
+        intersection_candidates.push(tools.selection_areas.unfinished_selection.as_ref().unwrap().clone());
+    }
+    
+    if intersection_candidates.is_empty() {
+        return;
+    }
+    
+    let (camera, camera_transform, _) = camera_query.single();
+    let window = match primary_window_query.get_single() {
+        Ok(window) => window,
+        Err(_) => return, // Exit early if window not available
+    };
+    
+    let top_left = camera.viewport_to_world_2d(camera_transform, Vec2::ZERO).unwrap();
+    let bottom_right = camera
+        .viewport_to_world_2d(camera_transform, Vec2::new(window.width(), window.height()))
+        .unwrap();
+
+    let mut path_builder = PathBuilder::new();
+    path_builder.move_to(top_left);
+    path_builder.line_to(Vec2::new(bottom_right.x, top_left.y));
+    path_builder.line_to(bottom_right);
+    path_builder.line_to(Vec2::new(top_left.x, bottom_right.y));
+    path_builder.close();
+
+    for feature in intersection_candidates {
+        let points = feature.get_in_world_space(res_manager.clone());
+
+        match feature.selection_type {
+            SelectionType::RECTANGLE => {
+                if points.len() < 2 {
+                    continue;
+                }
+                let min_x = points[0].x.min(points[1].x);
+                let max_x = points[0].x.max(points[1].x);
+                let min_y = points[0].y.min(points[1].y);
+                let max_y = points[0].y.max(points[1].y);
+
+                path_builder.move_to(Vec2::new(min_x, min_y));
+                path_builder.line_to(Vec2::new(max_x, min_y));
+                path_builder.line_to(Vec2::new(max_x, max_y));
+                path_builder.line_to(Vec2::new(min_x, max_y));
+                path_builder.close();
+            }
+            SelectionType::CIRCLE => {
+                if points.len() < 2 {
+                    continue;
+                }
+                let center = points[0];
+                let radius = points[0].distance(points[1]);
+
+                path_builder.move_to(center + Vec2::new(radius, 0.0));
+                path_builder.arc(center, Vec2::splat(radius), PI*2.0, std::f32::consts::TAU);
+                path_builder.close();
+            }
+            SelectionType::POLYGON => {
+                if points.len() < 3 {
+                    continue;
+                }
+
+                path_builder.move_to(points[0]);
+                for &point in points.iter().skip(1) {
+                    path_builder.line_to(point);
+                }
+                path_builder.close();
+            }
+            _ => {}
+        }
+    }
+
+    // Build the final shape
+    let path = path_builder.build();
+
+    // Spawn the darkening overlay with holes
+    commands.spawn((
+        ShapeBundle {
+            path: GeometryBuilder::build_as(&path),
+            transform: Transform::from_xyz(0.0, 0.0, 900.0),
+            ..default()
+        },
+        Fill::color(Color::srgba(0.0, 0.0, 0.0, 0.5)), // Dark overlay with holes
+        DarkeningOverlay,
+        RenderLayers::layer(1),
+    ));
 }

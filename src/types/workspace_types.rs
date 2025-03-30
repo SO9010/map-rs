@@ -1,8 +1,8 @@
 use bevy::prelude::*;
+use bevy_map_viewer::{Coord, TileMapResources};
 use rstar::{RTree, RTreeObject, AABB};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::Coord;
 
 /// The goal for this module is to provide a way to select a region of the map, to be able to select featurtes in that region.
 /// For example someone should be able to select an eare for turbo overpass data to be downloaded. 
@@ -67,20 +67,20 @@ pub struct Selection {
 }
 
 impl Selection {
-    pub fn get_in_world_space(&self, reference: Coord, zoom: u32, tile_quality: f64) -> Vec<Vec2> {
+    pub fn get_in_world_space(&self, tile_map_resources: TileMapResources) -> Vec<Vec2> {
         if self.points.is_some() {
             let mut new_points = Vec::new();
             for point in self.points.as_ref().unwrap() {
-                new_points.push(point.to_game_coords(reference, zoom, tile_quality));
+                new_points.push(point.to_game_coords(tile_map_resources.clone()));
             }
             new_points
         } else {
             let mut new_points = Vec::new();
             if self.start.is_some() {
-                new_points.push(self.start.unwrap().to_game_coords(reference, zoom, tile_quality));
+                new_points.push(self.start.unwrap().to_game_coords(tile_map_resources.clone()));
             }
             if self.end.is_some() {
-                new_points.push(self.end.unwrap().to_game_coords(reference, zoom, tile_quality));
+                new_points.push(self.end.unwrap().to_game_coords(tile_map_resources.clone()));
             }
             new_points
         }
