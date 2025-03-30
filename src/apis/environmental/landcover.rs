@@ -1,0 +1,1 @@
+// landcover.ai.linuxpolska.com

@@ -42,13 +42,6 @@ fn main() {
             },
             ..Default::default()
         })
-        // This should be able to be an option.
-        .insert_resource(ClearColor(Color::from(Srgba {
-            red: 0.9,
-            green: 0.9,
-            blue: 0.8,
-            alpha: 1.0,
-        })))
         .add_plugins(RenderPlugin)
         .add_plugins(OverpassPlugin)
         .add_plugins(SettingsPlugin)
