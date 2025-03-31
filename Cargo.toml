@@ -20,7 +20,7 @@ bevy_prototype_lyon = "0.13.0"
 bevy_tasks = "0.15.3"
 uuid = "1.16.0"
 chrono = "0.4.40"
-bevy_map_viewer = {git = "https://github.com/SO9010/bevy-map-viewer.git"}
+bevy_map_viewer = { git = "https://github.com/SO9010/bevy-map-viewer.git" }
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]

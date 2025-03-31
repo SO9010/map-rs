@@ -9,6 +9,7 @@ use geojson::RenderPlugin;
 use interaction::InteractionSystemPlugin;
 use overpass::OverpassPlugin;
 use settings::SettingsPlugin;
+use tiles::TilesUiPlugin;
 use tools::ToolsPlugin;
 
 pub mod camera;
@@ -30,7 +31,7 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins((CameraSystemPlugin, InteractionSystemPlugin, ShapePlugin))
+        .add_plugins((CameraSystemPlugin, InteractionSystemPlugin, ShapePlugin, TilesUiPlugin))
         .add_plugins(EguiPlugin)
         .add_plugins(DebugPlugin)
         .insert_resource(WinitSettings {
