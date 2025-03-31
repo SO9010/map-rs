@@ -93,7 +93,7 @@ fn render_pins(
 
         let fill_color = Srgba { red: 0., green: 0., blue: 1., alpha: 0.75 };
         let width = 5.;
-        let elevation = 10.0;
+        let elevation = 500.0;
 
         for pin in pin.pins.pins.iter() {
             let loc = pin.get_in_world_space(tile_map_manager.clone());
