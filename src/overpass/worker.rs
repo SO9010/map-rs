@@ -32,8 +32,11 @@ impl OverpassWorker {
         }
     }
     
-    pub fn queue_request(&self, selection: Selection, 
-        settings: SettingsOverlay) -> Receiver<Vec<MapFeature>> {
+    pub fn queue_request(
+        &self, 
+        selection: Selection, 
+        settings: SettingsOverlay,
+    ) -> Receiver<Vec<MapFeature>> {
             let (tx, rx) = bounded(1);
             let request = OverpassRequest {
                 selection,

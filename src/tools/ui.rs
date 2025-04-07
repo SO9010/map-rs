@@ -4,7 +4,7 @@ use bevy_map_viewer::{Coord, MapViewerMarker, TileMapResources, ZoomChangedEvent
 use rstar::{Envelope, AABB};
 
 
-use crate::{camera::DrawCamera, overpass::{worker::OverpassReceiver, OverpassWorker}, types::{MapBundle, SelectionType, SettingsOverlay}};
+use crate::{overpass::{worker::OverpassReceiver, OverpassWorker}, types::{SelectionType, SettingsOverlay}};
 
 use super::ToolResources;
 

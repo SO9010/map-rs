@@ -1,0 +1,17 @@
+$USER_DATA_DIR/map-rs/
+├── config/
+│   └── settings.json       # Application preferences
+├── workspaces/
+│   ├── workspace_index.json  # List of all workspaces
+│   ├── features/            # Processed map features
+│   │   ├── ws_uuid1.json
+│   │   └── ws_uuid2.json
+│   ├── osm_data/           # Raw OSM responses
+│   │   ├── ws_uuid1_osm.json
+│   │   └── ws_uuid2_osm.json
+│   └── sessions/           # Quick session recovery data
+│       └── last_session.json
+└── exports/                # User exports
+    ├── geojson/
+    └── images/
+

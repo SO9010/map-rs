@@ -3,7 +3,6 @@ use std::f32::consts::PI;
 use bevy::{prelude::*, render::view::RenderLayers, window::PrimaryWindow};
 use bevy_map_viewer::{Coord, EguiBlockInputState, MapViewerMarker, TileMapResources};
 
-use crate::camera::DrawCamera;
 
 use super::ToolResources;
 
@@ -110,7 +109,7 @@ fn render_measure(
 
         let fill_color = Srgba { red: 0.75, green: 0., blue: 0., alpha: 1. };
         let line_width = 2.5;
-        let elevation = 1000.0;
+        let elevation = 501.0;
         
         if let Ok((entity, _)) = measure_query.get_single_mut(){
                 commands.entity(entity).despawn_recursive();

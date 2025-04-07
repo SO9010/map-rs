@@ -4,7 +4,7 @@ use bevy::{prelude::*, render::view::RenderLayers, window::PrimaryWindow};
 use bevy_map_viewer::{Coord, EguiBlockInputState, MapViewerMarker, TileMapResources};
 use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder};
 
-use crate::{camera::DrawCamera, types::{Selection, SelectionType, WorkspaceData}};
+use crate::types::{Selection, SelectionType, WorkspaceData};
 
 use super::ToolResources;
 
@@ -119,7 +119,7 @@ fn render_selection_box(
     }
 
     let stroke_color = Color::srgba(0.5, 0.5, 0.9, 0.9); // Bright green
-    let elevation = 1100.0; // Keep this slightly above other elements
+    let elevation = 1000.0; // Keep this far above other elements
 
     for feature in intersection_candidates {
         let points: Vec<Vec2> = feature.selection.get_in_world_space(res_manager.clone());

@@ -4,7 +4,7 @@ use bevy_egui::{EguiContexts, EguiPlugin, EguiPreUpdateSet, egui::{self, color_p
 use bevy_map_viewer::ZoomChangedEvent;
 use bevy_prototype_lyon::entity::Path;
 
-use crate::types::{MapBundle, MapFeature, SettingsOverlay};
+use crate::types::{MapFeature, SettingsOverlay};
 use crate::settings::egui::color_picker::Alpha::Opaque;
 
 pub struct SettingsPlugin;

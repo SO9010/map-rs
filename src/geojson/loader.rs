@@ -54,7 +54,7 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
 
     let geojson = GeoJson::from_reader(reader)?;
 
-    let mut features = Vec::new();
+    let mut features: Vec<MapFeature> = Vec::new();
     let mut geo = geo::Polygon::new(geo::LineString(vec![]), vec![]);
     if let GeoJson::FeatureCollection(collection) = geojson {
         for feature in collection.features {

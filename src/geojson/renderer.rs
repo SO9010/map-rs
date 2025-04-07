@@ -13,7 +13,7 @@ pub struct ShapeMarker;
 pub fn respawn_shapes(
     mut commands: Commands,
     shapes_query: Query<(Entity, &ShapeMarker)>,
-    mut map_bundle: ResMut<MapBundle>,
+    map_bundle: ResMut<MapBundle>,
     tile_map_manager: Res<TileMapResources>,
     overpass_settings: Res<SettingsOverlay>,
     tools: Res<ToolResources>,
@@ -21,7 +21,6 @@ pub fn respawn_shapes(
 ) {
     if !zoom_change.is_empty() {
         zoom_change.clear();
-        info!("Zoom changed, respawning shapes");
         for (entity, _) in shapes_query.iter() {
             commands.entity(entity).despawn_recursive();
         }

@@ -2,7 +2,6 @@ use bevy::{prelude::*, render::view::RenderLayers, window::PrimaryWindow};
 use bevy_map_viewer::{Coord, EguiBlockInputState, MapViewerMarker, TileMapResources};
 use rstar::{RTree, RTreeObject, AABB};
 
-use crate::camera::DrawCamera;
 
 use super::ToolResources;
 
