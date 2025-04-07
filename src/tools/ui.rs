@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 use bevy_egui::{egui::{self, Color32, RichText}, EguiContexts, EguiPreUpdateSet};
-use bevy_map_viewer::{Coord, TileMapResources};
+use bevy_map_viewer::{Coord, MapViewerMarker, TileMapResources, ZoomChangedEvent};
 use rstar::{Envelope, AABB};
 
 
-use crate::{overpass::{worker::OverpassReceiver, OverpassWorker}, types::{MapBundle, SelectionType, SettingsOverlay}};
+use crate::{camera::DrawCamera, overpass::{worker::OverpassReceiver, OverpassWorker}, types::{MapBundle, SelectionType, SettingsOverlay}};
 
 use super::ToolResources;
 
@@ -94,12 +94,12 @@ fn tool_ui(
 fn workspace_actions_ui(
     mut tile_map_res: ResMut<TileMapResources>,
     mut contexts: EguiContexts,
-    mut camera: Query<(&Camera, &mut Transform), With<Camera2d>>,
+    mut camera: Query<(&Camera, &mut Transform), With<MapViewerMarker>>,
     mut tools: ResMut<ToolResources>,
     worker: Res<OverpassWorker>,
     overpass_settings: Res<SettingsOverlay>,
-    mut map_bundle: ResMut<MapBundle>,
     mut commands: Commands,
+    mut zoom_event: EventWriter<ZoomChangedEvent>,
 ) {
     let ctx = contexts.ctx_mut();
 
@@ -179,7 +179,7 @@ fn workspace_actions_ui(
                                     overpass_settings.clone()
                                 );
                                 tools.selection_areas.respawn = true;
-                                map_bundle.respawn = true;
+                                zoom_event.send(ZoomChangedEvent);
                                 
                                 commands.insert_resource(OverpassReceiver(rx));
                             }
@@ -240,7 +240,7 @@ fn workspace_actions_ui(
                                         _ => {}
                                     }
                                     tools.selection_areas.respawn = true;
-                                    map_bundle.respawn = true;
+                                    zoom_event.send(ZoomChangedEvent);
                                 }
                             });
                         }

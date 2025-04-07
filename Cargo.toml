@@ -5,11 +5,9 @@ edition = "2021"
 
 [dependencies]
 bevy = "0.15.1"
-bevy_ecs_tilemap = "0.15.0"
 bevy_pancam = "0.17.0"
 crossbeam-channel = "0.5.14"
 geo = "0.30.0"
-raqote = "0.8.5"
 rstar = "0.12.2"
 ureq = "3.0.10"
 bevy_egui = "0.33.0"

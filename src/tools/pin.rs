@@ -1,6 +1,8 @@
 use bevy::{prelude::*, render::view::RenderLayers, window::PrimaryWindow};
-use bevy_map_viewer::{Coord, EguiBlockInputState, TileMapResources};
+use bevy_map_viewer::{Coord, EguiBlockInputState, MapViewerMarker, TileMapResources};
 use rstar::{RTree, RTreeObject, AABB};
+
+use crate::camera::DrawCamera;
 
 use super::ToolResources;
 
@@ -57,7 +59,7 @@ impl Pin {
 
 pub fn handle_pin(
     mut pin: ResMut<ToolResources>,
-    camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    camera: Query<(&Camera, &GlobalTransform), With<MapViewerMarker>>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
     buttons: Res<ButtonInput<MouseButton>>,
     tile_map_manager: Res<TileMapResources>,

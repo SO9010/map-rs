@@ -49,13 +49,13 @@ fn tile_ui(
                         egui::ScrollArea::vertical().show(ui, |ui| {
                             ui.spacing_mut().item_spacing = egui::vec2(8.0, 10.0);
                             ui.set_max_width(tilebox_width);
-                            for (url, (enabled, _)) in &mut res_manager.chunk_manager.tile_web_origin.clone() {
+                            for (url, (enabled, _)) in &mut res_manager.tile_request_client.tile_web_origin.clone() {
                                 ui.vertical_centered(|ui| {
                                     ui.set_max_width(tilebox_width);
                                     if ui.add_sized(
                                         [tilebox_width - 10., 20.], Checkbox::new(enabled, RichText::new(url.as_str())),
                                     ).clicked() {
-                                        res_manager.chunk_manager.enable_only_tile_web_origin(url);
+                                        res_manager.tile_request_client.enable_only_tile_web_origin(url);
                                 }
                             });
                         }

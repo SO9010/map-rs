@@ -46,8 +46,6 @@ fn polygon_area(geometry: &[Vec2]) -> f32 {
 pub struct MapBundle {
     /// A collection of map features, please put this in a spatial hashmap
     pub features: RTree<MapFeature>,
-
-    pub respawn: bool,
 }
 
 impl Default for MapBundle {
@@ -60,7 +58,6 @@ impl MapBundle {
     pub fn new() -> Self {
         Self {
             features: RTree::new(),
-            respawn: false,
         }
     }
 }

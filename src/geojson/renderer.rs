@@ -4,6 +4,7 @@ use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::ShapeBundle, prelude::Ge
 use rstar::RTreeObject;
 
 use crate::{tools::ToolResources, types::{MapBundle, SettingsOverlay}};
+use bevy_map_viewer::ZoomChangedEvent;
 
 #[derive(Component)]
 pub struct ShapeMarker;
@@ -16,9 +17,11 @@ pub fn respawn_shapes(
     tile_map_manager: Res<TileMapResources>,
     overpass_settings: Res<SettingsOverlay>,
     tools: Res<ToolResources>,
+    mut zoom_change: EventReader<ZoomChangedEvent>,
 ) {
-    if map_bundle.respawn {
-        map_bundle.respawn = false;
+    if !zoom_change.is_empty() {
+        zoom_change.clear();
+        info!("Zoom changed, respawning shapes");
         for (entity, _) in shapes_query.iter() {
             commands.entity(entity).despawn_recursive();
         }
@@ -35,7 +38,7 @@ pub fn respawn_shapes(
             let mut fill_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.5 };
             let mut stroke_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.75 };
             let line_width = 0.025;
-            let elevation = 1000.0;
+            let elevation = 1.0;
 
             for (cat, key) in overpass_settings.get_true_keys_with_category_with_individual().iter() {
                 if let Some(cate) = feature.properties.get(cat.to_lowercase()) {

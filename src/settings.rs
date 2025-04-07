@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 #[allow(unused_imports)]
 use bevy_egui::{EguiContexts, EguiPlugin, EguiPreUpdateSet, egui::{self, color_picker::color_edit_button_srgba, Color32, RichText}};
+use bevy_map_viewer::ZoomChangedEvent;
 use bevy_prototype_lyon::entity::Path;
 
 use crate::types::{MapBundle, MapFeature, SettingsOverlay};
@@ -20,8 +21,8 @@ fn ui_example_system(
     mut contexts: EguiContexts,
     mut overpass_settings: ResMut<SettingsOverlay>,
     shapes_query: Query<(Entity, &Path, &GlobalTransform, &MapFeature)>,
-    mut map_bundle: ResMut<MapBundle>,
     mut commands: Commands,
+    mut zoom_event: EventWriter<ZoomChangedEvent>,
 ) {
     let ctx = contexts.ctx_mut();
     let screen_rect = ctx.screen_rect();
@@ -68,7 +69,7 @@ fn ui_example_system(
                                         } else {
                                             category.all = true;
                                             category.set_children(true);
-                                            map_bundle.respawn = true;
+                                            zoom_event.send(ZoomChangedEvent);
                                         }
                                         if category.none {
                                             category.none = false;
@@ -80,7 +81,7 @@ fn ui_example_system(
                                         } else {
                                             category.none = true;
                                             category.set_children(false);
-                                            map_bundle.respawn = true;
+                                            zoom_event.send(ZoomChangedEvent);
                                         }
                                         if category.all {
                                             category.all = false;
@@ -94,10 +95,10 @@ fn ui_example_system(
                                         if ui.checkbox(state , RichText::new(item_name).color(color)).clicked() {
                                             category.all = false;
                                             category.none = false;
-                                            map_bundle.respawn = true;
+                                            zoom_event.send(ZoomChangedEvent);
                                         }
                                         if color_edit_button_srgba(ui, clr, Opaque).changed() {
-                                            map_bundle.respawn = true;
+                                            zoom_event.send(ZoomChangedEvent);
                                         }
                                     });
                                 }

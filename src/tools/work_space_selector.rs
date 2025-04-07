@@ -1,10 +1,10 @@
 use std::f32::consts::PI;
 
 use bevy::{prelude::*, render::view::RenderLayers, window::PrimaryWindow};
-use bevy_map_viewer::{Coord, EguiBlockInputState, TileMapResources};
+use bevy_map_viewer::{Coord, EguiBlockInputState, MapViewerMarker, TileMapResources};
 use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder};
 
-use crate::types::{Selection, SelectionType, WorkspaceData};
+use crate::{camera::DrawCamera, types::{Selection, SelectionType, WorkspaceData}};
 
 use super::ToolResources;
 
@@ -33,7 +33,7 @@ impl Default for SelectionSettings {
 
 pub fn handle_selection(
     mut tools: ResMut<ToolResources>,
-    camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    camera: Query<(&Camera, &GlobalTransform), With<MapViewerMarker>>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
     buttons: Res<ButtonInput<MouseButton>>,
     res_manager: ResMut<TileMapResources>,
@@ -206,7 +206,7 @@ fn render_darkening_overlay(
     mut commands: Commands,
     tools: Res<ToolResources>,
     res_manager: ResMut<TileMapResources>,
-    camera_query: Query<(&Camera, &GlobalTransform, &OrthographicProjection), With<Camera2d>>,
+    camera_query: Query<(&Camera, &GlobalTransform, &OrthographicProjection), With<MapViewerMarker>>,
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
     overlay_query: Query<Entity, With<DarkeningOverlay>>,
 ) {

@@ -1,5 +1,5 @@
 use bevy::{prelude::*, render::view::RenderLayers};
-use bevy_map_viewer::{Coord, MapViewerPlugin, TileMapResources};
+use bevy_map_viewer::{Coord, MapViewerMarker, MapViewerPlugin, TileMapResources};
 use bevy_pancam::{DirectionKeys, PanCam, PanCamPlugin};
 
 use bevy_map_viewer::EguiBlockInputState;
@@ -14,11 +14,15 @@ impl Plugin for CameraSystemPlugin {
                 starting_zoom: 14,
                 tile_quality: 256.0,
                 cache_dir: "cache".to_string(),
+                starting_url: None,
             })
             .add_systems(Startup, setup_camera)
-            .add_systems(Update, handle_pancam);
+            .add_systems(Update, (handle_pancam, sync_cameras));
     }
 }
+
+#[derive(Component)]
+pub struct DrawCamera;
 
 fn setup_camera(mut commands: Commands, res_manager: Option<Res<TileMapResources>>) {
     if let Some(res_manager) = res_manager {
@@ -26,13 +30,30 @@ fn setup_camera(mut commands: Commands, res_manager: Option<Res<TileMapResources
             .location_manager
             .location
             .to_game_coords(res_manager.clone());
-
+        
         commands.spawn((
             Camera2d,
-            RenderLayers::from_layers(&[0, 1]),
-            Camera { ..default() },
+            DrawCamera,
+            RenderLayers::from_layers(&[1]),
+            Camera { 
+                order: 1,
+                ..default() 
+            },
             Transform {
                 translation: Vec3::new(starting.x, starting.y, 1.0),
+                ..Default::default()
+            },
+        ));
+        commands.spawn((
+            Camera2d,
+            MapViewerMarker,
+            RenderLayers::from_layers(&[0]),
+            Camera { 
+                order: 0,
+                ..default() 
+            },
+            Transform {
+                translation: Vec3::new(starting.x, starting.y, 0.0),
                 ..Default::default()
             },
             PanCam {
@@ -56,6 +77,24 @@ fn setup_camera(mut commands: Commands, res_manager: Option<Res<TileMapResources
         ));
     } else {
         error!("TileMapResources not found. Please add the tilemap addon first.");
+    }
+}
+
+fn sync_cameras(
+    primary_query: Query<(&Transform, &OrthographicProjection), With<MapViewerMarker>>,
+    mut secondary_query: Query<(&mut Transform, &mut OrthographicProjection), (With<DrawCamera>, Without<MapViewerMarker>)>,
+) {
+    if let Ok((primary_transform, primary_projection)) = primary_query.get_single() {
+        if let Ok((mut secondary_transform, mut secondary_projection)) = secondary_query.get_single_mut() {
+            secondary_transform.translation.x = primary_transform.translation.x;
+            secondary_transform.translation.y = primary_transform.translation.y;
+            secondary_transform.scale = primary_transform.scale;
+            
+            secondary_projection.scale = primary_projection.scale;
+            secondary_projection.area = primary_projection.area;
+            secondary_projection.far = primary_projection.far;
+            secondary_projection.near = primary_projection.near;
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 use std::io::{BufRead, BufReader, Read};
 use bevy::prelude::*;
-use bevy_map_viewer::DistanceType;
+use bevy_map_viewer::{DistanceType, ZoomChangedEvent};
 
 use crate::{geojson::get_data_from_string_osm, types::{MapBundle, MapFeature, Selection, SelectionType, SettingsOverlay}};
 
@@ -143,13 +143,14 @@ pub fn send_overpass_query(query: String) -> Vec<MapFeature> {
 pub fn read_overpass_receiver(
     map_receiver: Option<Res<OverpassReceiver>>,
     mut map_bundle: ResMut<MapBundle>,
+    mut zoom_event: EventWriter<ZoomChangedEvent>,
 ) {
     if let Some(map_receiver) = map_receiver {
         if let Ok(v) = map_receiver.0.try_recv() {
             for feature in &v {
                 map_bundle.features.insert(feature.clone());
             }
-            map_bundle.respawn = true;
+            zoom_event.send(ZoomChangedEvent);
         }
     }
 }
