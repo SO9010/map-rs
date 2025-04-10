@@ -30,14 +30,14 @@ fn setup_camera(mut commands: Commands, res_manager: Option<Res<TileMapResources
             .location_manager
             .location
             .to_game_coords(res_manager.clone());
-        
+
         commands.spawn((
             Camera2d,
             DrawCamera,
             RenderLayers::from_layers(&[1]),
-            Camera { 
+            Camera {
                 order: 1,
-                ..default() 
+                ..default()
             },
             Transform {
                 translation: Vec3::new(starting.x, starting.y, 1.0),
@@ -48,9 +48,9 @@ fn setup_camera(mut commands: Commands, res_manager: Option<Res<TileMapResources
             Camera2d,
             MapViewerMarker,
             RenderLayers::from_layers(&[0]),
-            Camera { 
+            Camera {
                 order: 0,
-                ..default() 
+                ..default()
             },
             Transform {
                 translation: Vec3::new(starting.x, starting.y, 0.0),
@@ -82,14 +82,16 @@ fn setup_camera(mut commands: Commands, res_manager: Option<Res<TileMapResources
 
 fn sync_cameras(
     primary_query: Query<(&Transform, &OrthographicProjection), With<MapViewerMarker>>,
-    mut secondary_query: Query<(&mut Transform, &mut OrthographicProjection), (With<DrawCamera>, Without<MapViewerMarker>)>,
+    mut secondary_query: Query<(&mut Transform, &mut OrthographicProjection), With<DrawCamera>>,
 ) {
     if let Ok((primary_transform, primary_projection)) = primary_query.get_single() {
-        if let Ok((mut secondary_transform, mut secondary_projection)) = secondary_query.get_single_mut() {
+        if let Ok((mut secondary_transform, mut secondary_projection)) =
+            secondary_query.get_single_mut()
+        {
             secondary_transform.translation.x = primary_transform.translation.x;
             secondary_transform.translation.y = primary_transform.translation.y;
             secondary_transform.scale = primary_transform.scale;
-            
+
             secondary_projection.scale = primary_projection.scale;
             secondary_projection.area = primary_projection.area;
             secondary_projection.far = primary_projection.far;

@@ -10,12 +10,13 @@ use crate::types::MapFeature;
 
 /// Parses OSM data from a string and returns a vector of map features.
 pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn std::error::Error>> {
+    info!("Parsing Overpass response: {data}");
     let response: OverpassResponse = serde_json::from_str(data)?;
 
     let mut features = Vec::new();
 
     for way in response.elements {
-        /* 
+        /*
         if let Some(members) = way.members {
             for member in members {
                 let tags = way.tags.clone().unwrap_or_default();
@@ -39,7 +40,17 @@ pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn s
                 id: way.id.to_string(),
                 properties: tags.clone(),
                 closed: !geo.is_empty() && geo.first() == geo.last(),
-                geometry: geo::Polygon::new(geo::LineString(geo.into_iter().map(|p| geo::Coord { x: p.lat as f64, y: p.long as f64 }).collect()), vec![]),
+                geometry: geo::Polygon::new(
+                    geo::LineString(
+                        geo.into_iter()
+                            .map(|p| geo::Coord {
+                                x: p.lat as f64,
+                                y: p.long as f64,
+                            })
+                            .collect(),
+                    ),
+                    vec![],
+                ),
             });
         }
     }
@@ -64,63 +75,74 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
                     geojson::Value::Polygon(poly) => {
                         if !poly.is_empty() {
                             let exterior = geo::LineString(
-                                poly[0].iter()
-                                   .map(|p| geo::Coord { x: p[1], y: p[0] })
-                                   .collect()
+                                poly[0]
+                                    .iter()
+                                    .map(|p| geo::Coord { x: p[1], y: p[0] })
+                                    .collect(),
                             );
-                            
-                            let interiors: Vec<geo::LineString> = poly.iter()
+
+                            let interiors: Vec<geo::LineString> = poly
+                                .iter()
                                 .skip(1) // Skip the exterior ring
                                 .map(|ring| {
                                     geo::LineString(
                                         ring.iter()
-                                           .map(|p| geo::Coord { x: p[1], y: p[0] })
-                                           .collect()
+                                            .map(|p| geo::Coord { x: p[1], y: p[0] })
+                                            .collect(),
                                     )
                                 })
                                 .collect();
                             geo = geo::Polygon::new(exterior, interiors);
                         }
-                    },
+                    }
                     geojson::Value::MultiPolygon(multi_poly) => {
                         if !multi_poly.is_empty() && !multi_poly[0].is_empty() {
                             let exterior = geo::LineString(
-                                multi_poly[0][0].iter()
-                                   .map(|p| geo::Coord { x: p[1], y: p[0] })
-                                   .collect()
+                                multi_poly[0][0]
+                                    .iter()
+                                    .map(|p| geo::Coord { x: p[1], y: p[0] })
+                                    .collect(),
                             );
-                            
-                            let interiors: Vec<geo::LineString> = multi_poly[0].iter()
+
+                            let interiors: Vec<geo::LineString> = multi_poly[0]
+                                .iter()
                                 .skip(1) // Skip the exterior ring
                                 .map(|ring| {
                                     geo::LineString(
                                         ring.iter()
-                                           .map(|p| geo::Coord { x: p[1], y: p[0] })
-                                           .collect()
+                                            .map(|p| geo::Coord { x: p[1], y: p[0] })
+                                            .collect(),
                                     )
                                 })
                                 .collect();
                             geo = geo::Polygon::new(exterior, interiors);
                         }
-                    },
+                    }
                     geojson::Value::LineString(line) => {
                         closed = false;
                         geo = geo::Polygon::new(
                             geo::LineString(
                                 line.iter()
-                                   .map(|p| geo::Coord { x: p[1], y: p[0] })
-                                   .collect()
-                            ), 
-                            vec![]
+                                    .map(|p| geo::Coord { x: p[1], y: p[0] })
+                                    .collect(),
+                            ),
+                            vec![],
                         );
-                    },
+                    }
                     _ => continue,
                 }
 
                 features.push(MapFeature {
-                    id: feature
-                        .id
-                        .map_or_else(|| format!("{}_{:?}", file_path, feature.properties.clone().unwrap().get_key_value("entity")), |id| format!("{:?}", id)),
+                    id: feature.id.map_or_else(
+                        || {
+                            format!(
+                                "{}_{:?}",
+                                file_path,
+                                feature.properties.clone().unwrap().get_key_value("entity")
+                            )
+                        },
+                        |id| format!("{:?}", id),
+                    ),
                     properties: serde_json::Value::Object(feature.properties.unwrap_or_default()),
                     closed,
                     geometry: geo.clone(),
@@ -132,10 +154,7 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
     Ok(features)
 }
 
-pub fn get_file_data (
-    features: &mut RTree<MapFeature>,
-    file_path: &str,
-) {
+pub fn get_file_data(features: &mut RTree<MapFeature>, file_path: &str) {
     for feature in get_map_data(file_path).unwrap() {
         features.insert(feature);
     }
@@ -178,7 +197,6 @@ struct Section {
     #[serde(default)]
     pub geometry: Option<Vec<Coord>>,
 }
-
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -2,8 +2,9 @@ use bevy::prelude::*;
 use bevy_map_viewer::{Coord, TileMapResources};
 use geo::BoundingRect;
 use rstar::{RTree, RTreeObject, AABB};
+use serde::{Deserialize, Serialize};
 
-#[derive(Component, Clone, Debug, PartialEq)]
+#[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MapFeature {
     pub id: String,
     pub properties: serde_json::Value,
@@ -16,7 +17,8 @@ impl MapFeature {
         let exterior = new_geo.exterior().clone();
         let mut new_points = Vec::new();
         for coord in exterior {
-            let point = Coord::new(coord.x as f32, coord.y as f32).to_game_coords(tile_map_resources.clone());
+            let point = Coord::new(coord.x as f32, coord.y as f32)
+                .to_game_coords(tile_map_resources.clone());
             new_points.push(Vec2::new(point.x, point.y));
         }
         new_points

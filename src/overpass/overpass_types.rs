@@ -1,10 +1,15 @@
 use std::collections::BTreeMap;
 
-use bevy::prelude::*;
-use bevy_egui::egui::{self, Color32};
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub struct Color32(pub(crate) [u8; 4]);
+impl Color32 {
+    pub const fn from_rgb(r: u8, g: u8, b: u8) -> Self {
+        Self([r, g, b, 255])
+    }
+}
 
-#[derive(Resource, Clone)]
-pub struct SettingsOverlay {
+#[derive(Clone)]
+pub struct Settings {
     // String = cat name, Category = data and children
     pub categories: BTreeMap<String, Category>,
 }
@@ -12,29 +17,29 @@ pub struct SettingsOverlay {
 /// Holds the categories and sub-categories which are the basis of making an osm request.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Category {
-    pub all: bool,                      // Toggle all to be on
-    pub none: bool,                     // Toggle all to be off
-    pub disabled: bool,                 // Make it so they are all disabled
-    pub items: BTreeMap<String, (bool, egui::Color32)>,  // Maps sub-category names to their state
+    pub all: bool,                                // Toggle all to be on
+    pub none: bool,                               // Toggle all to be off
+    pub disabled: bool,                           // Make it so they are all disabled
+    pub items: BTreeMap<String, (bool, Color32)>, // Maps sub-category names to their state
 }
 
 impl Category {
     pub fn set_children(&mut self, on_or_off: bool) {
         for (_, (toggle, _)) in self.items.iter_mut() {
             *toggle = on_or_off;
-        } 
+        }
     }
 }
 
-impl Default for SettingsOverlay {
+impl Default for Settings {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl SettingsOverlay {
+impl Settings {
     pub fn new() -> Self {
-        let mut overlay = SettingsOverlay {
+        let mut overlay = Settings {
             categories: BTreeMap::new(),
         };
 
@@ -100,7 +105,6 @@ impl SettingsOverlay {
                 "trailhead",
                 "turning_circle",
                 "turning_loop",
-
             ],
         );
 
@@ -209,7 +213,6 @@ impl SettingsOverlay {
                 "guardhouse",
                 "military",
                 "outbuilding",
-
             ],
         );
 
@@ -377,7 +380,6 @@ impl SettingsOverlay {
                 "residential",
                 "retail",
                 "institutional",
-
                 // Rural and Agricultural Landuse
                 "aquaculture",
                 "allotments",
@@ -393,12 +395,10 @@ impl SettingsOverlay {
                 "orchard",
                 "plant_nursery",
                 "vineyard",
-
                 // Waterbody Landuse
                 "basin",
                 "reservoir",
                 "salt_pond",
-
                 // Other Landuse
                 "brownfield",
                 "cemetery",
@@ -417,7 +417,6 @@ impl SettingsOverlay {
                 "village_green",
                 "greenery",
                 "winter_sports",
-
             ],
         );
 
@@ -427,7 +426,6 @@ impl SettingsOverlay {
                 // Entertainment and Gaming
                 "adult_gaming_centre",
                 "amusement_arcade",
-
                 // Outdoor and Recreational
                 "beach_resort",
                 "bandstand",
@@ -460,7 +458,6 @@ impl SettingsOverlay {
                 "swimming_pool",
                 "track",
                 "water_park",
-
             ],
         );
         overlay.add_category(
@@ -687,7 +684,7 @@ impl SettingsOverlay {
                 "stop_area",
                 "stop_area_group",
             ],
-        );        
+        );
         overlay.add_category(
             "Railway",
             vec![
@@ -774,7 +771,7 @@ impl SettingsOverlay {
                 "tram",
                 "trolleybus",
             ],
-        );        
+        );
         overlay.add_category(
             "Telecom",
             vec![
@@ -889,50 +886,60 @@ impl SettingsOverlay {
     pub fn add_category(&mut self, name: &str, items: Vec<&str>) {
         let mut category = Category::default();
         for item in items {
-            category.items.insert(item.to_string(), (false, Color32::from_rgb(150, 150, 150)));
+            category
+                .items
+                .insert(item.to_string(), (false, Color32::from_rgb(150, 150, 150)));
         }
         self.categories.insert(name.to_string(), category);
     }
 
     pub fn get_true_keys_with_category(&self) -> Vec<(String, String)> {
-        self.categories.iter()
+        self.categories
+            .iter()
             .flat_map(|(category_name, category)| {
                 if category.disabled {
                     vec![]
-                }
-                else if category.all {
+                } else if category.all {
                     vec![(category_name.clone(), "*".to_string())]
                 } else {
-                    category.items.iter()
-                    .filter_map(move |(item_name, &value)| {
-                        if value.0 {
-                            Some((category_name.clone(), item_name.clone()))
-                        } else {
-                            None
-                        }
-                    }).collect::<Vec<_>>()
+                    category
+                        .items
+                        .iter()
+                        .filter_map(move |(item_name, &value)| {
+                            if value.0 {
+                                Some((category_name.clone(), item_name.clone()))
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<Vec<_>>()
                 }
-            }).collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>()
     }
 
     /// Returns a hashmap of the true keys with their category and key
     pub fn get_true_keys_with_category_with_individual(&self) -> Vec<(String, String)> {
-        self.categories.iter()
-        .flat_map(|(category_name, category)| {
-            if category.disabled {
-                vec![]
-            }
-            else {
-                category.items.iter()
-                .filter_map(move |(item_name, &value)| {
-                    if value.0 {
-                        Some((category_name.clone(), item_name.clone()))
-                    } else {
-                        None
-                    }
-                }).collect::<Vec<_>>()
-            }
-        }).collect::<Vec<_>>()
+        self.categories
+            .iter()
+            .flat_map(|(category_name, category)| {
+                if category.disabled {
+                    vec![]
+                } else {
+                    category
+                        .items
+                        .iter()
+                        .filter_map(move |(item_name, &value)| {
+                            if value.0 {
+                                Some((category_name.clone(), item_name.clone()))
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                }
+            })
+            .collect::<Vec<_>>()
     }
 
     /*
@@ -950,14 +957,15 @@ impl SettingsOverlay {
     */
 
     pub fn get_disabled_categories(&self) -> Vec<String> {
-        self.categories.iter()
+        self.categories
+            .iter()
             .filter_map(|(category_name, category)| {
                 if category.disabled {
                     Some(category_name.clone())
                 } else {
                     None
                 }
-            }).collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>()
     }
 }
-

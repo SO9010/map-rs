@@ -57,17 +57,15 @@ pub fn handle_measure(
         if let Some(position) = q_windows.single().cursor_position() {
             let pos = tile_map_manager.point_to_coord(camera.viewport_to_world_2d(camera_transform, position).unwrap());
             if buttons.just_pressed(MouseButton::Left) && !state.block_input {
-                let start = Coord::new(pos.lat as f32, pos.long as f32);
+                let start = Coord::new(pos.lat, pos.long);
                 measure.measure.start = Some(start);
             }
-            if buttons.pressed(MouseButton::Left) {
-                if measure.measure.end != Some(Coord::new(pos.lat as f32, pos.long as f32)) {
-                    measure.measure.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
-                }
+            if buttons.pressed(MouseButton::Left) && measure.measure.end != Some(Coord::new(pos.lat, pos.long)) {
+                measure.measure.end = Some(Coord::new(pos.lat, pos.long));
             }
             if buttons.just_released(MouseButton::Left) {
 
-                measure.measure.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
+                measure.measure.end = Some(Coord::new(pos.lat, pos.long));
             }
             if buttons.pressed(MouseButton::Right) {
                 measure.measure.start = None;

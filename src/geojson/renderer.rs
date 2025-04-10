@@ -1,9 +1,14 @@
 use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_map_viewer::TileMapResources;
-use bevy_prototype_lyon::{draw::{Fill, Stroke}, entity::ShapeBundle, prelude::GeometryBuilder, shapes};
+use bevy_prototype_lyon::{
+    draw::{Fill, Stroke},
+    entity::ShapeBundle,
+    prelude::GeometryBuilder,
+    shapes,
+};
 use rstar::RTreeObject;
 
-use crate::{tools::ToolResources, types::{MapBundle, SettingsOverlay}};
+use crate::{overpass::OverpassClientResource, tools::ToolResources, types::MapBundle};
 use bevy_map_viewer::ZoomChangedEvent;
 
 #[derive(Component)]
@@ -15,7 +20,7 @@ pub fn respawn_shapes(
     shapes_query: Query<(Entity, &ShapeMarker)>,
     map_bundle: ResMut<MapBundle>,
     tile_map_manager: Res<TileMapResources>,
-    overpass_settings: Res<SettingsOverlay>,
+    overpass_settings: Res<OverpassClientResource>,
     tools: Res<ToolResources>,
     mut zoom_change: EventReader<ZoomChangedEvent>,
 ) {
@@ -25,28 +30,67 @@ pub fn respawn_shapes(
             commands.entity(entity).despawn_recursive();
         }
 
-        let mut batch_commands_closed: Vec<(ShapeBundle, Fill, Stroke, ShapeMarker, RenderLayers)> = Vec::new();
-        let mut batch_commands_open: Vec<(ShapeBundle, Stroke, ShapeMarker, RenderLayers)> = Vec::new();
+        let mut batch_commands_closed: Vec<(ShapeBundle, Fill, Stroke, ShapeMarker, RenderLayers)> =
+            Vec::new();
+        let mut batch_commands_open: Vec<(ShapeBundle, Stroke, ShapeMarker, RenderLayers)> =
+            Vec::new();
 
         let mut intersection_candidates: Vec<&crate::types::MapFeature> = Vec::new();
         if let Some(selection) = &tools.selection_areas.focused_selection {
-            intersection_candidates = map_bundle.features.locate_in_envelope_intersecting(&selection.envelope()).collect::<Vec<_>>();
+            intersection_candidates = map_bundle
+                .features
+                .locate_in_envelope_intersecting(&selection.envelope())
+                .collect::<Vec<_>>();
         }
 
         for feature in intersection_candidates {
-            let mut fill_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.5 };
-            let mut stroke_color = Srgba { red: 0., green: 0.5, blue: 0., alpha: 0.75 };
+            let mut fill_color = Srgba {
+                red: 0.,
+                green: 0.5,
+                blue: 0.,
+                alpha: 0.5,
+            };
+            let mut stroke_color = Srgba {
+                red: 0.,
+                green: 0.5,
+                blue: 0.,
+                alpha: 0.75,
+            };
             let line_width = 0.025;
             let elevation = 1.0;
 
-            for (cat, key) in overpass_settings.get_true_keys_with_category_with_individual().iter() {
+            for (cat, key) in overpass_settings
+                .client
+                .settings
+                .get_true_keys_with_category_with_individual()
+                .iter()
+            {
                 if let Some(cate) = feature.properties.get(cat.to_lowercase()) {
                     if cate.as_str().unwrap() != key {
                         continue;
                     }
-                    let color = overpass_settings.categories.get(cat).unwrap().items.get(key).unwrap().1;
-                    stroke_color = Srgba { red: (color.r() as f32) / 210., green: (color.g() as f32) / 210., blue: (color.b() as f32) / 210., alpha: 0.50 };
-                    fill_color = Srgba { red: (color.r() as f32) / 210., green: (color.g() as f32) / 210., blue: (color.b() as f32) / 210., alpha: 0.50 };
+                    let color = overpass_settings
+                        .client
+                        .settings
+                        .categories
+                        .get(cat)
+                        .unwrap()
+                        .items
+                        .get(key)
+                        .unwrap()
+                        .1;
+                    stroke_color = Srgba {
+                        red: (color.0[0] as f32) / 210.,
+                        green: (color.0[1] as f32) / 210.,
+                        blue: (color.0[2] as f32) / 210.,
+                        alpha: 0.50,
+                    };
+                    fill_color = Srgba {
+                        red: (color.0[0] as f32) / 210.,
+                        green: (color.0[1] as f32) / 210.,
+                        blue: (color.0[2] as f32) / 210.,
+                        alpha: 0.50,
+                    };
                 }
             }
 

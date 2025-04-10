@@ -1,11 +1,13 @@
-use bevy::prelude::*;
+
+use bevy::{prelude::*, utils::HashSet};
 use bevy_map_viewer::{Coord, TileMapResources};
 use rstar::{RTree, RTreeObject, AABB};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+
 /// The goal for this module is to provide a way to select a region of the map, to be able to select featurtes in that region.
-/// For example someone should be able to select an eare for turbo overpass data to be downloaded. 
+/// For example someone should be able to select an eare for turbo overpass data to be downloaded.
 /// Or this area can be selected to modify how the map looks in that area.
 /// Or this will be used for the user to select their work space area, with in this the data will be permentanly stored and the user can modify it.
 /// When someone selects something it would be cool to make it sticky so someone has to pull further than a certian amount to leave the workspace.
@@ -44,14 +46,14 @@ impl Default for SelectionAreas {
 
 impl SelectionAreas {
     pub fn new() -> Self {
-        Self { 
+        Self {
             focused_selection: None,
             areas: RTree::new(),
             unfinished_selection: None,
-            respawn: false
+            respawn: false,
         }
     }
-    
+
     pub fn add(&mut self, selection: WorkspaceData) {
         self.areas.insert(selection);
     }
@@ -77,7 +79,11 @@ impl Selection {
         } else {
             let mut new_points = Vec::new();
             if self.start.is_some() {
-                new_points.push(self.start.unwrap().to_game_coords(tile_map_resources.clone()));
+                new_points.push(
+                    self.start
+                        .unwrap()
+                        .to_game_coords(tile_map_resources.clone()),
+                );
             }
             if self.end.is_some() {
                 new_points.push(self.end.unwrap().to_game_coords(tile_map_resources.clone()));
@@ -113,30 +119,44 @@ impl Selection {
 /// These implementations are for the RTreeObject trait.
 impl RTreeObject for Selection {
     type Envelope = AABB<[f64; 2]>;
-    
+
     fn envelope(&self) -> Self::Envelope {
         match self.selection_type {
-            SelectionType::RECTANGLE => return AABB::from_corners([self.start.unwrap().lat.into(), self.start.unwrap().long as f64], [self.end.unwrap().lat as f64, self.end.unwrap().long as f64]),
+            SelectionType::RECTANGLE => {
+                return AABB::from_corners(
+                    [
+                        self.start.unwrap().lat.into(),
+                        self.start.unwrap().long as f64,
+                    ],
+                    [self.end.unwrap().lat as f64, self.end.unwrap().long as f64],
+                )
+            }
             SelectionType::CIRCLE => {
                 if let (Some(center), Some(edge)) = (self.start, self.end) {
                     let radius = center.to_vec2().distance(edge.to_vec2());
-                    
-                    let lat_radius = radius as f64;  // Approximation - adjust if needed
+
+                    let lat_radius = radius as f64; // Approximation - adjust if needed
                     let long_radius = radius as f64;
-                    
+
                     return AABB::from_corners(
-                        [center.lat as f64 - lat_radius, center.long as f64 - long_radius],
-                        [center.lat as f64 + lat_radius, center.long as f64 + long_radius]
+                        [
+                            center.lat as f64 - lat_radius,
+                            center.long as f64 - long_radius,
+                        ],
+                        [
+                            center.lat as f64 + lat_radius,
+                            center.long as f64 + long_radius,
+                        ],
                     );
                 }
                 return AABB::from_corners([0.0, 0.0], [0.0, 0.0]);
-            },
+            }
             SelectionType::POLYGON => {
                 let mut min = [f64::MAX, f64::MAX];
                 let mut max = [f64::MIN, f64::MIN];
                 for point in self.points.as_ref().unwrap() {
                     if point.long < min[0] as f32 {
-                        min[0] = point.long as f64 ;
+                        min[0] = point.long as f64;
                     }
                     if point.lat < min[1] as f32 {
                         min[1] = point.lat as f64;
@@ -149,24 +169,54 @@ impl RTreeObject for Selection {
                     }
                 }
                 return AABB::from_corners(min, max);
-            },
+            }
             _ => AABB::from_corners([0.0, 0.0], [0.0, 0.0]),
         };
         AABB::from_corners([0.0, 0.0], [0.0, 0.0])
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceData {
     pub id: String,
     pub name: String,
     pub selection: Selection,
-    pub features_path: Option<String>,     // Path to saved processed features JSON
-    pub osm_data_path: Option<String>,     // Path to saved raw OSM response data
-    pub bounds: Option<[f64; 4]>,          // [min_x, min_y, max_x, max_y]
     pub creation_date: String,
     pub last_modified: String,
-    pub last_osm_query_date: Option<String>, // When the OSM data was fetched
+    // ID list of the different requests
+    pub requests: Option<HashSet<String>>,
+}
+
+// So i will have different imports with different structs, for example open-meteo or overpass-turbo and i want it to have that struct stored in here but i dont want to make it specific?
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkspaceRequest {
+    pub id: String,
+    pub layer: u32,
+    pub request: String, // Change to enum
+    pub data_type: Option<String>,
+    pub raw_data: Option<Vec<u8>>,       // Raw data from the request
+    pub last_query_date: Option<String>, // When the OSM data was fetched
+}
+
+pub struct RequestType {}
+
+impl WorkspaceRequest {
+    pub fn new(layer: u32) -> Self {
+        Self {
+            id: Uuid::new_v4().to_string(),
+            layer,
+            request: String::new(),
+            data_type: None,
+            raw_data: None,
+            last_query_date: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum RequestData {
+    // In this have it so that we pass the struct in it so then we can call it through
+    // We can then implement workpsace request to use a match statment to handle the different requests!
 }
 
 impl WorkspaceData {
@@ -175,19 +225,16 @@ impl WorkspaceData {
             id: Uuid::new_v4().to_string(),
             name,
             selection,
-            features_path: None,
-            osm_data_path: None,
-            bounds: None,
             creation_date: chrono::Utc::now().to_rfc3339(),
             last_modified: chrono::Utc::now().to_rfc3339(),
-            last_osm_query_date: None,
+            requests: None,
         }
     }
 }
 
 impl RTreeObject for WorkspaceData {
     type Envelope = AABB<[f64; 2]>;
-    
+
     fn envelope(&self) -> Self::Envelope {
         self.selection.envelope()
     }

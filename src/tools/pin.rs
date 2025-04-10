@@ -70,7 +70,7 @@ pub fn handle_pin(
             if buttons.just_pressed(MouseButton::Left) {
                 let pos = tile_map_manager.point_to_coord(camera.viewport_to_world_2d(camera_transform, position).unwrap());
                 pin.pins.add_pin(Pin {
-                    location: Coord::new(pos.lat as f32, pos.long as f32),
+                    location: Coord::new(pos.lat, pos.long),
                 });
                 pin.pins.respawn = true;
             }

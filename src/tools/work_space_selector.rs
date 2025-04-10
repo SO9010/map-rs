@@ -59,13 +59,11 @@ pub fn handle_selection(
                     tools.selection_areas.respawn = true;
                 }
             }
-            if buttons.pressed(MouseButton::Left) {
-                if tools.selection_settings.tool_type != SelectionType::POLYGON {
-                    if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
-                        if selection.end != Some(Coord::new(pos.lat as f32, pos.long as f32)) {
-                            selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
-                            tools.selection_areas.respawn = true;
-                        }
+            if buttons.pressed(MouseButton::Left) && tools.selection_settings.tool_type != SelectionType::POLYGON {
+                if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
+                    if selection.end != Some(Coord::new(pos.lat, pos.long)) {
+                        selection.end = Some(Coord::new(pos.lat, pos.long));
+                        tools.selection_areas.respawn = true;
                     }
                 }
             }
@@ -74,7 +72,7 @@ pub fn handle_selection(
                 if tools.selection_settings.tool_type != SelectionType::POLYGON {
                     if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
                         if selection.end != selection.start {
-                            selection.end = Some(Coord::new(pos.lat as f32, pos.long as f32));
+                            selection.end = Some(Coord::new(pos.lat, pos.long));
                             selection.selection_name = format!("{:#?}-{}", selection.selection_type, areas_size);
                         } else {
                             tools.selection_areas.unfinished_selection = None;
