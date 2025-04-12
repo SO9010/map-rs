@@ -22,8 +22,8 @@ pub struct WorkspaceRequest {
     pub id: String,
     pub layer: u32,
     pub request: RequestType,
-    pub raw_data: Option<Vec<u8>>,          // Raw data from the request
-    pub last_query_date: Option<String>,    // When the OSM data was fetched
+    pub raw_data: Option<Vec<u8>>,       // Raw data from the request
+    pub last_query_date: Option<String>, // When the OSM data was fetched
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -120,7 +120,7 @@ impl SelectionType {
 }
 
 pub struct SelectionAreas {
-    pub focused_selection: Option<Selection>,
+    pub focused_area: Option<WorkspaceData>,
     pub areas: RTree<WorkspaceData>,
     pub unfinished_selection: Option<Selection>,
     pub respawn: bool,
@@ -135,7 +135,7 @@ impl Default for SelectionAreas {
 impl SelectionAreas {
     pub fn new() -> Self {
         Self {
-            focused_selection: None,
+            focused_area: None,
             areas: RTree::new(),
             unfinished_selection: None,
             respawn: false,
@@ -149,7 +149,6 @@ impl SelectionAreas {
 
 #[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Selection {
-    pub selection_name: String,
     pub selection_type: SelectionType,
     pub start: Option<Coord>,
     pub end: Option<Coord>,
@@ -185,7 +184,6 @@ impl Selection {
 impl Selection {
     pub fn new(selection_type: SelectionType, start: Coord, end: Coord) -> Self {
         Self {
-            selection_name: format!("{:#?}-{:#?}", selection_type, start),
             selection_type,
             start: Some(start),
             end: Some(end),
@@ -195,7 +193,6 @@ impl Selection {
 
     pub fn new_poly(selection_type: SelectionType, start: Coord) -> Self {
         Self {
-            selection_name: format!("{:#?}-{:#?}", selection_type, start),
             selection_type,
             start: None,
             end: None,

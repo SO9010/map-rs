@@ -2,7 +2,6 @@ use bevy::{prelude::*, render::view::RenderLayers, window::PrimaryWindow};
 use bevy_map_viewer::{Coord, EguiBlockInputState, MapViewerMarker, TileMapResources};
 use rstar::{RTree, RTreeObject, AABB};
 
-
 use super::ToolResources;
 
 pub struct PinPlugin;
@@ -65,10 +64,14 @@ pub fn handle_pin(
     state: Res<EguiBlockInputState>,
 ) {
     let (camera, camera_transform) = camera.single();
-    if pin.pins.enabled && !state.block_input{
+    if pin.pins.enabled && !state.block_input {
         if let Some(position) = q_windows.single().cursor_position() {
             if buttons.just_pressed(MouseButton::Left) {
-                let pos = tile_map_manager.point_to_coord(camera.viewport_to_world_2d(camera_transform, position).unwrap());
+                let pos = tile_map_manager.point_to_coord(
+                    camera
+                        .viewport_to_world_2d(camera_transform, position)
+                        .unwrap(),
+                );
                 pin.pins.add_pin(Pin {
                     location: Coord::new(pos.lat, pos.long),
                 });
@@ -92,7 +95,12 @@ fn render_pins(
             commands.entity(entity).despawn_recursive();
         }
 
-        let fill_color = Srgba { red: 0., green: 0., blue: 1., alpha: 0.75 };
+        let fill_color = Srgba {
+            red: 0.,
+            green: 0.,
+            blue: 1.,
+            alpha: 0.75,
+        };
         let width = 5.;
         let elevation = 500.0;
 
@@ -106,10 +114,8 @@ fn render_pins(
                 RenderLayers::layer(1),
             ));
         }
-        
     }
 }
-
 
 const _PIN_ICON: [&str; 2] = [
     "M12 2a8 8 0 0 0-2.565 15.572L12 21.992l2.565-4.42A8 8 0 0 0 12 2zm1.626 13.77-.391.11L12 18.008l-1.235-2.128-.391-.11a6 6 0 1 1 3.252 0z",

@@ -1,4 +1,7 @@
-use bevy::{prelude::*, winit::{UpdateMode, WinitSettings}};
+use bevy::{
+    prelude::*,
+    winit::{UpdateMode, WinitSettings},
+};
 
 use bevy_egui::EguiPlugin;
 use bevy_map_viewer::EguiBlockInputState;
@@ -15,12 +18,12 @@ use tools::ToolsPlugin;
 pub mod camera;
 pub mod debug;
 pub mod geojson;
-pub mod overpass;
-pub mod tools;
-pub mod tiles;
-pub mod types;
-pub mod settings;
 pub mod interaction;
+pub mod overpass;
+pub mod settings;
+pub mod tiles;
+pub mod tools;
+pub mod types;
 
 fn main() {
     App::new()
@@ -31,7 +34,12 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins((CameraSystemPlugin, InteractionSystemPlugin, ShapePlugin, TilesUiPlugin))
+        .add_plugins((
+            CameraSystemPlugin,
+            InteractionSystemPlugin,
+            ShapePlugin,
+            TilesUiPlugin,
+        ))
         .add_plugins(EguiPlugin)
         .add_plugins(DebugPlugin)
         .insert_resource(WinitSettings {

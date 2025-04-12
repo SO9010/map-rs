@@ -82,7 +82,10 @@ fn setup_camera(mut commands: Commands, res_manager: Option<Res<TileMapResources
 
 fn sync_cameras(
     primary_query: Query<(&Transform, &OrthographicProjection), With<MapViewerMarker>>,
-    mut secondary_query: Query<(&mut Transform, &mut OrthographicProjection), (With<DrawCamera>, Without<MapViewerMarker>)>,
+    mut secondary_query: Query<
+        (&mut Transform, &mut OrthographicProjection),
+        (With<DrawCamera>, Without<MapViewerMarker>),
+    >,
 ) {
     if let Ok((primary_transform, primary_projection)) = primary_query.get_single() {
         if let Ok((mut secondary_transform, mut secondary_projection)) =

@@ -12,4 +12,3 @@ impl Plugin for RenderPlugin {
             .add_systems(Update, respawn_shapes);
     }
 }
-

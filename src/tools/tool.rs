@@ -1,7 +1,13 @@
-use bevy::{app::*, ecs::system::{Res, ResMut, Resource}, input::{keyboard::KeyCode, ButtonInput}};
 use crate::{types::SelectionAreas, EguiBlockInputState};
+use bevy::{
+    app::*,
+    ecs::system::{Res, ResMut, Resource},
+    input::{keyboard::KeyCode, ButtonInput},
+};
 
-use super::{Measure, MeasurePlugin, PinPlugin, Pins, SelectionPlugin, SelectionSettings, ToolbarUiPlugin};
+use super::{
+    Measure, MeasurePlugin, PinPlugin, Pins, SelectionPlugin, SelectionSettings, ToolbarUiPlugin,
+};
 
 // Collected res for the tools. When you add a new tool, add it here.
 #[derive(Resource, Default)]

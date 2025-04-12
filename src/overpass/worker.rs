@@ -1,5 +1,5 @@
 use crate::geojson::get_data_from_string_osm;
-use crate::types::{MapFeature, Selection, SelectionType};
+use crate::types::{MapFeature, Selection, SelectionType, WorkspaceData};
 use bevy::prelude::*;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
 use bevy_map_viewer::DistanceType;
@@ -33,9 +33,13 @@ impl OverpassWorker {
         }
     }
 
-    pub fn queue_request(&self, selection: Selection) -> Receiver<Vec<MapFeature>> {
+    /// Change this to take the workspace so then we can handle everthing in the workspace too.
+    pub fn queue_request(&self, workspace: WorkspaceData) -> Receiver<Vec<MapFeature>> {
         let (tx, rx) = bounded(1);
-        let request = OverpassRequest { selection, tx };
+        let request = OverpassRequest {
+            selection: workspace.selection.clone(),
+            tx,
+        };
         {
             let mut pending = self.pending_requests.lock().unwrap();
             pending.push(request);

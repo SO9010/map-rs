@@ -2,8 +2,9 @@ use std::f32::consts::PI;
 
 use bevy::{prelude::*, render::view::RenderLayers, window::PrimaryWindow};
 use bevy_map_viewer::{Coord, EguiBlockInputState, MapViewerMarker, TileMapResources};
-use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder};
-use serde::Serialize;
+use bevy_prototype_lyon::{
+    draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder,
+};
 
 use crate::types::{Selection, SelectionType, WorkspaceData};
 
@@ -21,7 +22,7 @@ impl Plugin for SelectionPlugin {
 pub struct SelectionSettings {
     pub tool_type: SelectionType,
     pub enabled: bool,
-} 
+}
 
 impl Default for SelectionSettings {
     fn default() -> Self {
@@ -44,23 +45,37 @@ pub fn handle_selection(
     let (camera, camera_transform) = camera.single();
     if tools.selection_settings.enabled {
         if let Some(position) = q_windows.single().cursor_position() {
-            let pos = res_manager.point_to_coord(camera.viewport_to_world_2d(camera_transform, position).unwrap());
+            let pos = res_manager.point_to_coord(
+                camera
+                    .viewport_to_world_2d(camera_transform, position)
+                    .unwrap(),
+            );
 
+            let mut name = String::new();
             if buttons.just_pressed(MouseButton::Left) && !state.block_input {
                 if tools.selection_settings.tool_type == SelectionType::POLYGON {
                     if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
                         selection.points.as_mut().unwrap().push(pos);
                         tools.selection_areas.respawn = true;
                     } else {
-                        tools.selection_areas.unfinished_selection = Some(Selection::new_poly(tools.selection_settings.tool_type.clone(), pos));
+                        tools.selection_areas.unfinished_selection = Some(Selection::new_poly(
+                            tools.selection_settings.tool_type.clone(),
+                            pos,
+                        ));
                         tools.selection_areas.respawn = true;
                     }
                 } else {
-                    tools.selection_areas.unfinished_selection = Some(Selection::new(tools.selection_settings.tool_type.clone(), pos, pos));
+                    tools.selection_areas.unfinished_selection = Some(Selection::new(
+                        tools.selection_settings.tool_type.clone(),
+                        pos,
+                        pos,
+                    ));
                     tools.selection_areas.respawn = true;
                 }
             }
-            if buttons.pressed(MouseButton::Left) && tools.selection_settings.tool_type != SelectionType::POLYGON {
+            if buttons.pressed(MouseButton::Left)
+                && tools.selection_settings.tool_type != SelectionType::POLYGON
+            {
                 if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
                     if selection.end != Some(Coord::new(pos.lat, pos.long)) {
                         selection.end = Some(Coord::new(pos.lat, pos.long));
@@ -68,13 +83,15 @@ pub fn handle_selection(
                     }
                 }
             }
-            if !buttons.pressed(MouseButton::Left) && tools.selection_areas.unfinished_selection.is_some() {
+            if !buttons.pressed(MouseButton::Left)
+                && tools.selection_areas.unfinished_selection.is_some()
+            {
                 let areas_size = tools.selection_areas.areas.size();
                 if tools.selection_settings.tool_type != SelectionType::POLYGON {
                     if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
                         if selection.end != selection.start {
                             selection.end = Some(Coord::new(pos.lat, pos.long));
-                            selection.selection_name = format!("{:#?}-{}", selection.selection_type, areas_size);
+                            name = format!("{:#?}-{}", selection.selection_type, areas_size);
                         } else {
                             tools.selection_areas.unfinished_selection = None;
                             tools.selection_areas.respawn = true;
@@ -82,7 +99,7 @@ pub fn handle_selection(
                         }
                     }
                     if let Some(selection) = tools.selection_areas.unfinished_selection.take() {
-                        let workspace = WorkspaceData::new(selection.selection_name.clone(), selection); 
+                        let workspace = WorkspaceData::new(name.clone(), selection);
                         let serded = serde_json::to_string(&workspace).unwrap();
                         info!("Serialized workspace: {}", serded);
                         tools.selection_areas.add(workspace);
@@ -94,9 +111,13 @@ pub fn handle_selection(
                 tools.selection_areas.unfinished_selection = None;
                 tools.selection_areas.respawn = true;
             }
-            if keys.just_pressed(KeyCode::Enter) && tools.selection_settings.tool_type == SelectionType::POLYGON {
+            if keys.just_pressed(KeyCode::Enter)
+                && tools.selection_settings.tool_type == SelectionType::POLYGON
+            {
                 if let Some(selection) = tools.selection_areas.unfinished_selection.take() {
-                    tools.selection_areas.add(WorkspaceData::new(selection.selection_name.clone(), selection));
+                    tools
+                        .selection_areas
+                        .add(WorkspaceData::new(name, selection));
                 }
             }
         }
@@ -114,10 +135,23 @@ fn render_selection_box(
     tools: ResMut<ToolResources>,
     res_manager: ResMut<TileMapResources>,
 ) {
-    let mut intersection_candidates = tools.selection_areas.areas.clone().into_iter().collect::<Vec<_>>();
-    
+    let mut intersection_candidates = tools
+        .selection_areas
+        .areas
+        .clone()
+        .into_iter()
+        .collect::<Vec<_>>();
+
     if tools.selection_areas.unfinished_selection.is_some() {
-        intersection_candidates.push(WorkspaceData::new("unfinised".to_string(), tools.selection_areas.unfinished_selection.as_ref().unwrap().clone()));
+        intersection_candidates.push(WorkspaceData::new(
+            "unfinised".to_string(),
+            tools
+                .selection_areas
+                .unfinished_selection
+                .as_ref()
+                .unwrap()
+                .clone(),
+        ));
     }
 
     let stroke_color = Color::srgba(0.5, 0.5, 0.9, 0.9); // Bright green
@@ -145,58 +179,49 @@ fn render_selection_box(
                 gizmos.line_2d(
                     Vec2::new(corners[0].x, corners[0].y),
                     Vec2::new(corners[1].x, corners[1].y),
-                    stroke_color
+                    stroke_color,
                 );
                 gizmos.line_2d(
                     Vec2::new(corners[1].x, corners[1].y),
                     Vec2::new(corners[2].x, corners[2].y),
-                    stroke_color
+                    stroke_color,
                 );
                 gizmos.line_2d(
                     Vec2::new(corners[2].x, corners[2].y),
                     Vec2::new(corners[3].x, corners[3].y),
-                    stroke_color
+                    stroke_color,
                 );
                 gizmos.line_2d(
                     Vec2::new(corners[3].x, corners[3].y),
                     Vec2::new(corners[0].x, corners[0].y),
-                    stroke_color
+                    stroke_color,
                 );
-            },
+            }
             SelectionType::POLYGON => {
                 // Draw polygon by connecting points
                 if points.len() >= 2 {
                     for i in 0..points.len() - 1 {
-                        gizmos.line_2d(
-                            points[i],
-                            points[i + 1],
-                            stroke_color
-                        );
+                        gizmos.line_2d(points[i], points[i + 1], stroke_color);
                     }
-                    
+
                     // Close the polygon
                     if points.len() >= 3 {
-                        gizmos.line_2d(
-                            points[points.len() - 1],
-                            points[0],
-                            stroke_color,
-                        );
+                        gizmos.line_2d(points[points.len() - 1], points[0], stroke_color);
                     }
                 }
-            },
+            }
             SelectionType::CIRCLE => {
                 // Calculate center and radius
                 let center = points[0];
                 let radius = points[0].distance(points[1]);
-                
+
                 // Draw circle
                 gizmos.circle_2d(center, radius, stroke_color);
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }
-
 
 #[derive(Component)]
 pub struct DarkeningOverlay;
@@ -208,7 +233,10 @@ fn render_darkening_overlay(
     mut commands: Commands,
     tools: Res<ToolResources>,
     res_manager: ResMut<TileMapResources>,
-    camera_query: Query<(&Camera, &GlobalTransform, &OrthographicProjection), With<MapViewerMarker>>,
+    camera_query: Query<
+        (&Camera, &GlobalTransform, &OrthographicProjection),
+        With<MapViewerMarker>,
+    >,
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
     overlay_query: Query<Entity, With<DarkeningOverlay>>,
 ) {
@@ -218,25 +246,34 @@ fn render_darkening_overlay(
 
     let mut intersection_candidates: Vec<Selection> = Vec::new();
 
-    if let Some(selection_areas) = tools.selection_areas.focused_selection.clone() {
-        intersection_candidates.push(selection_areas);
+    if let Some(selection_areas) = tools.selection_areas.focused_area.clone() {
+        intersection_candidates.push(selection_areas.selection);
     }
 
     if tools.selection_areas.unfinished_selection.is_some() {
-        intersection_candidates.push(tools.selection_areas.unfinished_selection.as_ref().unwrap().clone());
+        intersection_candidates.push(
+            tools
+                .selection_areas
+                .unfinished_selection
+                .as_ref()
+                .unwrap()
+                .clone(),
+        );
     }
-    
+
     if intersection_candidates.is_empty() {
         return;
     }
-    
+
     let (camera, camera_transform, _) = camera_query.single();
     let window = match primary_window_query.get_single() {
         Ok(window) => window,
         Err(_) => return, // Exit early if window not available
     };
-    
-    let top_left = camera.viewport_to_world_2d(camera_transform, Vec2::ZERO).unwrap();
+
+    let top_left = camera
+        .viewport_to_world_2d(camera_transform, Vec2::ZERO)
+        .unwrap();
     let bottom_right = camera
         .viewport_to_world_2d(camera_transform, Vec2::new(window.width(), window.height()))
         .unwrap();
@@ -275,7 +312,7 @@ fn render_darkening_overlay(
                 let radius = points[0].distance(points[1]);
 
                 path_builder.move_to(center + Vec2::new(radius, 0.0));
-                path_builder.arc(center, Vec2::splat(radius), PI*2.0, std::f32::consts::TAU);
+                path_builder.arc(center, Vec2::splat(radius), PI * 2.0, std::f32::consts::TAU);
                 path_builder.close();
             }
             SelectionType::POLYGON => {
