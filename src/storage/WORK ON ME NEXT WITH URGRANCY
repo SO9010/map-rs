@@ -16,4 +16,7 @@ $USER_DATA_DIR/map-rs/
     └── images/
 
 I also want to improve the caching system.
+I want to make it so that when we make a request it does it through the workspace struct. That will mean that it will be assosiated with it.
+It would be good that we have to press + or - to add data to it rather that the current system.
+I think it makes sense to have different views, select a work space, view all work spaces. This will also mean no overlapping.
 

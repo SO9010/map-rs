@@ -1,5 +1,6 @@
 use bevy::{prelude::*, utils::HashSet};
 use bevy_map_viewer::{Coord, TileMapResources};
+use openmeteo_rs_ureq::OpenMeteoClient;
 use rstar::{RTree, RTreeObject, AABB};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -16,33 +17,58 @@ pub struct WorkspaceData {
 }
 
 // So i will have different imports with different structs, for example open-meteo or overpass-turbo and i want it to have that struct stored in here but i dont want to make it specific?
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct WorkspaceRequest {
     pub id: String,
     pub layer: u32,
-    pub request: String, // Change to enum
-    pub data_type: Option<String>,
-    pub raw_data: Option<Vec<u8>>,       // Raw data from the request
-    pub last_query_date: Option<String>, // When the OSM data was fetched
+    pub request: RequestType,
+    pub raw_data: Option<Vec<u8>>,          // Raw data from the request
+    pub last_query_date: Option<String>,    // When the OSM data was fetched
 }
 
-pub struct RequestType {}
+#[derive(Clone, Serialize, Deserialize)]
+pub struct OpenMeteoRequest {
+    air_quality: openmeteo_rs_ureq::air_quality::AirQualityRequest,
+    climate_change: openmeteo_rs_ureq::climate_change::ClimateChangeRequest,
+    elevation: openmeteo_rs_ureq::elevation::ElevationRequest,
+    ensemble_weather: openmeteo_rs_ureq::ensemble_weather::EnsembleWeatherRequest,
+    flood: openmeteo_rs_ureq::flood::FloodRequest,
+    geocoding: openmeteo_rs_ureq::geocoding::GeocodingRequest,
+    historical_weather: openmeteo_rs_ureq::historical_weather::HistoricalWeatherRequest,
+    marine_weather: openmeteo_rs_ureq::marine_weather::MarineWeatherRequest,
+    satellite_radiation: openmeteo_rs_ureq::satellite_radiation::SatelliteRadiationRequest,
+    weather: openmeteo_rs_ureq::weather::WeatherRequest,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub enum RequestType {
+    OpenMeteoRequest(OpenMeteoRequest),
+    OverpassTurboRequest(String),
+}
+
+impl std::fmt::Debug for RequestType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RequestType::OpenMeteoRequest(_) => write!(f, "OpenMeteoRequest"),
+            RequestType::OverpassTurboRequest(_) => write!(f, "OverpassTurboRequest"),
+        }
+    }
+}
 
 impl WorkspaceRequest {
-    pub fn new(layer: u32) -> Self {
+    pub fn new(layer: u32, request: RequestType) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             layer,
-            request: String::new(),
-            data_type: None,
+            request,
             raw_data: None,
             last_query_date: None,
         }
     }
 }
 
-#[derive(Debug, Clone)]
 pub enum RequestData {
+    OpenMeteoRequest(OpenMeteoClient),
     // In this have it so that we pass the struct in it so then we can call it through
     // We can then implement workpsace request to use a match statment to handle the different requests!
 }

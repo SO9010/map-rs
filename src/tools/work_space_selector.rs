@@ -3,6 +3,7 @@ use std::f32::consts::PI;
 use bevy::{prelude::*, render::view::RenderLayers, window::PrimaryWindow};
 use bevy_map_viewer::{Coord, EguiBlockInputState, MapViewerMarker, TileMapResources};
 use bevy_prototype_lyon::{draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder};
+use serde::Serialize;
 
 use crate::types::{Selection, SelectionType, WorkspaceData};
 
@@ -81,7 +82,10 @@ pub fn handle_selection(
                         }
                     }
                     if let Some(selection) = tools.selection_areas.unfinished_selection.take() {
-                        tools.selection_areas.add(WorkspaceData::new(selection.selection_name.clone(), selection));
+                        let workspace = WorkspaceData::new(selection.selection_name.clone(), selection); 
+                        let serded = serde_json::to_string(&workspace).unwrap();
+                        info!("Serialized workspace: {}", serded);
+                        tools.selection_areas.add(workspace);
                     }
                     tools.selection_areas.respawn = true;
                 }
