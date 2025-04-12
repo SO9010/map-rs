@@ -19,6 +19,7 @@ bevy_tasks = "0.15.3"
 uuid = "1.16.0"
 chrono = "0.4.40"
 bevy_map_viewer = { git = "https://github.com/SO9010/bevy-map-viewer.git" }
+openmeteo-rs-ureq = "0.1.1"
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]

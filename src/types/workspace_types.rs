@@ -1,10 +1,72 @@
-
 use bevy::{prelude::*, utils::HashSet};
 use bevy_map_viewer::{Coord, TileMapResources};
 use rstar::{RTree, RTreeObject, AABB};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkspaceData {
+    pub id: String,
+    pub name: String,
+    pub selection: Selection,
+    pub creation_date: String,
+    pub last_modified: String,
+    // ID list of the different requests
+    pub requests: Option<HashSet<String>>,
+}
+
+// So i will have different imports with different structs, for example open-meteo or overpass-turbo and i want it to have that struct stored in here but i dont want to make it specific?
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkspaceRequest {
+    pub id: String,
+    pub layer: u32,
+    pub request: String, // Change to enum
+    pub data_type: Option<String>,
+    pub raw_data: Option<Vec<u8>>,       // Raw data from the request
+    pub last_query_date: Option<String>, // When the OSM data was fetched
+}
+
+pub struct RequestType {}
+
+impl WorkspaceRequest {
+    pub fn new(layer: u32) -> Self {
+        Self {
+            id: Uuid::new_v4().to_string(),
+            layer,
+            request: String::new(),
+            data_type: None,
+            raw_data: None,
+            last_query_date: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum RequestData {
+    // In this have it so that we pass the struct in it so then we can call it through
+    // We can then implement workpsace request to use a match statment to handle the different requests!
+}
+
+impl WorkspaceData {
+    pub fn new(name: String, selection: Selection) -> Self {
+        Self {
+            id: Uuid::new_v4().to_string(),
+            name,
+            selection,
+            creation_date: chrono::Utc::now().to_rfc3339(),
+            last_modified: chrono::Utc::now().to_rfc3339(),
+            requests: None,
+        }
+    }
+}
+
+impl RTreeObject for WorkspaceData {
+    type Envelope = AABB<[f64; 2]>;
+
+    fn envelope(&self) -> Self::Envelope {
+        self.selection.envelope()
+    }
+}
 
 /// The goal for this module is to provide a way to select a region of the map, to be able to select featurtes in that region.
 /// For example someone should be able to select an eare for turbo overpass data to be downloaded.
@@ -173,69 +235,5 @@ impl RTreeObject for Selection {
             _ => AABB::from_corners([0.0, 0.0], [0.0, 0.0]),
         };
         AABB::from_corners([0.0, 0.0], [0.0, 0.0])
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WorkspaceData {
-    pub id: String,
-    pub name: String,
-    pub selection: Selection,
-    pub creation_date: String,
-    pub last_modified: String,
-    // ID list of the different requests
-    pub requests: Option<HashSet<String>>,
-}
-
-// So i will have different imports with different structs, for example open-meteo or overpass-turbo and i want it to have that struct stored in here but i dont want to make it specific?
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WorkspaceRequest {
-    pub id: String,
-    pub layer: u32,
-    pub request: String, // Change to enum
-    pub data_type: Option<String>,
-    pub raw_data: Option<Vec<u8>>,       // Raw data from the request
-    pub last_query_date: Option<String>, // When the OSM data was fetched
-}
-
-pub struct RequestType {}
-
-impl WorkspaceRequest {
-    pub fn new(layer: u32) -> Self {
-        Self {
-            id: Uuid::new_v4().to_string(),
-            layer,
-            request: String::new(),
-            data_type: None,
-            raw_data: None,
-            last_query_date: None,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum RequestData {
-    // In this have it so that we pass the struct in it so then we can call it through
-    // We can then implement workpsace request to use a match statment to handle the different requests!
-}
-
-impl WorkspaceData {
-    pub fn new(name: String, selection: Selection) -> Self {
-        Self {
-            id: Uuid::new_v4().to_string(),
-            name,
-            selection,
-            creation_date: chrono::Utc::now().to_rfc3339(),
-            last_modified: chrono::Utc::now().to_rfc3339(),
-            requests: None,
-        }
-    }
-}
-
-impl RTreeObject for WorkspaceData {
-    type Envelope = AABB<[f64; 2]>;
-
-    fn envelope(&self) -> Self::Envelope {
-        self.selection.envelope()
     }
 }
