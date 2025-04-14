@@ -103,8 +103,7 @@ impl WorkspaceRequest {
     /// This function will send the request. What I want to do is make it so that we send all the requests like this. Currently it only can be used to resend a request.
     // TODO: Create a workspace request worker which lives on a thread and handles the requests... Use bevy task pool to do this. Use the overpass woker as inspiration for this.
     // This should act as the dispatcher.
-    // But the question is how should we deal with the data from it??? Im not sure how I should do it?
-    // We can always send the data back to the main thread and then have it be processed there. But that would be expensive...
+    // The dispatcher should return an ambigous return type which can be displayed to the user. So it could be map features like buildings or it could be a list of data that can be turned into graphs?
     pub fn send_request(&mut self) {
         self.last_query_date = chrono::Utc::now().timestamp();
         match &self.request {
