@@ -5,6 +5,8 @@ use rstar::{RTree, RTreeObject, AABB};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::overpass::OverpassClient;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceData {
     id: String,
@@ -12,7 +14,6 @@ pub struct WorkspaceData {
     selection: Selection,
     creation_date: i64,
     last_modified: i64,
-    // ID list of the different requests
     requests: Option<HashSet<String>>,
 }
 
@@ -68,16 +69,58 @@ impl WorkspaceData {
         self.last_modified = chrono::Utc::now().timestamp();
     }
 }
-// Create getter and setter for requests so last modified is updated when a request is added
 
 // So i will have different imports with different structs, for example open-meteo or overpass-turbo and i want it to have that struct stored in here but i dont want to make it specific?
 #[derive(Clone, Serialize, Deserialize)]
 pub struct WorkspaceRequest {
-    pub id: String,
-    pub layer: u32,
-    pub request: RequestType,
-    pub raw_data: Vec<u8>, // Raw data from the request maybe have this as a id list aswell...
-    pub last_query_date: i64, // When the OSM data was fetched
+    id: String,
+    layer: u32,
+    request: RequestType,
+    raw_data: Vec<u8>, // Raw data from the request maybe have this as a id list aswell...
+    last_query_date: i64, // When the OSM data was fetched
+}
+impl WorkspaceRequest {
+    pub fn get_id(&self) -> String {
+        self.id.clone()
+    }
+
+    pub fn get_layer(&self) -> u32 {
+        self.layer.clone()
+    }
+
+    pub fn get_request(&self) -> RequestType {
+        self.request.clone()
+    }
+
+    pub fn get_raw_data(&self) -> Vec<u8> {
+        self.raw_data.clone()
+    }
+
+    pub fn get_last_query_date(&self) -> i64 {
+        self.last_query_date.clone()
+    }
+
+    /// This function will send the request. What I want to do is make it so that we send all the requests like this. Currently it only can be used to resend a request.
+    // TODO: Create a workspace request worker which lives on a thread and handles the requests... Use bevy task pool to do this. Use the overpass woker as inspiration for this.
+    // This should act as the dispatcher.
+    // But the question is how should we deal with the data from it??? Im not sure how I should do it?
+    // We can always send the data back to the main thread and then have it be processed there. But that would be expensive...
+    pub fn send_request(&mut self) {
+        self.last_query_date = chrono::Utc::now().timestamp();
+        match &self.request {
+            RequestType::OverpassTurboRequest(ref query) => {
+                let client = OverpassClient::new("https://overpass-api.de/api/interpreter");
+                if let Ok(q) = client.send_overpass_query_string(query.clone()) {
+                    if q.is_empty() {
+                        return;
+                    } else {
+                        self.raw_data = q.as_bytes().to_vec();
+                    }
+                }
+            }
+            RequestType::OpenMeteoRequest(open_meteo_request) => {}
+        }
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
