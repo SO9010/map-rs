@@ -158,8 +158,10 @@ fn render_selection_box(
     let elevation = 1000.0; // Keep this far above other elements
 
     for feature in intersection_candidates {
-        let points: Vec<Vec2> = feature.selection.get_in_world_space(res_manager.clone());
-        match feature.selection.selection_type {
+        let points: Vec<Vec2> = feature
+            .get_selection()
+            .get_in_world_space(res_manager.clone());
+        match feature.get_selection().selection_type {
             SelectionType::RECTANGLE => {
                 // Calculate rectangle corners
                 let min_x = points[0].x.min(points[1].x);
@@ -247,7 +249,7 @@ fn render_darkening_overlay(
     let mut intersection_candidates: Vec<Selection> = Vec::new();
 
     if let Some(selection_areas) = tools.selection_areas.focused_area.clone() {
-        intersection_candidates.push(selection_areas.selection);
+        intersection_candidates.push(selection_areas.get_selection());
     }
 
     if tools.selection_areas.unfinished_selection.is_some() {

@@ -1,11 +1,14 @@
 use crate::geojson::get_data_from_string_osm;
-use crate::types::{MapFeature, Selection, SelectionType, WorkspaceData};
+use crate::types::{
+    MapFeature, RequestType, Selection, SelectionType, WorkspaceData, WorkspaceRequest,
+};
 use bevy::prelude::*;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
 use bevy_map_viewer::DistanceType;
 use bevy_tasks::futures_lite::future;
 use crossbeam_channel::{bounded, Receiver};
 use std::sync::{Arc, Mutex};
+use uuid::Uuid;
 
 use super::OverpassClientResource;
 
@@ -17,6 +20,7 @@ pub struct OverpassWorker {
 }
 
 pub struct OverpassRequest {
+    id: String,
     selection: Selection,
     tx: crossbeam_channel::Sender<Vec<MapFeature>>,
 }
@@ -34,12 +38,20 @@ impl OverpassWorker {
     }
 
     /// Change this to take the workspace so then we can handle everthing in the workspace too.
-    pub fn queue_request(&self, workspace: WorkspaceData) -> Receiver<Vec<MapFeature>> {
+    pub fn queue_request(&self, mut workspace: WorkspaceData) -> Receiver<Vec<MapFeature>> {
         let (tx, rx) = bounded(1);
+        let id = Uuid::new_v4().to_string();
         let request = OverpassRequest {
-            selection: workspace.selection.clone(),
+            id: id.clone(),
+            selection: workspace.get_selection(),
             tx,
         };
+        // Update the workspace with the new request
+        workspace.add_request(id);
+        let serded = serde_json::to_string(&workspace).unwrap();
+        info!("Updated workspace: {}", serded);
+        // TODO: Save the workspace to the database
+
         {
             let mut pending = self.pending_requests.lock().unwrap();
             pending.push(request);
@@ -138,6 +150,18 @@ pub fn process_requests(
                 let mut result = Vec::new();
                 if let Ok(reslt) = client.send_overpass_query() {
                     if let Ok(data) = get_data_from_string_osm(&reslt) {
+                        // TODO: Save the data with the request id so
+                        WorkspaceRequest::new(
+                            request.id.clone(),
+                            2,
+                            RequestType::OverpassTurboRequest(
+                                client
+                                    .build_overpass_query_string()
+                                    .unwrap_or_else(|_| String::new()),
+                            ),
+                            reslt.as_bytes().to_vec(),
+                        );
+                        // info!("Overpass response: {:?}", data);
                         result.extend(data);
                     } else {
                         info!("Error parsing Overpass response");

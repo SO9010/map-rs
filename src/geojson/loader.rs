@@ -10,7 +10,6 @@ use crate::types::MapFeature;
 
 /// Parses OSM data from a string and returns a vector of map features.
 pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn std::error::Error>> {
-    info!("Parsing Overpass response: {data}");
     let response: OverpassResponse = serde_json::from_str(data)?;
 
     let mut features = Vec::new();

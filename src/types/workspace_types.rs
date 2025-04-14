@@ -7,14 +7,68 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceData {
-    pub id: String,
-    pub name: String,
-    pub selection: Selection,
-    pub creation_date: String,
-    pub last_modified: String,
+    id: String,
+    name: String,
+    selection: Selection,
+    creation_date: i64,
+    last_modified: i64,
     // ID list of the different requests
-    pub requests: Option<HashSet<String>>,
+    requests: Option<HashSet<String>>,
 }
+
+impl WorkspaceData {
+    pub fn get_id(&self) -> String {
+        self.id.clone()
+    }
+
+    pub fn get_name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn get_selection(&self) -> Selection {
+        self.selection.clone()
+    }
+
+    pub fn get_creation_date(&self) -> i64 {
+        self.creation_date.clone()
+    }
+
+    pub fn get_last_modified(&self) -> i64 {
+        self.last_modified.clone()
+    }
+
+    pub fn get_requests(&self) -> Option<HashSet<String>> {
+        self.requests.clone()
+    }
+    pub fn add_request(&mut self, request_id: String) {
+        if self.requests.is_none() {
+            self.requests = Some(HashSet::new());
+        }
+        if let Some(requests) = &mut self.requests {
+            requests.insert(request_id);
+        }
+        self.last_modified = chrono::Utc::now().timestamp();
+    }
+    pub fn remove_request(&mut self, request_id: String) {
+        if let Some(requests) = &mut self.requests {
+            requests.remove(&request_id);
+        }
+        self.last_modified = chrono::Utc::now().timestamp();
+    }
+    pub fn clear_requests(&mut self) {
+        self.requests = Some(HashSet::new());
+        self.last_modified = chrono::Utc::now().timestamp();
+    }
+    pub fn set_name(&mut self, name: String) {
+        self.name = name;
+        self.last_modified = chrono::Utc::now().timestamp();
+    }
+    pub fn set_selection(&mut self, selection: Selection) {
+        self.selection = selection;
+        self.last_modified = chrono::Utc::now().timestamp();
+    }
+}
+// Create getter and setter for requests so last modified is updated when a request is added
 
 // So i will have different imports with different structs, for example open-meteo or overpass-turbo and i want it to have that struct stored in here but i dont want to make it specific?
 #[derive(Clone, Serialize, Deserialize)]
@@ -22,8 +76,8 @@ pub struct WorkspaceRequest {
     pub id: String,
     pub layer: u32,
     pub request: RequestType,
-    pub raw_data: Option<Vec<u8>>,       // Raw data from the request
-    pub last_query_date: Option<String>, // When the OSM data was fetched
+    pub raw_data: Vec<u8>, // Raw data from the request maybe have this as a id list aswell...
+    pub last_query_date: i64, // When the OSM data was fetched
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -56,13 +110,13 @@ impl std::fmt::Debug for RequestType {
 }
 
 impl WorkspaceRequest {
-    pub fn new(layer: u32, request: RequestType) -> Self {
+    pub fn new(id: String, layer: u32, request: RequestType, raw_data: Vec<u8>) -> Self {
         Self {
-            id: Uuid::new_v4().to_string(),
+            id,
             layer,
             request,
-            raw_data: None,
-            last_query_date: None,
+            raw_data,
+            last_query_date: chrono::Utc::now().timestamp(),
         }
     }
 }
@@ -79,8 +133,8 @@ impl WorkspaceData {
             id: Uuid::new_v4().to_string(),
             name,
             selection,
-            creation_date: chrono::Utc::now().to_rfc3339(),
-            last_modified: chrono::Utc::now().to_rfc3339(),
+            creation_date: chrono::Utc::now().timestamp(),
+            last_modified: chrono::Utc::now().timestamp(),
             requests: None,
         }
     }

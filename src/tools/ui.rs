@@ -150,18 +150,18 @@ fn workspace_actions_ui(
 
                         if let Some(focused_selection) = &tools.selection_areas.focused_area {
                             if ui
-                                .button(RichText::new(focused_selection.name.clone()))
+                                .button(RichText::new(focused_selection.get_name()))
                                 .clicked()
                             {
-                                match focused_selection.selection.selection_type {
+                                let selection = focused_selection.get_selection();
+
+                                match selection.selection_type {
                                     SelectionType::RECTANGLE => {
-                                        let starting = focused_selection
-                                            .selection
+                                        let starting = selection
                                             .start
                                             .unwrap()
                                             .to_game_coords(tile_map_res.clone());
-                                        let ending = focused_selection
-                                            .selection
+                                        let ending = selection
                                             .end
                                             .unwrap()
                                             .to_game_coords(tile_map_res.clone());
@@ -175,9 +175,7 @@ fn workspace_actions_ui(
                                     SelectionType::POLYGON => {
                                         let mut min = [f64::MAX, f64::MAX];
                                         let mut max = [f64::MIN, f64::MIN];
-                                        for point in
-                                            focused_selection.selection.points.as_ref().unwrap()
-                                        {
+                                        for point in selection.points.as_ref().unwrap() {
                                             if point.long < min[0] as f32 {
                                                 min[0] = point.long as f64;
                                             }
@@ -198,8 +196,7 @@ fn workspace_actions_ui(
                                         camera_transform.translation = movement.extend(1.0);
                                     }
                                     SelectionType::CIRCLE => {
-                                        let starting = focused_selection
-                                            .selection
+                                        let starting = selection
                                             .start
                                             .unwrap()
                                             .to_game_coords(tile_map_res.clone());
@@ -236,25 +233,21 @@ fn workspace_actions_ui(
                                         enabled = true;
                                     }
                                     if ui
-                                        .checkbox(
-                                            &mut enabled,
-                                            RichText::new(workspace.name.clone()),
-                                        )
+                                        .checkbox(&mut enabled, RichText::new(workspace.get_name()))
                                         .clicked()
                                     {
+                                        let selection = workspace.get_selection();
                                         tile_map_res.location_manager.location =
-                                            workspace.selection.start.unwrap_or_default();
+                                            selection.start.unwrap_or_default();
                                         tools.selection_areas.focused_area =
                                             Some(workspace.clone());
-                                        match workspace.selection.selection_type {
+                                        match selection.selection_type {
                                             SelectionType::RECTANGLE => {
-                                                let starting = workspace
-                                                    .selection
+                                                let starting = selection
                                                     .start
                                                     .unwrap()
                                                     .to_game_coords(tile_map_res.clone());
-                                                let ending = workspace
-                                                    .selection
+                                                let ending = selection
                                                     .end
                                                     .unwrap()
                                                     .to_game_coords(tile_map_res.clone());
@@ -268,9 +261,7 @@ fn workspace_actions_ui(
                                             SelectionType::POLYGON => {
                                                 let mut min = [f64::MAX, f64::MAX];
                                                 let mut max = [f64::MIN, f64::MIN];
-                                                for point in
-                                                    workspace.selection.points.as_ref().unwrap()
-                                                {
+                                                for point in selection.points.as_ref().unwrap() {
                                                     if point.long < min[0] as f32 {
                                                         min[0] = point.long as f64;
                                                     }
@@ -292,8 +283,7 @@ fn workspace_actions_ui(
                                                 camera_transform.translation = movement.extend(1.0);
                                             }
                                             SelectionType::CIRCLE => {
-                                                let starting = workspace
-                                                    .selection
+                                                let starting = selection
                                                     .start
                                                     .unwrap()
                                                     .to_game_coords(tile_map_res.clone());
