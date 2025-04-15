@@ -1,6 +1,5 @@
 use bevy::{prelude::*, utils::HashSet};
 use bevy_map_viewer::{Coord, TileMapResources};
-use openmeteo_rs_ureq::OpenMeteoClient;
 use rstar::{AABB, RTree, RTreeObject};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -190,12 +189,6 @@ impl WorkspaceRequest {
             last_query_date: chrono::Utc::now().timestamp(),
         }
     }
-}
-
-pub enum RequestData {
-    OpenMeteoRequest(OpenMeteoClient),
-    // In this have it so that we pass the struct in it so then we can call it through
-    // We can then implement workpsace request to use a match statment to handle the different requests!
 }
 
 impl WorkspaceData {

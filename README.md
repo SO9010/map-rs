@@ -30,8 +30,14 @@ A fast, open-source GIS tool for urban planning, spatial analysis, and geospatia
 
 ## **Installation** *(WIP - Currently for Developers Only)*  
 ### **Prerequisites**  
-- **Rust** (for compiling the app).  
-??? 
+- **Rust** (required for compiling the app).  
+- Install the following dependencies:  
+  ```sh
+  sudo apt-get update
+  sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+  sudo apt-get install -y libfontconfig1-dev
+  sudo apt-get install -y protobuf-compiler
+  ```
 
 ### **Building from Source**  
 ```sh
@@ -65,4 +71,4 @@ Contributions are welcome! Feel free to fork the repository, submit issues, or s
 ---
 
 ## **License**  
-[Apache 2.0 License](LICENSE)  
+[Apache 2.0 License](LICENSE)
