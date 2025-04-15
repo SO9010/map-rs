@@ -17,8 +17,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
-    - name: Install alsa and udev
-      run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+    - name: Install alsa and udev and others
+      run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev && sudo apt-get install -y libfontconfig1-dev
     - name: Build
       run: cargo build --verbose --release
     - name: Run tests
