@@ -1,5 +1,6 @@
 use bevy::{
     prelude::*,
+    window::PresentMode,
     winit::{UpdateMode, WinitSettings},
 };
 
@@ -23,13 +24,16 @@ pub mod overpass;
 pub mod settings;
 pub mod tiles;
 pub mod tools;
-pub mod types;
+pub mod workspace;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Map Viewer".to_string(),
+                name: Some("Map Viewer".to_string()),
+                present_mode: PresentMode::AutoVsync,
+                prevent_default_event_handling: false,
                 ..Default::default()
             }),
             ..Default::default()

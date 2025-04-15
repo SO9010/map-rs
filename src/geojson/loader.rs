@@ -6,7 +6,7 @@ use geojson::GeoJson;
 use rstar::RTree;
 use serde::{Deserialize, Serialize};
 
-use crate::types::MapFeature;
+use super::MapFeature;
 
 /// Parses OSM data from a string and returns a vector of map features.
 pub fn get_data_from_string_osm(data: &str) -> Result<Vec<MapFeature>, Box<dyn std::error::Error>> {

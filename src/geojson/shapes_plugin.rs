@@ -1,8 +1,6 @@
 use bevy::prelude::*;
 
-use crate::types::MapBundle;
-
-use super::respawn_shapes;
+use super::{MapBundle, respawn_shapes};
 
 pub struct RenderPlugin;
 

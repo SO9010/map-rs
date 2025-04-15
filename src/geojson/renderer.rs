@@ -8,8 +8,10 @@ use bevy_prototype_lyon::{
 };
 use rstar::RTreeObject;
 
-use crate::{overpass::OverpassClientResource, tools::ToolResources, types::MapBundle};
+use crate::{overpass::OverpassClientResource, tools::ToolResources};
 use bevy_map_viewer::ZoomChangedEvent;
+
+use super::{MapBundle, MapFeature};
 
 #[derive(Component)]
 pub struct ShapeMarker;
@@ -35,7 +37,7 @@ pub fn respawn_shapes(
         let mut batch_commands_open: Vec<(ShapeBundle, Stroke, ShapeMarker, RenderLayers)> =
             Vec::new();
 
-        let mut intersection_candidates: Vec<&crate::types::MapFeature> = Vec::new();
+        let mut intersection_candidates: Vec<&MapFeature> = Vec::new();
         if let Some(selection) = &tools.selection_areas.focused_area {
             intersection_candidates = map_bundle
                 .features

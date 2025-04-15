@@ -1,3 +1,8 @@
+use super::WorkspacePlugin;
+
+impl WorkspacePlugin {}
+
+/*
 use crate::geojson::{MapFeature, get_data_from_string_osm};
 use crate::workspace::{RequestType, Selection, SelectionType, WorkspaceData, WorkspaceRequest};
 use bevy::prelude::*;
@@ -8,27 +13,19 @@ use crossbeam_channel::{Receiver, bounded};
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
-use super::OverpassClientResource;
-
 #[derive(Resource)]
-pub struct OverpassWorker {
-    pending_requests: Arc<Mutex<Vec<OverpassRequest>>>,
+pub struct WorkspaceWorker {
+    pending_requests: Arc<Mutex<Vec<WorkspaceRequest>>>,
     max_concurrent: usize,
     active_tasks: Arc<Mutex<usize>>,
-}
-
-pub struct OverpassRequest {
-    id: String,
-    selection: Selection,
-    tx: crossbeam_channel::Sender<Vec<MapFeature>>,
 }
 
 #[derive(Resource, Deref)]
 pub struct OverpassReceiver(pub Receiver<Vec<MapFeature>>);
 
-impl OverpassWorker {
+impl WorkspaceWorker {
     pub fn new(max_workers: usize) -> Self {
-        OverpassWorker {
+        WorkspaceWorker {
             pending_requests: Arc::new(Mutex::new(Vec::new())),
             max_concurrent: max_workers,
             active_tasks: Arc::new(Mutex::new(0)),
@@ -50,8 +47,10 @@ impl OverpassWorker {
         info!("Updated workspace: {}", serded);
         // TODO: Save the workspace to the database
 
-        let mut pending = self.pending_requests.lock().unwrap();
-        pending.push(request);
+        {
+            let mut pending = self.pending_requests.lock().unwrap();
+            pending.push(request);
+        }
 
         rx
     }
@@ -197,3 +196,4 @@ impl Plugin for OverpassWorkerPlugin {
             .add_systems(Update, cleanup_tasks);
     }
 }
+*/

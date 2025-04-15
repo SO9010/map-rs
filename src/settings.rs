@@ -1,14 +1,16 @@
 use bevy::prelude::*;
 #[allow(unused_imports)]
 use bevy_egui::{
-    egui::{self, color_picker::color_edit_button_srgba, Color32, RichText},
     EguiContexts, EguiPlugin, EguiPreUpdateSet,
+    egui::{self, Color32, RichText, color_picker::color_edit_button_srgba},
 };
 use bevy_map_viewer::ZoomChangedEvent;
 use bevy_prototype_lyon::entity::Path;
 
-use crate::types::MapFeature;
-use crate::{overpass::OverpassClientResource, settings::egui::color_picker::Alpha::Opaque};
+use crate::{
+    geojson::MapFeature, overpass::OverpassClientResource,
+    settings::egui::color_picker::Alpha::Opaque,
+};
 
 pub struct SettingsPlugin;
 

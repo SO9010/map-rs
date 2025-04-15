@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_map_viewer::ZoomChangedEvent;
 
-use crate::{geojson::get_file_data, types::MapBundle};
+use crate::geojson::{MapBundle, get_file_data};
 
 pub struct InteractionSystemPlugin;
 

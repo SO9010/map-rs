@@ -1,20 +1,50 @@
 use bevy::{prelude::*, utils::HashSet};
 use bevy_map_viewer::{Coord, TileMapResources};
 use openmeteo_rs_ureq::OpenMeteoClient;
-use rstar::{RTree, RTreeObject, AABB};
+use rstar::{AABB, RTree, RTreeObject};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::overpass::OverpassClient;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WorkspaceData {
-    id: String,
-    name: String,
-    selection: Selection,
-    creation_date: i64,
-    last_modified: i64,
-    requests: Option<HashSet<String>>,
+use super::{Workspace, WorkspaceData, WorkspacePlugin, WorkspaceRequest};
+
+impl Plugin for WorkspacePlugin {
+    fn build(&self, _app: &mut App) {}
+}
+
+impl Workspace {
+    pub fn process_request(
+        &mut self,
+        mut request: WorkspaceRequest,
+    ) -> Result<WorkspaceRequest, String> {
+        if let Some(workspace) = &mut self.workspace {
+            // This should probably send off to a thread.
+            match request.get_request() {
+                RequestType::OverpassTurboRequest(ref query) => {
+                    let client = OverpassClient::new("https://overpass-api.de/api/interpreter");
+                    if let Ok(q) = client.send_overpass_query_string(query.clone()) {
+                        if q.is_empty() {
+                            return Err("Response is empty".to_string());
+                        } else {
+                            request.raw_data = q.as_bytes().to_vec();
+                        }
+                    }
+                }
+                RequestType::OpenMeteoRequest(_open_meteo_request) => {}
+            }
+            workspace.add_request(request.get_id());
+            self.loaded_requests
+                .get_or_insert_with(Vec::new)
+                .push(request.clone());
+            let serded = serde_json::to_string(&request).unwrap();
+            // Save to folder.
+            info!("Serialized request: {}", serded);
+            return Ok(request);
+        } else {
+            return Err("No workspace found to add request to".to_string());
+        }
+    }
 }
 
 impl WorkspaceData {
@@ -42,12 +72,9 @@ impl WorkspaceData {
         self.requests.clone()
     }
     pub fn add_request(&mut self, request_id: String) {
-        if self.requests.is_none() {
-            self.requests = Some(HashSet::new());
-        }
-        if let Some(requests) = &mut self.requests {
-            requests.insert(request_id);
-        }
+        self.requests
+            .get_or_insert_with(HashSet::new)
+            .insert(request_id);
         self.last_modified = chrono::Utc::now().timestamp();
     }
     pub fn remove_request(&mut self, request_id: String) {
@@ -70,15 +97,6 @@ impl WorkspaceData {
     }
 }
 
-// So i will have different imports with different structs, for example open-meteo or overpass-turbo and i want it to have that struct stored in here but i dont want to make it specific?
-#[derive(Clone, Serialize, Deserialize)]
-pub struct WorkspaceRequest {
-    id: String,
-    layer: u32,
-    request: RequestType,
-    raw_data: Vec<u8>, // Raw data from the request maybe have this as a id list aswell...
-    last_query_date: i64, // When the OSM data was fetched
-}
 impl WorkspaceRequest {
     pub fn get_id(&self) -> String {
         self.id.clone()
@@ -99,27 +117,6 @@ impl WorkspaceRequest {
     pub fn get_last_query_date(&self) -> i64 {
         self.last_query_date.clone()
     }
-
-    /// This function will send the request. What I want to do is make it so that we send all the requests like this. Currently it only can be used to resend a request.
-    // TODO: Create a workspace request worker which lives on a thread and handles the requests... Use bevy task pool to do this. Use the overpass woker as inspiration for this.
-    // This should act as the dispatcher.
-    // The dispatcher should return an ambigous return type which can be displayed to the user. So it could be map features like buildings or it could be a list of data that can be turned into graphs?
-    pub fn send_request(&mut self) {
-        self.last_query_date = chrono::Utc::now().timestamp();
-        match &self.request {
-            RequestType::OverpassTurboRequest(ref query) => {
-                let client = OverpassClient::new("https://overpass-api.de/api/interpreter");
-                if let Ok(q) = client.send_overpass_query_string(query.clone()) {
-                    if q.is_empty() {
-                        return;
-                    } else {
-                        self.raw_data = q.as_bytes().to_vec();
-                    }
-                }
-            }
-            RequestType::OpenMeteoRequest(open_meteo_request) => {}
-        }
-    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -138,6 +135,7 @@ pub struct OpenMeteoRequest {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum RequestType {
+    // If we want to add more requests we can just add them here.
     OpenMeteoRequest(OpenMeteoRequest),
     OverpassTurboRequest(String),
 }
@@ -156,6 +154,7 @@ impl WorkspaceRequest {
         Self {
             id,
             layer,
+            visible: true,
             request,
             raw_data,
             last_query_date: chrono::Utc::now().timestamp(),
@@ -310,7 +309,7 @@ impl RTreeObject for Selection {
                         self.start.unwrap().long as f64,
                     ],
                     [self.end.unwrap().lat as f64, self.end.unwrap().long as f64],
-                )
+                );
             }
             SelectionType::CIRCLE => {
                 if let (Some(center), Some(edge)) = (self.start, self.end) {

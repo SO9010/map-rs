@@ -1,4 +1,4 @@
-use crate::{types::SelectionAreas, EguiBlockInputState};
+use crate::{workspace::SelectionAreas, EguiBlockInputState};
 use bevy::{
     app::*,
     ecs::system::{Res, ResMut, Resource},

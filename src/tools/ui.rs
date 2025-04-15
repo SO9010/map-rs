@@ -1,14 +1,14 @@
 use bevy::prelude::*;
 use bevy_egui::{
-    egui::{self, Color32, RichText},
     EguiContexts, EguiPreUpdateSet,
+    egui::{self, Color32, RichText},
 };
 use bevy_map_viewer::{Coord, MapViewerMarker, TileMapResources, ZoomChangedEvent};
-use rstar::{Envelope, AABB};
+use rstar::{AABB, Envelope};
 
 use crate::{
-    overpass::{worker::OverpassReceiver, OverpassWorker},
-    types::SelectionType,
+    overpass::{OverpassWorker, worker::OverpassReceiver},
+    workspace::SelectionType,
 };
 
 use super::ToolResources;
@@ -148,12 +148,9 @@ fn workspace_actions_ui(
                         ));
                         ui.separator();
 
-                        if let Some(focused_selection) = &tools.selection_areas.focused_area {
-                            if ui
-                                .button(RichText::new(focused_selection.get_name()))
-                                .clicked()
-                            {
-                                let selection = focused_selection.get_selection();
+                        if let Some(workspace) = &tools.selection_areas.focused_area {
+                            if ui.button(RichText::new(workspace.get_name())).clicked() {
+                                let selection = workspace.get_selection();
 
                                 match selection.selection_type {
                                     SelectionType::RECTANGLE => {
@@ -206,7 +203,7 @@ fn workspace_actions_ui(
                                     _ => {}
                                 }
 
-                                let rx = worker.queue_request(focused_selection.clone());
+                                let rx = worker.queue_request(workspace.clone());
 
                                 tools.selection_areas.respawn = true;
                                 zoom_event.send(ZoomChangedEvent);

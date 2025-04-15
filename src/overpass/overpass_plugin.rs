@@ -1,16 +1,14 @@
 use bevy::prelude::*;
 use bevy_map_viewer::ZoomChangedEvent;
 
-use crate::types::MapBundle;
+use crate::geojson::MapBundle;
 
 use super::{OverpassClient, OverpassReceiver, OverpassWorkerPlugin};
 
 pub struct OverpassPlugin;
-// TODO: Fix requests for routes, relations and points. THESE ARE A MATTER OF PRIORITY!
 impl Plugin for OverpassPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(MapBundle::new())
-            .insert_resource(OverpassClientResource::default())
+        app.insert_resource(OverpassClientResource::default())
             .add_plugins(OverpassWorkerPlugin)
             .add_systems(FixedUpdate, read_overpass_receiver);
     }

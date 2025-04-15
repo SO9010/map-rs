@@ -6,7 +6,7 @@ use bevy_prototype_lyon::{
     draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder,
 };
 
-use crate::types::{Selection, SelectionType, WorkspaceData};
+use crate::workspace::{Selection, SelectionType, WorkspaceData};
 
 use super::ToolResources;
 
