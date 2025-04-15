@@ -10,6 +10,8 @@ use crate::workspace::{Selection, SelectionType, WorkspaceData};
 
 use super::ToolResources;
 
+/// A plugin that provides functionality for selecting areas on the map.
+/// This includes handling user input for creating selections and rendering them.
 pub struct SelectionPlugin;
 
 impl Plugin for SelectionPlugin {
@@ -33,6 +35,8 @@ impl Default for SelectionSettings {
     }
 }
 
+/// Handles user input for creating and modifying selections on the map.
+/// Supports rectangle, polygon, and circle selection types.
 pub fn handle_selection(
     mut tools: ResMut<ToolResources>,
     camera: Query<(&Camera, &GlobalTransform), With<MapViewerMarker>>,
@@ -130,6 +134,9 @@ pub struct SelectionMarker;
 // We want to darken everything else.
 // We want to have the selected area to be on the side in a bar.
 // TODO: change this to a shader, so that it gradually gets darker too. Also this causes some issues sometimes.
+
+/// Renders the selection box or shape on the map.
+/// This includes rectangles, polygons, and circles.
 fn render_selection_box(
     mut gizmos: Gizmos,
     tools: ResMut<ToolResources>,
@@ -231,6 +238,8 @@ pub struct DarkeningOverlay;
 #[derive(Component)]
 pub struct SelectionCutout;
 
+/// Renders a darkening overlay on the map, excluding the selected areas.
+/// This helps visually highlight the selected regions.
 fn render_darkening_overlay(
     mut commands: Commands,
     tools: Res<ToolResources>,

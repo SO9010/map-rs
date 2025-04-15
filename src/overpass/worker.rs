@@ -10,10 +10,16 @@ use uuid::Uuid;
 
 use super::OverpassClientResource;
 
+/// A resource that manages Overpass API requests and tasks.
+/// It maintains a queue of pending requests and ensures that only a limited
+/// number of tasks are processed concurrently.
 #[derive(Resource)]
 pub struct OverpassWorker {
+    /// A thread-safe queue of pending Overpass requests.
     pending_requests: Arc<Mutex<Vec<OverpassRequest>>>,
+    /// The maximum number of concurrent tasks allowed.
     max_concurrent: usize,
+    /// A counter to track the number of active tasks.
     active_tasks: Arc<Mutex<usize>>,
 }
 
@@ -108,6 +114,8 @@ pub fn get_bounds(selection: Selection) -> String {
     }
 }
 
+/// Processes pending Overpass requests by spawning tasks for them.
+/// Ensures that the number of active tasks does not exceed the maximum limit.
 pub fn process_requests(
     mut commands: Commands,
     worker: Res<OverpassWorker>,
@@ -180,6 +188,7 @@ pub fn process_requests(
 #[derive(Component)]
 struct TaskComponent(Task<()>);
 
+/// Cleans up completed tasks by despawning their associated entities.
 fn cleanup_tasks(mut commands: Commands, mut tasks: Query<(Entity, &mut TaskComponent)>) {
     for (entity, mut task) in tasks.iter_mut() {
         if future::block_on(future::poll_once(&mut task.0)).is_some() {
@@ -188,6 +197,8 @@ fn cleanup_tasks(mut commands: Commands, mut tasks: Query<(Entity, &mut TaskComp
     }
 }
 
+/// A plugin that sets up the Overpass worker system.
+/// It initializes the worker resource and adds systems for processing and cleaning up tasks.
 pub struct OverpassWorkerPlugin;
 
 impl Plugin for OverpassWorkerPlugin {

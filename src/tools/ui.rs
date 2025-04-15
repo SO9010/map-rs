@@ -13,6 +13,8 @@ use crate::{
 
 use super::ToolResources;
 
+/// A plugin that provides UI components for interacting with tools and workspaces.
+/// This includes a toolbar for tool selection and a workspace management panel.
 pub struct ToolbarUiPlugin;
 
 impl Plugin for ToolbarUiPlugin {
@@ -27,6 +29,7 @@ impl Plugin for ToolbarUiPlugin {
     }
 }
 
+/// Renders the toolbar UI for selecting tools such as workspace, measure, and pin.
 fn tool_ui(mut tools: ResMut<ToolResources>, mut contexts: EguiContexts) {
     let ctx = contexts.ctx_mut();
 
@@ -104,6 +107,7 @@ fn tool_ui(mut tools: ResMut<ToolResources>, mut contexts: EguiContexts) {
         });
 }
 
+/// Renders the workspace management UI, allowing users to interact with and manage workspaces.
 fn workspace_actions_ui(
     mut tile_map_res: ResMut<TileMapResources>,
     mut contexts: EguiContexts,

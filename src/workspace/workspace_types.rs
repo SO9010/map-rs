@@ -14,6 +14,22 @@ impl Plugin for WorkspacePlugin {
 }
 
 impl Workspace {
+    /// Processes a `WorkspaceRequest` and updates the workspace with the request data.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - A mutable `WorkspaceRequest` containing the request details.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(WorkspaceRequest)` - If the request is successfully processed and added to the workspace.
+    /// * `Err(String)` - If there is an error during processing or if no workspace is found.
+    ///
+    /// # Behavior
+    ///
+    /// - Handles different types of requests (`OverpassTurboRequest`, `OpenMeteoRequest`).
+    /// - Updates the workspace with the request data and serializes the request for storage.
+    /// - Adds the request ID to the workspace's list of requests.
     pub fn process_request(
         &mut self,
         mut request: WorkspaceRequest,
@@ -150,6 +166,20 @@ impl std::fmt::Debug for RequestType {
 }
 
 impl WorkspaceRequest {
+    /// Creates a new `WorkspaceRequest` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - A unique identifier for the request.
+    /// * `layer` - The layer number associated with the request.
+    /// * `request` - The type of request being made (e.g., `OpenMeteoRequest`, `OverpassTurboRequest`).
+    /// * `raw_data` - The raw data associated with the request, typically as a byte vector.
+    ///
+    /// # Returns
+    ///
+    /// A new instance of `WorkspaceRequest` with the provided parameters.
+    ///
+    /// The `last_query_date` is automatically set to the current UTC timestamp.
     pub fn new(id: String, layer: u32, request: RequestType, raw_data: Vec<u8>) -> Self {
         Self {
             id,
