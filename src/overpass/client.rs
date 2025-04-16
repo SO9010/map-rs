@@ -1,8 +1,6 @@
 use std::io::Error;
 
-use crate::workspace::Selection;
-
-use super::{OverpassClient, Settings};
+use super::OverpassClient;
 
 impl OverpassClient {
     pub fn send_overpass_query_string(&self, query: String) -> Result<String, ureq::Error> {
@@ -18,9 +16,9 @@ impl OverpassClient {
                 }
             }
         }
-        return Err(ureq::Error::BadUri(
+        Err(ureq::Error::BadUri(
             "Error sending/making request!".to_string(),
-        ));
+        ))
     }
 
     pub fn send_overpass_query(&self) -> Result<String, ureq::Error> {

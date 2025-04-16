@@ -79,7 +79,7 @@ fn setup_camera(mut commands: Commands, res_manager: Option<Res<TileMapResources
         error!("TileMapResources not found. Please add the tilemap addon first.");
     }
 }
-
+#[allow(clippy::type_complexity)]
 fn sync_cameras(
     primary_query: Query<(&Transform, &OrthographicProjection), With<MapViewerMarker>>,
     mut secondary_query: Query<

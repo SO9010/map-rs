@@ -33,7 +33,7 @@ impl Workspace {
     /// - Handles different types of requests (`OverpassTurboRequest`, `OpenMeteoRequest`).
     /// - Updates the workspace with the request data and serializes the request for storage.
     /// - Adds the request ID to the workspace's list of requests.
-    pub fn process_request(&mut self, mut request: WorkspaceRequest) {
+    pub fn process_request(&mut self, request: WorkspaceRequest) {
         self.worker.queue_request(request.clone());
     }
 }
@@ -52,11 +52,11 @@ impl WorkspaceData {
     }
 
     pub fn get_creation_date(&self) -> i64 {
-        self.creation_date.clone()
+        self.creation_date
     }
 
     pub fn get_last_modified(&self) -> i64 {
-        self.last_modified.clone()
+        self.last_modified
     }
 
     pub fn get_requests(&self) -> Option<HashSet<String>> {
@@ -94,7 +94,7 @@ impl WorkspaceRequest {
     }
 
     pub fn get_layer(&self) -> u32 {
-        self.layer.clone()
+        self.layer
     }
 
     pub fn get_request(&self) -> RequestType {
@@ -106,7 +106,7 @@ impl WorkspaceRequest {
     }
 
     pub fn get_last_query_date(&self) -> i64 {
-        self.last_query_date.clone()
+        self.last_query_date
     }
 }
 
@@ -125,6 +125,7 @@ pub struct OpenMeteoRequest {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+#[allow(clippy::large_enum_variant)]
 pub enum RequestType {
     // If we want to add more requests we can just add them here.
     OpenMeteoRequest(OpenMeteoRequest),

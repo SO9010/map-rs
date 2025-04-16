@@ -1,9 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use bevy::{
-    ecs::system::Resource,
-    utils::{HashMap, HashSet},
-};
+use bevy::{ecs::system::Resource, utils::HashSet};
 use serde::{Deserialize, Serialize};
 use worker::WorkspaceWorker;
 pub use workspace_types::*;

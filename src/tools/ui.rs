@@ -1,4 +1,4 @@
-use bevy::{ecs::query, prelude::*};
+use bevy::prelude::*;
 use bevy_egui::{
     EguiContexts, EguiPreUpdateSet,
     egui::{self, Color32, RichText},
@@ -8,11 +8,7 @@ use rstar::{AABB, Envelope};
 use uuid::Uuid;
 
 use crate::{
-    overpass::{
-        OverpassClientResource, OverpassWorker, build_overpass_query_string, get_bounds,
-        worker::OverpassReceiver,
-    },
-    settings,
+    overpass::{OverpassClientResource, build_overpass_query_string, get_bounds},
     workspace::{RequestType, SelectionType, Workspace, WorkspaceRequest},
 };
 
@@ -118,9 +114,7 @@ fn workspace_actions_ui(
     mut contexts: EguiContexts,
     mut camera: Query<(&Camera, &mut Transform), With<MapViewerMarker>>,
     mut tools: ResMut<ToolResources>,
-    worker: Res<OverpassWorker>,
-    mut overpass_settings: ResMut<OverpassClientResource>,
-    mut commands: Commands,
+    overpass_settings: Res<OverpassClientResource>,
     mut zoom_event: EventWriter<ZoomChangedEvent>,
     mut workspace_res: ResMut<Workspace>,
 ) {
@@ -213,8 +207,6 @@ fn workspace_actions_ui(
                                     }
                                     _ => {}
                                 }
-                                // Add the request here
-                                // let rx = worker.queue_request(query);
                                 let q = build_overpass_query_string(
                                     get_bounds(selection.clone()),
                                     overpass_settings.client.settings.clone(),
@@ -231,8 +223,6 @@ fn workspace_actions_ui(
                                 }
 
                                 zoom_event.send(ZoomChangedEvent);
-
-                                // commands.insert_resource(OverpassReceiver(rx));
                             }
                         }
                         ui.separator();

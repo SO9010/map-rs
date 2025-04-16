@@ -90,7 +90,7 @@ pub fn process_requests(mut commands: Commands, mut workspace: ResMut<Workspace>
                 loaded_requests_guard.push(request.clone());
                 drop(loaded_requests_guard); // Explicitly drop the guard
 
-                let serded = serde_json::to_string(&request).unwrap();
+                let _serded = serde_json::to_string(&request).unwrap();
                 // Save to folder.
                 let mut active = active_tasks_clone.lock().unwrap();
                 *active -= 1;
