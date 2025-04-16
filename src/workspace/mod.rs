@@ -1,5 +1,11 @@
-use bevy::{ecs::system::Resource, utils::HashSet};
+use std::sync::{Arc, Mutex};
+
+use bevy::{
+    ecs::system::Resource,
+    utils::{HashMap, HashSet},
+};
 use serde::{Deserialize, Serialize};
+use worker::WorkspaceWorker;
 pub use workspace_types::*;
 
 mod worker;
@@ -10,7 +16,18 @@ pub struct WorkspacePlugin;
 #[derive(Resource)]
 pub struct Workspace {
     pub workspace: Option<WorkspaceData>,
-    pub loaded_requests: Option<Vec<WorkspaceRequest>>,
+    pub loaded_requests: Arc<Mutex<Vec<WorkspaceRequest>>>,
+    pub worker: WorkspaceWorker,
+}
+
+impl Default for Workspace {
+    fn default() -> Self {
+        Workspace {
+            workspace: None,
+            loaded_requests: Arc::new(Mutex::new(Vec::new())),
+            worker: WorkspaceWorker::new(4),
+        }
+    }
 }
 // Need a function which sits and renders the data from the requests. Recognise the data type, then decide what to do with it and how to display it to the user.
 // Functions we want:
@@ -28,7 +45,7 @@ pub struct WorkspaceData {
     requests: Option<HashSet<String>>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WorkspaceRequest {
     id: String,
     layer: u32,

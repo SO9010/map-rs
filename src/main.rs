@@ -15,6 +15,7 @@ use overpass::OverpassPlugin;
 use settings::SettingsPlugin;
 use tiles::TilesUiPlugin;
 use tools::ToolsPlugin;
+use workspace::WorkspacePlugin;
 
 pub mod camera;
 pub mod debug;
@@ -39,6 +40,7 @@ fn main() {
             ..Default::default()
         }))
         .add_plugins((
+            WorkspacePlugin,
             CameraSystemPlugin,
             InteractionSystemPlugin,
             ShapePlugin,

@@ -1,14 +1,19 @@
-use bevy::prelude::*;
+use bevy::{ecs::query, prelude::*};
 use bevy_egui::{
     EguiContexts, EguiPreUpdateSet,
     egui::{self, Color32, RichText},
 };
 use bevy_map_viewer::{Coord, MapViewerMarker, TileMapResources, ZoomChangedEvent};
 use rstar::{AABB, Envelope};
+use uuid::Uuid;
 
 use crate::{
-    overpass::{OverpassWorker, worker::OverpassReceiver},
-    workspace::SelectionType,
+    overpass::{
+        OverpassClientResource, OverpassWorker, build_overpass_query_string, get_bounds,
+        worker::OverpassReceiver,
+    },
+    settings,
+    workspace::{RequestType, SelectionType, Workspace, WorkspaceRequest},
 };
 
 use super::ToolResources;
@@ -114,8 +119,10 @@ fn workspace_actions_ui(
     mut camera: Query<(&Camera, &mut Transform), With<MapViewerMarker>>,
     mut tools: ResMut<ToolResources>,
     worker: Res<OverpassWorker>,
+    mut overpass_settings: ResMut<OverpassClientResource>,
     mut commands: Commands,
     mut zoom_event: EventWriter<ZoomChangedEvent>,
+    mut workspace_res: ResMut<Workspace>,
 ) {
     let ctx = contexts.ctx_mut();
 
@@ -206,13 +213,26 @@ fn workspace_actions_ui(
                                     }
                                     _ => {}
                                 }
+                                // Add the request here
+                                // let rx = worker.queue_request(query);
+                                let q = build_overpass_query_string(
+                                    get_bounds(selection.clone()),
+                                    overpass_settings.client.settings.clone(),
+                                );
+                                if let Ok(query) = q {
+                                    let request = WorkspaceRequest::new(
+                                        Uuid::new_v4().to_string(),
+                                        1,
+                                        RequestType::OverpassTurboRequest(query),
+                                        Vec::new(),
+                                    );
+                                    workspace_res.worker.queue_request(request);
+                                    tools.selection_areas.respawn = true;
+                                }
 
-                                let rx = worker.queue_request(workspace.clone());
-
-                                tools.selection_areas.respawn = true;
                                 zoom_event.send(ZoomChangedEvent);
 
-                                commands.insert_resource(OverpassReceiver(rx));
+                                // commands.insert_resource(OverpassReceiver(rx));
                             }
                         }
                         ui.separator();
@@ -242,6 +262,7 @@ fn workspace_actions_ui(
                                             selection.start.unwrap_or_default();
                                         tools.selection_areas.focused_area =
                                             Some(workspace.clone());
+                                        workspace_res.workspace = Some(workspace.clone());
                                         match selection.selection_type {
                                             SelectionType::RECTANGLE => {
                                                 let starting = selection

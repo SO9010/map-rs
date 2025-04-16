@@ -4,12 +4,16 @@ use rstar::{AABB, RTree, RTreeObject};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::overpass::OverpassClient;
-
-use super::{Workspace, WorkspaceData, WorkspacePlugin, WorkspaceRequest};
+use super::{
+    Workspace, WorkspaceData, WorkspacePlugin, WorkspaceRequest,
+    worker::{cleanup_tasks, process_requests},
+};
 
 impl Plugin for WorkspacePlugin {
-    fn build(&self, _app: &mut App) {}
+    fn build(&self, app: &mut App) {
+        app.insert_resource(Workspace::default())
+            .add_systems(FixedUpdate, (process_requests, cleanup_tasks));
+    }
 }
 
 impl Workspace {
@@ -29,36 +33,8 @@ impl Workspace {
     /// - Handles different types of requests (`OverpassTurboRequest`, `OpenMeteoRequest`).
     /// - Updates the workspace with the request data and serializes the request for storage.
     /// - Adds the request ID to the workspace's list of requests.
-    pub fn process_request(
-        &mut self,
-        mut request: WorkspaceRequest,
-    ) -> Result<WorkspaceRequest, String> {
-        if let Some(workspace) = &mut self.workspace {
-            // This should probably send off to a thread.
-            match request.get_request() {
-                RequestType::OverpassTurboRequest(ref query) => {
-                    let client = OverpassClient::new("https://overpass-api.de/api/interpreter");
-                    if let Ok(q) = client.send_overpass_query_string(query.clone()) {
-                        if q.is_empty() {
-                            return Err("Response is empty".to_string());
-                        } else {
-                            request.raw_data = q.as_bytes().to_vec();
-                        }
-                    }
-                }
-                RequestType::OpenMeteoRequest(_open_meteo_request) => {}
-            }
-            workspace.add_request(request.get_id());
-            self.loaded_requests
-                .get_or_insert_with(Vec::new)
-                .push(request.clone());
-            let serded = serde_json::to_string(&request).unwrap();
-            // Save to folder.
-            info!("Serialized request: {}", serded);
-            return Ok(request);
-        } else {
-            return Err("No workspace found to add request to".to_string());
-        }
+    pub fn process_request(&mut self, mut request: WorkspaceRequest) {
+        self.worker.queue_request(request.clone());
     }
 }
 
