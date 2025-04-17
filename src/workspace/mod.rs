@@ -1,10 +1,14 @@
 use std::sync::{Arc, Mutex};
 
-use bevy::{ecs::system::Resource, utils::HashSet};
+use bevy::{
+    ecs::system::Resource,
+    utils::{HashMap, HashSet},
+};
 use serde::{Deserialize, Serialize};
 use worker::WorkspaceWorker;
 pub use workspace_types::*;
 
+mod renderer;
 mod worker;
 mod workspace_types;
 
@@ -13,7 +17,8 @@ pub struct WorkspacePlugin;
 #[derive(Resource)]
 pub struct Workspace {
     pub workspace: Option<WorkspaceData>,
-    pub loaded_requests: Arc<Mutex<Vec<WorkspaceRequest>>>,
+    // (rendered, id)
+    pub loaded_requests: Arc<Mutex<HashMap<String, (WorkspaceRequest, bool)>>>,
     pub worker: WorkspaceWorker,
 }
 
@@ -21,7 +26,7 @@ impl Default for Workspace {
     fn default() -> Self {
         Workspace {
             workspace: None,
-            loaded_requests: Arc::new(Mutex::new(Vec::new())),
+            loaded_requests: Arc::new(Mutex::new(HashMap::new())),
             worker: WorkspaceWorker::new(4),
         }
     }

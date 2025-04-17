@@ -6,13 +6,15 @@ use uuid::Uuid;
 
 use super::{
     Workspace, WorkspaceData, WorkspacePlugin, WorkspaceRequest,
+    renderer::render_workspace_requests,
     worker::{cleanup_tasks, process_requests},
 };
 
 impl Plugin for WorkspacePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Workspace::default())
-            .add_systems(FixedUpdate, (process_requests, cleanup_tasks));
+            .add_systems(FixedUpdate, (process_requests, cleanup_tasks))
+            .add_systems(Update, render_workspace_requests);
     }
 }
 
@@ -35,6 +37,27 @@ impl Workspace {
     /// - Adds the request ID to the workspace's list of requests.
     pub fn process_request(&mut self, request: WorkspaceRequest) {
         self.worker.queue_request(request.clone());
+    }
+
+    pub fn get_unrendered_requests(&self) -> Vec<WorkspaceRequest> {
+        let loaded_requests = self.loaded_requests.lock().unwrap();
+        loaded_requests
+            .values()
+            .filter_map(|(request, rendered)| {
+                if !rendered {
+                    Some(request.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    pub fn mark_as_rendered(&self, request_id: &str) {
+        let mut loaded_requests = self.loaded_requests.lock().unwrap();
+        if let Some((_request, rendered)) = loaded_requests.get_mut(request_id) {
+            *rendered = true; // Mark as rendered
+        }
     }
 }
 

@@ -87,7 +87,7 @@ pub fn process_requests(mut commands: Commands, mut workspace: ResMut<Workspace>
 
                 // Acquire the lock only when needed within the async block
                 let mut loaded_requests_guard = loaded_requests.lock().unwrap();
-                loaded_requests_guard.push(request.clone());
+                loaded_requests_guard.insert(request.get_id(), (request.clone(), false));
                 drop(loaded_requests_guard); // Explicitly drop the guard
 
                 let _serded = serde_json::to_string(&request).unwrap();
