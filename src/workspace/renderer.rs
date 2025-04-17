@@ -1,10 +1,21 @@
-use bevy::ecs::system::{Res, ResMut};
+use bevy::{
+    ecs::{
+        event::EventWriter,
+        system::{Res, ResMut},
+    },
+    log::info,
+};
+use bevy_map_viewer::ZoomChangedEvent;
 
 use crate::geojson::{MapBundle, get_data_from_string_osm};
 
 use super::Workspace;
 
-pub fn render_workspace_requests(workspace: Res<Workspace>, mut map_bundle: ResMut<MapBundle>) {
+pub fn render_workspace_requests(
+    workspace: Res<Workspace>,
+    mut map_bundle: ResMut<MapBundle>,
+    mut zoom_event: EventWriter<ZoomChangedEvent>,
+) {
     for request in workspace.get_unrendered_requests() {
         match request.get_request() {
             crate::workspace::RequestType::OverpassTurboRequest(_) => {
@@ -14,6 +25,8 @@ pub fn render_workspace_requests(workspace: Res<Workspace>, mut map_bundle: ResM
                     for feature in data {
                         map_bundle.features.insert(feature.clone());
                     }
+                    info!("SHold be shoidng own data");
+                    zoom_event.send(ZoomChangedEvent);
                 }
             }
             crate::workspace::RequestType::OpenMeteoRequest(_) => {}
