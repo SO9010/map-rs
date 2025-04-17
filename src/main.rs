@@ -11,7 +11,6 @@ use camera::CameraSystemPlugin;
 use debug::DebugPlugin;
 use geojson::RenderPlugin;
 use interaction::InteractionSystemPlugin;
-use overpass::OverpassPlugin;
 use settings::SettingsPlugin;
 use tiles::TilesUiPlugin;
 use tools::ToolsPlugin;
@@ -58,7 +57,6 @@ fn main() {
             ..Default::default()
         })
         .add_plugins(RenderPlugin)
-        .add_plugins(OverpassPlugin)
         .add_plugins(SettingsPlugin)
         .add_plugins(ToolsPlugin)
         .add_systems(Update, absorb_egui_inputs)

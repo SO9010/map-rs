@@ -8,8 +8,7 @@ use bevy_map_viewer::ZoomChangedEvent;
 use bevy_prototype_lyon::entity::Path;
 
 use crate::{
-    geojson::MapFeature, overpass::OverpassClientResource,
-    settings::egui::color_picker::Alpha::Opaque,
+    geojson::MapFeature, settings::egui::color_picker::Alpha::Opaque, workspace::Workspace,
 };
 
 pub struct SettingsPlugin;
@@ -26,7 +25,7 @@ impl Plugin for SettingsPlugin {
 #[allow(dead_code)]
 fn ui_example_system(
     mut contexts: EguiContexts,
-    mut overpass_settings: ResMut<OverpassClientResource>,
+    mut overpass_settings: ResMut<Workspace>,
     shapes_query: Query<(Entity, &Path, &GlobalTransform, &MapFeature)>,
     mut commands: Commands,
     mut zoom_event: EventWriter<ZoomChangedEvent>,
@@ -60,7 +59,7 @@ fn ui_example_system(
                         let mut color;
 
                         for (category_name, category) in
-                            &mut overpass_settings.client.settings.categories
+                            &mut overpass_settings.overpass_agent.settings.categories
                         {
                             if category.disabled {
                                 color = Color32::from_rgb(135, 135, 135);

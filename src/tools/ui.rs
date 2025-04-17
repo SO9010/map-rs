@@ -8,7 +8,7 @@ use rstar::{AABB, Envelope};
 use uuid::Uuid;
 
 use crate::{
-    overpass::{OverpassClientResource, build_overpass_query_string, get_bounds},
+    overpass::{build_overpass_query_string, get_bounds},
     workspace::{RequestType, SelectionType, Workspace, WorkspaceRequest},
 };
 
@@ -114,7 +114,6 @@ fn workspace_actions_ui(
     mut contexts: EguiContexts,
     mut camera: Query<(&Camera, &mut Transform), With<MapViewerMarker>>,
     mut tools: ResMut<ToolResources>,
-    overpass_settings: Res<OverpassClientResource>,
     mut zoom_event: EventWriter<ZoomChangedEvent>,
     mut workspace_res: ResMut<Workspace>,
 ) {
@@ -209,7 +208,7 @@ fn workspace_actions_ui(
                                 }
                                 let q = build_overpass_query_string(
                                     get_bounds(selection.clone()),
-                                    overpass_settings.client.settings.clone(),
+                                    workspace_res.overpass_agent.settings.clone(),
                                 );
                                 if let Ok(query) = q {
                                     let request = WorkspaceRequest::new(

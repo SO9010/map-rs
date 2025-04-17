@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use worker::WorkspaceWorker;
 pub use workspace_types::*;
 
+use crate::overpass::OverpassClient;
+
 mod renderer;
 mod worker;
 mod workspace_types;
@@ -20,6 +22,9 @@ pub struct Workspace {
     // (rendered, id)
     pub loaded_requests: Arc<Mutex<HashMap<String, (WorkspaceRequest, bool)>>>,
     pub worker: WorkspaceWorker,
+
+    // Request Clients:
+    pub overpass_agent: OverpassClient,
 }
 
 impl Default for Workspace {
@@ -28,6 +33,7 @@ impl Default for Workspace {
             workspace: None,
             loaded_requests: Arc::new(Mutex::new(HashMap::new())),
             worker: WorkspaceWorker::new(4),
+            overpass_agent: OverpassClient::new("https://overpass-api.de/api/interpreter"),
         }
     }
 }

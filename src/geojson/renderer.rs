@@ -8,7 +8,7 @@ use bevy_prototype_lyon::{
 };
 use rstar::RTreeObject;
 
-use crate::{overpass::OverpassClientResource, tools::ToolResources};
+use crate::{tools::ToolResources, workspace::Workspace};
 use bevy_map_viewer::ZoomChangedEvent;
 
 use super::{MapBundle, MapFeature};
@@ -22,7 +22,7 @@ pub fn respawn_shapes(
     shapes_query: Query<(Entity, &ShapeMarker)>,
     map_bundle: ResMut<MapBundle>,
     tile_map_manager: Res<TileMapResources>,
-    overpass_settings: Res<OverpassClientResource>,
+    workspace: Res<Workspace>,
     tools: Res<ToolResources>,
     mut zoom_change: EventReader<ZoomChangedEvent>,
 ) {
@@ -61,8 +61,8 @@ pub fn respawn_shapes(
             let line_width = 0.025;
             let elevation = 1.0;
 
-            for (cat, key) in overpass_settings
-                .client
+            for (cat, key) in workspace
+                .overpass_agent
                 .settings
                 .get_true_keys_with_category_with_individual()
                 .iter()
@@ -71,8 +71,8 @@ pub fn respawn_shapes(
                     if cate.as_str().unwrap() != key {
                         continue;
                     }
-                    let color = overpass_settings
-                        .client
+                    let color = workspace
+                        .overpass_agent
                         .settings
                         .categories
                         .get(cat)
