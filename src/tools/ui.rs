@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::{
     overpass::{build_overpass_query_string, get_bounds},
-    workspace::{RequestType, SelectionType, Workspace, WorkspaceRequest},
+    workspace::{RequestType, SelectionType, Workspace, WorkspaceData, WorkspaceRequest},
 };
 
 use super::ToolResources;
@@ -152,7 +152,7 @@ fn workspace_actions_ui(
                         ));
                         ui.separator();
 
-                        if let Some(workspace) = &tools.selection_areas.focused_area {
+                        if let Some(workspace) = &workspace_res.workspace {
                             if ui.button(RichText::new(workspace.get_name())).clicked() {
                                 let selection = workspace.get_selection();
 
@@ -239,7 +239,13 @@ fn workspace_actions_ui(
                                 ui.vertical_centered(|ui| {
                                     ui.set_max_width(tilebox_width - 10.);
                                     let mut enabled = false;
-                                    if tools.selection_areas.focused_area.is_some() {
+                                    if workspace_res
+                                        .workspace
+                                        .as_ref()
+                                        .unwrap_or(&WorkspaceData::default())
+                                        .get_id()
+                                        == workspace.get_id()
+                                    {
                                         enabled = true;
                                     }
                                     if ui
@@ -249,8 +255,6 @@ fn workspace_actions_ui(
                                         let selection = workspace.get_selection();
                                         tile_map_res.location_manager.location =
                                             selection.start.unwrap_or_default();
-                                        tools.selection_areas.focused_area =
-                                            Some(workspace.clone());
                                         workspace_res.workspace = Some(workspace.clone());
                                         match selection.selection_type {
                                             SelectionType::RECTANGLE => {

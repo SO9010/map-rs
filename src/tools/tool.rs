@@ -1,8 +1,8 @@
-use crate::{workspace::SelectionAreas, EguiBlockInputState};
+use crate::{EguiBlockInputState, workspace::SelectionAreas};
 use bevy::{
     app::*,
     ecs::system::{Res, ResMut, Resource},
-    input::{keyboard::KeyCode, ButtonInput},
+    input::{ButtonInput, keyboard::KeyCode},
 };
 
 use super::{

@@ -43,7 +43,7 @@ impl Default for Workspace {
 // WorkspaceRenderer,
 // WorkspaceSettings,
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct WorkspaceData {
     id: String,
     name: String,

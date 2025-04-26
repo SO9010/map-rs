@@ -218,8 +218,9 @@ impl RTreeObject for WorkspaceData {
 /// Or this will be used for the user to select their work space area, with in this the data will be permentanly stored and the user can modify it.
 /// When someone selects something it would be cool to make it sticky so someone has to pull further than a certian amount to leave the workspace.
 /// We could use some movment smoothing.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub enum SelectionType {
+    #[default]
     NONE,
     RECTANGLE,
     POLYGON,
@@ -238,7 +239,6 @@ impl SelectionType {
 }
 
 pub struct SelectionAreas {
-    pub focused_area: Option<WorkspaceData>,
     pub areas: RTree<WorkspaceData>,
     pub unfinished_selection: Option<Selection>,
     pub respawn: bool,
@@ -253,7 +253,6 @@ impl Default for SelectionAreas {
 impl SelectionAreas {
     pub fn new() -> Self {
         Self {
-            focused_area: None,
             areas: RTree::new(),
             unfinished_selection: None,
             respawn: false,
@@ -265,7 +264,7 @@ impl SelectionAreas {
     }
 }
 
-#[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Component, Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Selection {
     pub selection_type: SelectionType,
     pub start: Option<Coord>,

@@ -8,14 +8,14 @@ use bevy_prototype_lyon::{
 };
 use rstar::RTreeObject;
 
-use crate::{tools::ToolResources, workspace::Workspace};
+use crate::workspace::Workspace;
 use bevy_map_viewer::ZoomChangedEvent;
 
 use super::{MapBundle, MapFeature};
 
 #[derive(Component)]
 pub struct ShapeMarker;
-// TODO: Change to a mesh 2d]
+// TODO: Change to a mesh 2d
 // We need to find a way to render it with each different part having its own settings. I recon we could possibly add the data as a child or refrence to the selection? So for the selection we have selection settigns.
 pub fn respawn_shapes(
     mut commands: Commands,
@@ -23,7 +23,6 @@ pub fn respawn_shapes(
     map_bundle: ResMut<MapBundle>,
     tile_map_manager: Res<TileMapResources>,
     workspace: Res<Workspace>,
-    tools: Res<ToolResources>,
     mut zoom_change: EventReader<ZoomChangedEvent>,
 ) {
     if !zoom_change.is_empty() {
@@ -38,7 +37,7 @@ pub fn respawn_shapes(
             Vec::new();
 
         let mut intersection_candidates: Vec<&MapFeature> = Vec::new();
-        if let Some(selection) = &tools.selection_areas.focused_area {
+        if let Some(selection) = &workspace.workspace {
             intersection_candidates = map_bundle
                 .features
                 .locate_in_envelope_intersecting(&selection.envelope())

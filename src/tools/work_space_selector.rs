@@ -6,7 +6,7 @@ use bevy_prototype_lyon::{
     draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder,
 };
 
-use crate::workspace::{Selection, SelectionType, WorkspaceData};
+use crate::workspace::{Selection, SelectionType, Workspace, WorkspaceData};
 
 use super::ToolResources;
 
@@ -250,6 +250,7 @@ fn render_darkening_overlay(
     >,
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
     overlay_query: Query<Entity, With<DarkeningOverlay>>,
+    workspace_res: Res<Workspace>,
 ) {
     for entity in overlay_query.iter() {
         commands.entity(entity).despawn();
@@ -257,7 +258,7 @@ fn render_darkening_overlay(
 
     let mut intersection_candidates: Vec<Selection> = Vec::new();
 
-    if let Some(selection_areas) = tools.selection_areas.focused_area.clone() {
+    if let Some(selection_areas) = workspace_res.workspace.clone() {
         intersection_candidates.push(selection_areas.get_selection());
     }
 
