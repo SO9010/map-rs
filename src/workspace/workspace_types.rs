@@ -1,4 +1,5 @@
 use bevy::{prelude::*, utils::HashSet};
+use bevy_egui::EguiPreUpdateSet;
 use bevy_map_viewer::{Coord, TileMapResources};
 use rstar::{AABB, RTree, RTreeObject};
 use serde::{Deserialize, Serialize};
@@ -7,6 +8,7 @@ use uuid::Uuid;
 use super::{
     Workspace, WorkspaceData, WorkspacePlugin, WorkspaceRequest,
     renderer::render_workspace_requests,
+    ui::workspace_actions_ui,
     worker::{cleanup_tasks, process_requests},
 };
 
@@ -14,7 +16,11 @@ impl Plugin for WorkspacePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Workspace::default())
             .add_systems(FixedUpdate, (process_requests, cleanup_tasks))
-            .add_systems(Update, render_workspace_requests);
+            .add_systems(Update, render_workspace_requests)
+            .add_systems(
+                Update,
+                (workspace_actions_ui.after(EguiPreUpdateSet::InitContexts),),
+            );
     }
 }
 

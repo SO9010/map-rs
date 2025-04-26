@@ -12,7 +12,6 @@ use debug::DebugPlugin;
 use geojson::RenderPlugin;
 use interaction::InteractionSystemPlugin;
 use settings::SettingsPlugin;
-use tiles::TilesUiPlugin;
 use tools::ToolsPlugin;
 use workspace::WorkspacePlugin;
 
@@ -22,7 +21,6 @@ pub mod geojson;
 pub mod interaction;
 pub mod overpass;
 pub mod settings;
-pub mod tiles;
 pub mod tools;
 pub mod workspace;
 
@@ -43,7 +41,6 @@ fn main() {
             CameraSystemPlugin,
             InteractionSystemPlugin,
             ShapePlugin,
-            TilesUiPlugin,
         ))
         .add_plugins(EguiPlugin)
         .add_plugins(DebugPlugin)

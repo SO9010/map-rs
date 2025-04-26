@@ -34,9 +34,9 @@ fn ui_example_system(
     let screen_rect = ctx.screen_rect();
 
     let tilebox_width = 175.0;
-    let tilebox_height = screen_rect.height() - 20.0;
+    let tilebox_height = screen_rect.height() - 30.0;
 
-    let tilebox_pos = egui::pos2(10.0, 10.0);
+    let tilebox_pos = egui::pos2(10.0, 30.0);
 
     egui::Area::new("layers".into())
         .fixed_pos(tilebox_pos)

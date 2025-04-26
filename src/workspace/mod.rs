@@ -11,6 +11,7 @@ pub use workspace_types::*;
 use crate::overpass::OverpassClient;
 
 mod renderer;
+mod ui;
 mod worker;
 mod workspace_types;
 
