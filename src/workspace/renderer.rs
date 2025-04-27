@@ -1,9 +1,6 @@
-use bevy::{
-    ecs::{
-        event::EventWriter,
-        system::{Res, ResMut},
-    },
-    log::info,
+use bevy::ecs::{
+    event::EventWriter,
+    system::{Res, ResMut},
 };
 use bevy_map_viewer::ZoomChangedEvent;
 
@@ -25,8 +22,7 @@ pub fn render_workspace_requests(
                     for feature in data {
                         map_bundle.features.insert(feature.clone());
                     }
-                    info!("SHold be shoidng own data");
-                    zoom_event.send(ZoomChangedEvent);
+                    zoom_event.write(ZoomChangedEvent);
                 }
             }
             crate::workspace::RequestType::OpenMeteoRequest(_) => {}

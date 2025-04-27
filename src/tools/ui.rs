@@ -61,7 +61,15 @@ fn tool_ui(mut tools: ResMut<ToolResources>, mut contexts: EguiContexts) {
                         };
 
                         ui.add(egui::Label::new(""));
+                        let img = egui::include_image!("../../assets/icon/icon1080.png");
 
+                        ui.menu_image_button(img, |ui| {
+                            ui.menu_button("My sub-menu", |ui| {
+                                if ui.button("Close the menu").clicked() {
+                                    ui.close_menu();
+                                }
+                            });
+                        });
                         if ui
                             .add_sized(
                                 [64.0, 30.0],

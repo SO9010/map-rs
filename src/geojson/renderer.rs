@@ -1,9 +1,8 @@
 use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_map_viewer::TileMapResources;
 use bevy_prototype_lyon::{
-    draw::{Fill, Stroke},
-    entity::ShapeBundle,
-    prelude::GeometryBuilder,
+    entity::Shape,
+    prelude::{ShapeBuilder, ShapeBuilderBase},
     shapes,
 };
 use rstar::RTreeObject;
@@ -28,13 +27,11 @@ pub fn respawn_shapes(
     if !zoom_change.is_empty() {
         zoom_change.clear();
         for (entity, _) in shapes_query.iter() {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         }
 
-        let mut batch_commands_closed: Vec<(ShapeBundle, Fill, Stroke, ShapeMarker, RenderLayers)> =
-            Vec::new();
-        let mut batch_commands_open: Vec<(ShapeBundle, Stroke, ShapeMarker, RenderLayers)> =
-            Vec::new();
+        let mut batch_commands_closed: Vec<(Shape, ShapeMarker, RenderLayers)> = Vec::new();
+        let mut batch_commands_open: Vec<(Shape, ShapeMarker, RenderLayers)> = Vec::new();
 
         let mut intersection_candidates: Vec<&MapFeature> = Vec::new();
         if let Some(selection) = &workspace.workspace {
@@ -58,7 +55,6 @@ pub fn respawn_shapes(
                 alpha: 0.75,
             };
             let line_width = 0.025;
-            let elevation = 1.0;
 
             for (cat, key) in workspace
                 .overpass_agent
@@ -106,13 +102,10 @@ pub fn respawn_shapes(
                 };
 
                 batch_commands_closed.push((
-                    ShapeBundle {
-                        path: GeometryBuilder::build_as(&shape),
-                        transform: Transform::from_xyz(0.0, 0.0, elevation),
-                        ..default()
-                    },
-                    Fill::color(fill_color),
-                    Stroke::new(stroke_color, line_width as f32),
+                    ShapeBuilder::with(&shape)
+                        .fill(fill_color)
+                        .stroke((stroke_color, line_width as f32))
+                        .build(),
                     ShapeMarker,
                     RenderLayers::layer(1),
                 ));
@@ -122,12 +115,9 @@ pub fn respawn_shapes(
                     closed: false,
                 };
                 batch_commands_open.push((
-                    ShapeBundle {
-                        path: GeometryBuilder::build_as(&shape),
-                        transform: Transform::from_xyz(0.0, 0.0, elevation),
-                        ..default()
-                    },
-                    Stroke::new(stroke_color, line_width as f32),
+                    ShapeBuilder::with(&shape)
+                        .stroke((stroke_color, line_width as f32))
+                        .build(),
                     ShapeMarker,
                     RenderLayers::layer(1),
                 ));

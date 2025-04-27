@@ -1,4 +1,6 @@
-use bevy::{prelude::*, utils::HashSet};
+use std::collections::HashSet;
+
+use bevy::prelude::*;
 use bevy_egui::EguiPreUpdateSet;
 use bevy_map_viewer::{Coord, TileMapResources};
 use rstar::{AABB, RTree, RTreeObject};

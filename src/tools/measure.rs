@@ -55,31 +55,36 @@ pub fn handle_measure(
     tile_map_manager: Res<TileMapResources>,
     state: Res<EguiBlockInputState>,
 ) {
-    let (camera, camera_transform) = camera.single();
-    if measure.measure.enabled {
-        if let Some(position) = q_windows.single().cursor_position() {
-            let pos = tile_map_manager.point_to_coord(
-                camera
-                    .viewport_to_world_2d(camera_transform, position)
-                    .unwrap(),
-            );
-            if buttons.just_pressed(MouseButton::Left) && !state.block_input {
-                let start = Coord::new(pos.lat, pos.long);
-                measure.measure.start = Some(start);
-            }
-            if buttons.pressed(MouseButton::Left)
-                && measure.measure.end != Some(Coord::new(pos.lat, pos.long))
+    if let Ok((camera, camera_transform)) = camera.single() {
+        if measure.measure.enabled {
+            if let Some(position) = q_windows
+                .single()
+                .expect("Couldnt get the cursor position")
+                .cursor_position()
             {
-                measure.measure.end = Some(Coord::new(pos.lat, pos.long));
+                let pos = tile_map_manager.point_to_coord(
+                    camera
+                        .viewport_to_world_2d(camera_transform, position)
+                        .unwrap(),
+                );
+                if buttons.just_pressed(MouseButton::Left) && !state.block_input {
+                    let start = Coord::new(pos.lat, pos.long);
+                    measure.measure.start = Some(start);
+                }
+                if buttons.pressed(MouseButton::Left)
+                    && measure.measure.end != Some(Coord::new(pos.lat, pos.long))
+                {
+                    measure.measure.end = Some(Coord::new(pos.lat, pos.long));
+                }
+                if buttons.just_released(MouseButton::Left) {
+                    measure.measure.end = Some(Coord::new(pos.lat, pos.long));
+                }
+                if buttons.pressed(MouseButton::Right) {
+                    measure.measure.start = None;
+                    measure.measure.end = None;
+                }
+                measure.measure.respawn = true;
             }
-            if buttons.just_released(MouseButton::Left) {
-                measure.measure.end = Some(Coord::new(pos.lat, pos.long));
-            }
-            if buttons.pressed(MouseButton::Right) {
-                measure.measure.start = None;
-                measure.measure.end = None;
-            }
-            measure.measure.respawn = true;
         }
     }
 }
@@ -122,13 +127,13 @@ fn render_measure(
         let line_width = 2.5;
         let elevation = 501.0;
 
-        if let Ok((entity, _)) = measure_query.get_single_mut() {
-            commands.entity(entity).despawn_recursive();
+        if let Ok((entity, _)) = measure_query.single_mut() {
+            commands.entity(entity).despawn();
         }
 
-        if let Ok((entity, _text)) = text_query.get_single() {
+        if let Ok((entity, _text)) = text_query.single() {
             if tool_res.measure.start.is_none() && tool_res.measure.end.is_none() {
-                commands.entity(entity).despawn_recursive();
+                commands.entity(entity).despawn();
             } else {
                 for mut transform in &mut text_trans {
                     let points: Vec<Vec2> = vec![

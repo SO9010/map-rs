@@ -9,9 +9,12 @@ pub struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
         if cfg!(debug_assertions) {
-            app.add_plugins(FrameTimeDiagnosticsPlugin)
-                .add_systems(Startup, (debug_draw_fps, debug_draw_entity_no))
-                .add_systems(Update, (text_update_fps, count_entities));
+            app.add_plugins(FrameTimeDiagnosticsPlugin {
+                max_history_length: 10,
+                smoothing_factor: 10.0,
+            })
+            .add_systems(Startup, (debug_draw_fps, debug_draw_entity_no))
+            .add_systems(Update, (text_update_fps, count_entities));
         }
     }
 }
@@ -35,7 +38,7 @@ pub fn debug_draw_fps(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             Node {
                 position_type: PositionType::Absolute,
-                top: Val::Px(150.0),
+                top: Val::Px(45.0),
                 right: Val::Px(5.0),
                 ..default()
             },
@@ -81,7 +84,7 @@ pub fn debug_draw_entity_no(mut commands: Commands, asset_server: Res<AssetServe
             },
             Node {
                 position_type: PositionType::Absolute,
-                bottom: Val::Px(150.0),
+                bottom: Val::Px(60.0),
                 right: Val::Px(5.0),
                 ..default()
             },

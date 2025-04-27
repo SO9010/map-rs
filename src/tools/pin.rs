@@ -1,6 +1,6 @@
 use bevy::{prelude::*, render::view::RenderLayers, window::PrimaryWindow};
 use bevy_map_viewer::{Coord, EguiBlockInputState, MapViewerMarker, TileMapResources};
-use rstar::{RTree, RTreeObject, AABB};
+use rstar::{AABB, RTree, RTreeObject};
 
 use super::ToolResources;
 
@@ -63,9 +63,16 @@ pub fn handle_pin(
     tile_map_manager: Res<TileMapResources>,
     state: Res<EguiBlockInputState>,
 ) {
-    let (camera, camera_transform) = camera.single();
+    let (camera, camera_transform) = match camera.single() {
+        Ok(result) => result,
+        Err(_) => return,
+    };
     if pin.pins.enabled && !state.block_input {
-        if let Some(position) = q_windows.single().cursor_position() {
+        if let Some(position) = q_windows
+            .single()
+            .expect("Cant get cursor position")
+            .cursor_position()
+        {
             if buttons.just_pressed(MouseButton::Left) {
                 let pos = tile_map_manager.point_to_coord(
                     camera
@@ -92,7 +99,7 @@ fn render_pins(
     if pin.pins.respawn {
         pin.pins.respawn = false;
         for (entity, _, _) in selections_query.iter() {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         }
 
         let fill_color = Srgba {

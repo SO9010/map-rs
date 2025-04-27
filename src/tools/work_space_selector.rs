@@ -1,10 +1,12 @@
 use std::f32::consts::PI;
 
-use bevy::{prelude::*, render::view::RenderLayers, window::PrimaryWindow};
-use bevy_map_viewer::{Coord, EguiBlockInputState, MapViewerMarker, TileMapResources};
-use bevy_prototype_lyon::{
-    draw::Fill, entity::ShapeBundle, path::PathBuilder, prelude::GeometryBuilder,
+use bevy::{
+    asset::RenderAssetUsages,
+    prelude::*,
+    render::{mesh::PrimitiveTopology, view::RenderLayers},
+    window::PrimaryWindow,
 };
+use bevy_map_viewer::{Coord, EguiBlockInputState, MapViewerMarker, TileMapResources};
 
 use crate::workspace::{Selection, SelectionType, Workspace, WorkspaceData};
 
@@ -46,9 +48,16 @@ pub fn handle_selection(
     state: Res<EguiBlockInputState>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {
-    let (camera, camera_transform) = camera.single();
+    let (camera, camera_transform) = match camera.single() {
+        Ok(result) => result,
+        Err(_) => return,
+    };
     if tools.selection_settings.enabled {
-        if let Some(position) = q_windows.single().cursor_position() {
+        if let Some(position) = q_windows
+            .single()
+            .expect("Couldn't get cursor position")
+            .cursor_position()
+        {
             let pos = res_manager.point_to_coord(
                 camera
                     .viewport_to_world_2d(camera_transform, position)
@@ -238,122 +247,19 @@ pub struct DarkeningOverlay;
 #[derive(Component)]
 pub struct SelectionCutout;
 
-/// Renders a darkening overlay on the map, excluding the selected areas.
+/// TODO: Renders a darkening overlay on the map, excluding the selected areas.
 /// This helps visually highlight the selected regions.
+/// Hmm change to something else, lyon isnt working anymore do try and use a custom shader
+#[allow(unused_variables)]
 fn render_darkening_overlay(
     mut commands: Commands,
     tools: Res<ToolResources>,
     res_manager: ResMut<TileMapResources>,
-    camera_query: Query<
-        (&Camera, &GlobalTransform, &OrthographicProjection),
-        With<MapViewerMarker>,
-    >,
+    camera_query: Query<(&Camera, &GlobalTransform, &Projection), With<MapViewerMarker>>,
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
     overlay_query: Query<Entity, With<DarkeningOverlay>>,
     workspace_res: Res<Workspace>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    for entity in overlay_query.iter() {
-        commands.entity(entity).despawn();
-    }
-
-    let mut intersection_candidates: Vec<Selection> = Vec::new();
-
-    if let Some(selection_areas) = workspace_res.workspace.clone() {
-        intersection_candidates.push(selection_areas.get_selection());
-    }
-
-    if tools.selection_areas.unfinished_selection.is_some() {
-        intersection_candidates.push(
-            tools
-                .selection_areas
-                .unfinished_selection
-                .as_ref()
-                .unwrap()
-                .clone(),
-        );
-    }
-
-    if intersection_candidates.is_empty() {
-        return;
-    }
-
-    let (camera, camera_transform, _) = camera_query.single();
-    let window = match primary_window_query.get_single() {
-        Ok(window) => window,
-        Err(_) => return, // Exit early if window not available
-    };
-
-    let top_left = camera
-        .viewport_to_world_2d(camera_transform, Vec2::ZERO)
-        .unwrap();
-    let bottom_right = camera
-        .viewport_to_world_2d(camera_transform, Vec2::new(window.width(), window.height()))
-        .unwrap();
-
-    let mut path_builder = PathBuilder::new();
-    path_builder.move_to(top_left);
-    path_builder.line_to(Vec2::new(bottom_right.x, top_left.y));
-    path_builder.line_to(bottom_right);
-    path_builder.line_to(Vec2::new(top_left.x, bottom_right.y));
-    path_builder.close();
-
-    for feature in intersection_candidates {
-        let points = feature.get_in_world_space(res_manager.clone());
-
-        match feature.selection_type {
-            SelectionType::RECTANGLE => {
-                if points.len() < 2 {
-                    continue;
-                }
-                let min_x = points[0].x.min(points[1].x);
-                let max_x = points[0].x.max(points[1].x);
-                let min_y = points[0].y.min(points[1].y);
-                let max_y = points[0].y.max(points[1].y);
-
-                path_builder.move_to(Vec2::new(min_x, min_y));
-                path_builder.line_to(Vec2::new(max_x, min_y));
-                path_builder.line_to(Vec2::new(max_x, max_y));
-                path_builder.line_to(Vec2::new(min_x, max_y));
-                path_builder.close();
-            }
-            SelectionType::CIRCLE => {
-                if points.len() < 2 {
-                    continue;
-                }
-                let center = points[0];
-                let radius = points[0].distance(points[1]);
-
-                path_builder.move_to(center + Vec2::new(radius, 0.0));
-                path_builder.arc(center, Vec2::splat(radius), PI * 2.0, std::f32::consts::TAU);
-                path_builder.close();
-            }
-            SelectionType::POLYGON => {
-                if points.len() < 3 {
-                    continue;
-                }
-
-                path_builder.move_to(points[0]);
-                for &point in points.iter().skip(1) {
-                    path_builder.line_to(point);
-                }
-                path_builder.close();
-            }
-            _ => {}
-        }
-    }
-
-    // Build the final shape
-    let path = path_builder.build();
-
-    // Spawn the darkening overlay with holes
-    commands.spawn((
-        ShapeBundle {
-            path: GeometryBuilder::build_as(&path),
-            transform: Transform::from_xyz(0.0, 0.0, 900.0),
-            ..default()
-        },
-        Fill::color(Color::srgba(0.0, 0.0, 0.0, 0.5)), // Dark overlay with holes
-        DarkeningOverlay,
-        RenderLayers::layer(1),
-    ));
 }

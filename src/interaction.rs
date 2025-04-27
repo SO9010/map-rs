@@ -33,7 +33,7 @@ fn file_drop(
                     path_buf, window
                 );
                 get_file_data(&mut map_bundle.features, path_buf.to_str().unwrap());
-                zoom_event.send(ZoomChangedEvent);
+                zoom_event.write(ZoomChangedEvent);
             }
         }
     }

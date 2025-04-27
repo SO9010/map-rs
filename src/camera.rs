@@ -81,20 +81,27 @@ fn setup_camera(mut commands: Commands, res_manager: Option<Res<TileMapResources
 }
 #[allow(clippy::type_complexity)]
 fn sync_cameras(
-    primary_query: Query<(&Transform, &OrthographicProjection), With<MapViewerMarker>>,
+    primary_query: Query<(&Transform, &Projection), With<MapViewerMarker>>,
     mut secondary_query: Query<
-        (&mut Transform, &mut OrthographicProjection),
+        (&mut Transform, &mut Projection),
         (With<DrawCamera>, Without<MapViewerMarker>),
     >,
 ) {
-    if let Ok((primary_transform, primary_projection)) = primary_query.get_single() {
+    if let Ok((primary_transform, primary_projection)) = primary_query.single() {
         if let Ok((mut secondary_transform, mut secondary_projection)) =
-            secondary_query.get_single_mut()
+            secondary_query.single_mut()
         {
             secondary_transform.translation.x = primary_transform.translation.x;
             secondary_transform.translation.y = primary_transform.translation.y;
             secondary_transform.scale = primary_transform.scale;
-
+            let primary_projection = match primary_projection {
+                Projection::Orthographic(projection) => projection,
+                _ => panic!("Projection is not orthographic"),
+            };
+            let secondary_projection = match &mut *secondary_projection {
+                Projection::Orthographic(projection) => projection,
+                _ => panic!("Projection is not orthographic"),
+            };
             secondary_projection.scale = primary_projection.scale;
             secondary_projection.area = primary_projection.area;
             secondary_projection.far = primary_projection.far;

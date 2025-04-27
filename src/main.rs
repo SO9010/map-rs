@@ -42,7 +42,9 @@ fn main() {
             InteractionSystemPlugin,
             ShapePlugin,
         ))
-        .add_plugins(EguiPlugin)
+        .add_plugins(EguiPlugin {
+            enable_multipass_for_primary_context: false,
+        })
         .add_plugins(DebugPlugin)
         .insert_resource(WinitSettings {
             unfocused_mode: UpdateMode::Reactive {

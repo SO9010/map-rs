@@ -1,7 +1,10 @@
 use crate::{EguiBlockInputState, workspace::SelectionAreas};
 use bevy::{
     app::*,
-    ecs::system::{Res, ResMut, Resource},
+    ecs::{
+        resource::Resource,
+        system::{Res, ResMut},
+    },
     input::{ButtonInput, keyboard::KeyCode},
 };
 

@@ -5,11 +5,8 @@ use bevy_egui::{
     egui::{self, Color32, RichText, color_picker::color_edit_button_srgba},
 };
 use bevy_map_viewer::ZoomChangedEvent;
-use bevy_prototype_lyon::entity::Path;
 
-use crate::{
-    geojson::MapFeature, settings::egui::color_picker::Alpha::Opaque, workspace::Workspace,
-};
+use crate::{settings::egui::color_picker::Alpha::Opaque, workspace::Workspace};
 
 pub struct SettingsPlugin;
 
@@ -26,15 +23,13 @@ impl Plugin for SettingsPlugin {
 fn ui_example_system(
     mut contexts: EguiContexts,
     mut overpass_settings: ResMut<Workspace>,
-    shapes_query: Query<(Entity, &Path, &GlobalTransform, &MapFeature)>,
-    mut commands: Commands,
     mut zoom_event: EventWriter<ZoomChangedEvent>,
 ) {
     let ctx = contexts.ctx_mut();
     let screen_rect = ctx.screen_rect();
 
     let tilebox_width = 175.0;
-    let tilebox_height = screen_rect.height() - 30.0;
+    let tilebox_height = screen_rect.height() - 40.0;
 
     let tilebox_pos = egui::pos2(10.0, 30.0);
 
@@ -80,7 +75,7 @@ fn ui_example_system(
                                         } else {
                                             category.all = true;
                                             category.set_children(true);
-                                            zoom_event.send(ZoomChangedEvent);
+                                            zoom_event.write(ZoomChangedEvent);
                                         }
                                         if category.none {
                                             category.none = false;
@@ -98,7 +93,7 @@ fn ui_example_system(
                                         } else {
                                             category.none = true;
                                             category.set_children(false);
-                                            zoom_event.send(ZoomChangedEvent);
+                                            zoom_event.write(ZoomChangedEvent);
                                         }
                                         if category.all {
                                             category.all = false;
@@ -115,26 +110,17 @@ fn ui_example_system(
                                         {
                                             category.all = false;
                                             category.none = false;
-                                            zoom_event.send(ZoomChangedEvent);
+                                            zoom_event.write(ZoomChangedEvent);
                                         }
                                         let clrc = &mut bevy_egui::egui::Color32::from_rgb(
                                             clr.0[0], clr.0[1], clr.0[2],
                                         );
                                         if color_edit_button_srgba(ui, clrc, Opaque).changed() {
-                                            zoom_event.send(ZoomChangedEvent);
+                                            zoom_event.write(ZoomChangedEvent);
                                         }
                                     });
                                 }
                             });
-                        }
-                        if ui
-                            .button("Clear Map")
-                            .on_hover_text("Despawns the data which makes up this map")
-                            .clicked()
-                        {
-                            for (entity, _, _, _) in shapes_query.iter() {
-                                commands.entity(entity).despawn_recursive();
-                            }
                         }
                     });
                 });
