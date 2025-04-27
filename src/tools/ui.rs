@@ -1,8 +1,10 @@
 use bevy::prelude::*;
 use bevy_egui::{
     EguiContexts, EguiPreUpdateSet,
-    egui::{self, Color32, RichText},
+    egui::{self, Color32},
 };
+
+use crate::workspace::SelectionType;
 
 use super::ToolResources;
 
@@ -20,7 +22,7 @@ impl Plugin for ToolbarUiPlugin {
 fn tool_ui(mut tools: ResMut<ToolResources>, mut contexts: EguiContexts) {
     let ctx = contexts.ctx_mut();
 
-    let toolbar_width = 225.0;
+    let toolbar_width = 195.0;
     let toolbar_height = 40.0;
 
     let screen_rect = ctx.screen_rect();
@@ -29,11 +31,18 @@ fn tool_ui(mut tools: ResMut<ToolResources>, mut contexts: EguiContexts) {
         screen_rect.height() - toolbar_height - 10.0,
     );
 
+    // Load images
+    let circle_select = egui::include_image!("../../assets/buttons/circle-o.svg");
+    let measure_icon = egui::include_image!("../../assets/buttons/measure.svg");
+    let pin_icon = egui::include_image!("../../assets/buttons/pin.svg");
+    let polygon_select = egui::include_image!("../../assets/buttons/polygon-pt.svg");
+    let rectangle_select = egui::include_image!("../../assets/buttons/rectangle-pt.svg");
+
     egui::Area::new("toolbar".into())
         .fixed_pos(toolbar_pos)
         .show(ctx, |ui| {
             egui::Frame::new()
-                .fill(egui::Color32::from_rgba_premultiplied(30, 30, 30, 220))
+                .fill(egui::Color32::from_rgba_premultiplied(30, 30, 30, 255))
                 .corner_radius(10.0)
                 .shadow(egui::epaint::Shadow {
                     color: egui::Color32::from_black_alpha(60),
@@ -46,34 +55,36 @@ fn tool_ui(mut tools: ResMut<ToolResources>, mut contexts: EguiContexts) {
                     ui.set_height(toolbar_height);
 
                     ui.horizontal_centered(|ui| {
-                        ui.spacing_mut().item_spacing = egui::vec2(8.0, 0.0);
-                        // Tool buttons
-                        let button_selected = |selected: bool, text: &str| {
-                            if selected {
-                                egui::Button::new(RichText::new(text).color(Color32::WHITE))
-                                    .fill(Color32::from_rgb(70, 130, 180))
-                                    .corner_radius(8.0)
-                            } else {
-                                egui::Button::new(RichText::new(text).color(Color32::WHITE))
-                                    .fill(Color32::from_rgb(40, 40, 40))
-                                    .corner_radius(8.0)
-                            }
-                        };
+                        ui.spacing_mut().item_spacing = egui::vec2(2.0, 0.0);
+                        let image_button_selected =
+                            |selected: bool, image: egui::ImageSource<'static>| {
+                                if selected {
+                                    egui::ImageButton::new(image)
+                                        .tint(Color32::from_rgb(255, 255, 255))
+                                        .frame(false)
+                                        .corner_radius(8.0)
+                                } else {
+                                    egui::ImageButton::new(image)
+                                        .tint(Color32::from_rgb(200, 200, 200))
+                                        .frame(false)
+                                        .corner_radius(8.0)
+                                }
+                            };
 
                         ui.add(egui::Label::new(""));
-                        let img = egui::include_image!("../../assets/icon/icon1080.png");
 
-                        ui.menu_image_button(img, |ui| {
-                            ui.menu_button("My sub-menu", |ui| {
-                                if ui.button("Close the menu").clicked() {
-                                    ui.close_menu();
-                                }
-                            });
-                        });
                         if ui
                             .add_sized(
                                 [64.0, 30.0],
-                                button_selected(tools.selection_settings.enabled, "Workspace"),
+                                image_button_selected(
+                                    tools.selection_settings.enabled,
+                                    match tools.selection_settings.tool_type {
+                                        SelectionType::CIRCLE => circle_select,
+                                        SelectionType::RECTANGLE => rectangle_select,
+                                        SelectionType::POLYGON => polygon_select,
+                                        SelectionType::NONE => circle_select,
+                                    },
+                                ),
                             )
                             .clicked()
                         {
@@ -85,14 +96,17 @@ fn tool_ui(mut tools: ResMut<ToolResources>, mut contexts: EguiContexts) {
                         if ui
                             .add_sized(
                                 [64.0, 30.0],
-                                button_selected(tools.measure.enabled, "Measure"),
+                                image_button_selected(tools.measure.enabled, measure_icon),
                             )
                             .clicked()
                         {
                             tools.select_tool("measure");
                         }
                         if ui
-                            .add_sized([64.0, 30.0], button_selected(tools.pins.enabled, "Pin"))
+                            .add_sized(
+                                [64.0, 30.0],
+                                image_button_selected(tools.pins.enabled, pin_icon),
+                            )
                             .clicked()
                         {
                             tools.select_tool("pins");

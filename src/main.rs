@@ -9,6 +9,7 @@ use bevy_map_viewer::EguiBlockInputState;
 use bevy_prototype_lyon::plugin::ShapePlugin;
 use camera::CameraSystemPlugin;
 use debug::DebugPlugin;
+use egui_extras::install_image_loaders;
 use geojson::RenderPlugin;
 use interaction::InteractionSystemPlugin;
 use settings::SettingsPlugin;
@@ -67,5 +68,6 @@ fn absorb_egui_inputs(
     mut state: ResMut<EguiBlockInputState>,
 ) {
     let ctx = contexts.ctx_mut();
+    install_image_loaders(ctx);
     state.block_input = ctx.wants_pointer_input() || ctx.is_pointer_over_area();
 }

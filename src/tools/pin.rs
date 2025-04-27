@@ -92,12 +92,12 @@ fn render_pins(
     mut commands: Commands,
     selections_query: Query<(Entity, &Transform, &Pin)>,
     tile_map_manager: Res<TileMapResources>,
-    mut pin: ResMut<ToolResources>,
+    pin: Res<ToolResources>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    camera: Query<&Projection, With<MapViewerMarker>>,
 ) {
-    if pin.pins.respawn {
-        pin.pins.respawn = false;
+    if let Ok(projection) = camera.single() {
         for (entity, _, _) in selections_query.iter() {
             commands.entity(entity).despawn();
         }
@@ -108,7 +108,12 @@ fn render_pins(
             blue: 1.,
             alpha: 0.75,
         };
-        let width = 5.;
+
+        let projection = match projection {
+            Projection::Orthographic(proj) => proj,
+            _ => return,
+        };
+        let width = 7.5 * projection.scale;
         let elevation = 500.0;
 
         for pin in pin.pins.pins.iter() {
