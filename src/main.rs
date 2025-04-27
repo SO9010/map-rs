@@ -6,7 +6,6 @@ use bevy::{
 
 use bevy_egui::EguiPlugin;
 use bevy_map_viewer::EguiBlockInputState;
-use bevy_prototype_lyon::plugin::ShapePlugin;
 use camera::CameraSystemPlugin;
 use debug::DebugPlugin;
 use egui_extras::install_image_loaders;
@@ -37,12 +36,7 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins((
-            WorkspacePlugin,
-            CameraSystemPlugin,
-            InteractionSystemPlugin,
-            ShapePlugin,
-        ))
+        .add_plugins((WorkspacePlugin, CameraSystemPlugin, InteractionSystemPlugin))
         .add_plugins(EguiPlugin {
             enable_multipass_for_primary_context: false,
         })

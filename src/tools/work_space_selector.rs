@@ -1,4 +1,12 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{
+    asset::RenderAssetUsages,
+    prelude::*,
+    render::{
+        mesh::{Indices, PrimitiveTopology},
+        view::RenderLayers,
+    },
+    window::PrimaryWindow,
+};
 use bevy_map_viewer::{Coord, EguiBlockInputState, MapViewerMarker, TileMapResources};
 
 use crate::workspace::{Selection, SelectionType, Workspace, WorkspaceData};
@@ -11,8 +19,10 @@ pub struct SelectionPlugin;
 
 impl Plugin for SelectionPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, handle_selection)
-            .add_systems(PostUpdate, (render_selection_box, render_darkening_overlay));
+        app.add_systems(Update, handle_selection).add_systems(
+            PostUpdate,
+            (render_selection_box /* render_darkening_overlay */,),
+        );
     }
 }
 
@@ -243,7 +253,8 @@ pub struct SelectionCutout;
 /// TODO: Renders a darkening overlay on the map, excluding the selected areas.
 /// This helps visually highlight the selected regions.
 /// Hmm change to something else, lyon isnt working anymore do try and use a custom shader
-#[allow(unused_variables)]
+/// TODO: use a shader for this, so that it can be animated
+#[allow(dead_code)]
 fn render_darkening_overlay(
     tools: Res<ToolResources>,
     res_manager: ResMut<TileMapResources>,
@@ -251,5 +262,177 @@ fn render_darkening_overlay(
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
     overlay_query: Query<Entity, With<DarkeningOverlay>>,
     workspace_res: Res<Workspace>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut commands: Commands,
 ) {
+    // Clear old overlays
+    for entity in overlay_query.iter() {
+        commands.entity(entity).despawn();
+    }
+
+    // Get camera and window info
+    let (camera, camera_transform, projection) = match camera_query.single() {
+        Ok(result) => result,
+        Err(_) => return,
+    };
+    let window = match primary_window_query.single() {
+        Ok(window) => window,
+        Err(_) => return,
+    };
+
+    let top_left = camera
+        .viewport_to_world_2d(camera_transform, Vec2::ZERO)
+        .unwrap();
+    let bottom_right = camera
+        .viewport_to_world_2d(camera_transform, Vec2::new(window.width(), window.height()))
+        .unwrap();
+
+    // Spawn the full dark rectangle first
+    let dark_vertices = vec![
+        [top_left.x, top_left.y, 400.0],
+        [bottom_right.x, top_left.y, 400.0],
+        [bottom_right.x, bottom_right.y, 400.0],
+        [top_left.x, bottom_right.y, 400.0],
+    ];
+    let dark_indices = vec![0, 1, 2, 0, 2, 3];
+
+    let dark_mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::default(),
+    )
+    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, dark_vertices.clone())
+    .with_inserted_indices(Indices::U32(dark_indices.clone()));
+
+    commands.spawn((
+        Mesh2d(meshes.add(dark_mesh)),
+        MeshMaterial2d(materials.add(ColorMaterial::from_color(Srgba::new(0., 0., 0., 0.4)))),
+        Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
+        DarkeningOverlay,
+        RenderLayers::layer(1),
+    ));
+
+    // Now spawn "clear" shapes over selections
+    let mut intersection_candidates: Vec<Selection> = Vec::new();
+    if let Some(selection_areas) = workspace_res.workspace.clone() {
+        intersection_candidates.push(selection_areas.get_selection());
+    }
+    if let Some(unfinished) = tools.selection_areas.unfinished_selection.as_ref() {
+        intersection_candidates.push(unfinished.clone());
+    }
+
+    if intersection_candidates.is_empty() {
+        return;
+    }
+
+    for feature in intersection_candidates {
+        let points = feature.get_in_world_space(res_manager.clone());
+
+        match feature.selection_type {
+            SelectionType::RECTANGLE => {
+                if points.len() < 2 {
+                    continue;
+                }
+                let min_x = points[0].x.min(points[1].x);
+                let max_x = points[0].x.max(points[1].x);
+                let min_y = points[0].y.min(points[1].y);
+                let max_y = points[0].y.max(points[1].y);
+
+                let vertices = vec![
+                    [min_x, min_y, 401.0],
+                    [max_x, min_y, 401.0],
+                    [max_x, max_y, 401.0],
+                    [min_x, max_y, 401.0],
+                ];
+                let indices = vec![0, 1, 2, 0, 2, 3];
+
+                let clear_mesh = Mesh::new(
+                    PrimitiveTopology::TriangleList,
+                    RenderAssetUsages::default(),
+                )
+                .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices.clone())
+                .with_inserted_indices(Indices::U32(indices.clone()));
+
+                commands.spawn((
+                    Mesh2d(meshes.add(clear_mesh)),
+                    MeshMaterial2d(
+                        materials.add(ColorMaterial::from_color(Srgba::new(0., 0., 0., 0.0))),
+                    ), // fully transparent
+                    Transform::from_translation(Vec3::new(0.0, 0.0, 1.1)), // slightly in front
+                    DarkeningOverlay,
+                    RenderLayers::layer(1),
+                ));
+            }
+            SelectionType::CIRCLE => {
+                if points.len() < 2 {
+                    continue;
+                }
+                let center = points[0];
+                let radius = points[0].distance(points[1]);
+
+                let segments = 32;
+                let mut vertices = Vec::new();
+                let mut indices = Vec::new();
+                for i in 0..segments {
+                    let angle = (i as f32) / (segments as f32) * std::f32::consts::TAU;
+                    vertices.push([
+                        center.x + radius * angle.cos(),
+                        center.y + radius * angle.sin(),
+                        401.0,
+                    ]);
+                }
+                for i in 1..(segments - 1) {
+                    indices.extend(vec![0, i as u32, (i + 1) as u32]);
+                }
+
+                let clear_mesh = Mesh::new(
+                    PrimitiveTopology::TriangleList,
+                    RenderAssetUsages::default(),
+                )
+                .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices.clone())
+                .with_inserted_indices(Indices::U32(indices.clone()));
+
+                commands.spawn((
+                    Mesh2d(meshes.add(clear_mesh)),
+                    MeshMaterial2d(
+                        materials.add(ColorMaterial::from_color(Srgba::new(0., 0., 0., 0.0))),
+                    ), // fully transparent
+                    Transform::from_translation(Vec3::new(0.0, 0.0, 1.1)),
+                    DarkeningOverlay,
+                    RenderLayers::layer(1),
+                ));
+            }
+            SelectionType::POLYGON => {
+                if points.len() < 3 {
+                    continue;
+                }
+                let mut vertices = Vec::new();
+                let mut indices = Vec::new();
+                for point in &points {
+                    vertices.push([point.x, point.y, 401.0]);
+                }
+                for i in 1..(points.len() - 1) {
+                    indices.extend(vec![0, i as u32, (i + 1) as u32]);
+                }
+
+                let clear_mesh = Mesh::new(
+                    PrimitiveTopology::TriangleList,
+                    RenderAssetUsages::default(),
+                )
+                .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices.clone())
+                .with_inserted_indices(Indices::U32(indices.clone()));
+
+                commands.spawn((
+                    Mesh2d(meshes.add(clear_mesh)),
+                    MeshMaterial2d(
+                        materials.add(ColorMaterial::from_color(Srgba::new(0., 0., 0., 0.0))),
+                    ), // fully transparent
+                    Transform::from_translation(Vec3::new(0.0, 0.0, 1.1)),
+                    DarkeningOverlay,
+                    RenderLayers::layer(1),
+                ));
+            }
+            _ => {}
+        }
+    }
 }
