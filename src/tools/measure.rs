@@ -55,36 +55,38 @@ pub fn handle_measure(
     tile_map_manager: Res<TileMapResources>,
     state: Res<EguiBlockInputState>,
 ) {
-    if let Ok((camera, camera_transform)) = camera.single() {
-        if measure.measure.enabled {
-            if let Some(position) = q_windows
-                .single()
-                .expect("Couldnt get the cursor position")
-                .cursor_position()
-            {
-                let pos = tile_map_manager.point_to_coord(
-                    camera
-                        .viewport_to_world_2d(camera_transform, position)
-                        .unwrap(),
-                );
-                if buttons.just_pressed(MouseButton::Left) && !state.block_input {
-                    let start = Coord::new(pos.lat, pos.long);
-                    measure.measure.start = Some(start);
-                }
-                if buttons.pressed(MouseButton::Left)
-                    && measure.measure.end != Some(Coord::new(pos.lat, pos.long))
-                {
-                    measure.measure.end = Some(Coord::new(pos.lat, pos.long));
-                }
-                if buttons.just_released(MouseButton::Left) {
-                    measure.measure.end = Some(Coord::new(pos.lat, pos.long));
-                }
-                if buttons.pressed(MouseButton::Right) {
-                    measure.measure.start = None;
-                    measure.measure.end = None;
-                }
-                measure.measure.respawn = true;
+    let (camera, camera_transform) = match camera.single() {
+        Ok(result) => result,
+        Err(_) => return,
+    };
+    if measure.measure.enabled {
+        if let Some(position) = q_windows
+            .single()
+            .expect("Couldnt get the cursor position")
+            .cursor_position()
+        {
+            let pos = tile_map_manager.point_to_coord(
+                camera
+                    .viewport_to_world_2d(camera_transform, position)
+                    .unwrap(),
+            );
+            if buttons.just_pressed(MouseButton::Left) && !state.block_input {
+                let start = Coord::new(pos.lat, pos.long);
+                measure.measure.start = Some(start);
             }
+            if buttons.pressed(MouseButton::Left)
+                && measure.measure.end != Some(Coord::new(pos.lat, pos.long))
+            {
+                measure.measure.end = Some(Coord::new(pos.lat, pos.long));
+            }
+            if buttons.just_released(MouseButton::Left) {
+                measure.measure.end = Some(Coord::new(pos.lat, pos.long));
+            }
+            if buttons.pressed(MouseButton::Right) {
+                measure.measure.start = None;
+                measure.measure.end = None;
+            }
+            measure.measure.respawn = true;
         }
     }
 }
@@ -114,9 +116,14 @@ fn render_measure(
     asset_server: Res<AssetServer>,
     text_query: Query<(Entity, &MeasureTextTranslation)>,
     tile_map_manager: Res<TileMapResources>,
+    projection: Query<&Projection, With<MapViewerMarker>>,
 ) {
     if tool_res.measure.respawn {
         tool_res.measure.respawn = false;
+        let projection = match projection.single() {
+            Ok(result) => result,
+            Err(_) => return,
+        };
 
         let fill_color = Srgba {
             red: 0.75,
@@ -124,8 +131,12 @@ fn render_measure(
             blue: 0.,
             alpha: 1.,
         };
-        let line_width = 2.5;
-        let elevation = 501.0;
+        let projection = match projection {
+            Projection::Orthographic(proj) => proj,
+            _ => return,
+        };
+        let line_width = 3.5 * projection.scale;
+        let elevation = 100.0;
 
         if let Ok((entity, _)) = measure_query.single_mut() {
             commands.entity(entity).despawn();
@@ -158,7 +169,7 @@ fn render_measure(
                     let midpoint = Vec3::new(
                         (points[0].x + points[1].x) / 2.0, // x midpoint
                         (points[0].y + points[1].y) / 2.0, // y midpoint
-                        elevation,
+                        elevation + 20.0, // Adjusted elevation to ensure text is above the red line
                     );
 
                     let distance = tool_res
@@ -171,6 +182,7 @@ fn render_measure(
                     }
 
                     transform.translation = midpoint;
+                    transform.scale = Vec3::new(projection.scale, projection.scale, 1.0);
                     transform.rotation = Quat::from_rotation_z(angle);
                 }
             }
@@ -197,13 +209,13 @@ fn render_measure(
             let midpoint = Vec3::new(
                 (points[0].x + points[1].x) / 2.0, // x midpoint
                 (points[0].y + points[1].y) / 2.0, // y midpoint
-                elevation,
+                elevation + 10.0,
             );
 
             let font = asset_server.load("fonts/BagnardSans.otf");
             let text_font = TextFont {
                 font: font.clone(),
-                font_size: 15.0,
+                font_size: 15.0 * projection.scale,
                 ..default()
             };
 

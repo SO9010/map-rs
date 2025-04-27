@@ -10,7 +10,7 @@ use uuid::Uuid;
 use super::{
     Workspace, WorkspaceData, WorkspacePlugin, WorkspaceRequest,
     renderer::render_workspace_requests,
-    ui::workspace_actions_ui,
+    ui::{PersistentInfoWindows, item_info, workspace_actions_ui},
     worker::{cleanup_tasks, process_requests},
 };
 
@@ -19,9 +19,13 @@ impl Plugin for WorkspacePlugin {
         app.insert_resource(Workspace::default())
             .add_systems(FixedUpdate, (process_requests, cleanup_tasks))
             .add_systems(Update, render_workspace_requests)
+            .insert_resource(PersistentInfoWindows::default())
             .add_systems(
                 Update,
-                (workspace_actions_ui.after(EguiPreUpdateSet::InitContexts),),
+                ((
+                    workspace_actions_ui.after(EguiPreUpdateSet::InitContexts),
+                    item_info.after(EguiPreUpdateSet::InitContexts),
+                ),),
             );
     }
 }

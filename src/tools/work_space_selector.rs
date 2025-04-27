@@ -1,11 +1,4 @@
-use std::f32::consts::PI;
-
-use bevy::{
-    asset::RenderAssetUsages,
-    prelude::*,
-    render::{mesh::PrimitiveTopology, view::RenderLayers},
-    window::PrimaryWindow,
-};
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_map_viewer::{Coord, EguiBlockInputState, MapViewerMarker, TileMapResources};
 
 use crate::workspace::{Selection, SelectionType, Workspace, WorkspaceData};
@@ -252,14 +245,11 @@ pub struct SelectionCutout;
 /// Hmm change to something else, lyon isnt working anymore do try and use a custom shader
 #[allow(unused_variables)]
 fn render_darkening_overlay(
-    mut commands: Commands,
     tools: Res<ToolResources>,
     res_manager: ResMut<TileMapResources>,
     camera_query: Query<(&Camera, &GlobalTransform, &Projection), With<MapViewerMarker>>,
     primary_window_query: Query<&Window, With<PrimaryWindow>>,
     overlay_query: Query<Entity, With<DarkeningOverlay>>,
     workspace_res: Res<Workspace>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
 }

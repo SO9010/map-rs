@@ -24,7 +24,7 @@ pub fn respawn_shapes(
     workspace: Res<Workspace>,
     mut zoom_change: EventReader<ZoomChangedEvent>,
 ) {
-    if !zoom_change.is_empty() {
+    if !zoom_change.par_read().is_empty() {
         zoom_change.clear();
         for (entity, _) in shapes_query.iter() {
             commands.entity(entity).despawn();

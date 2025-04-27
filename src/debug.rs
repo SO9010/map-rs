@@ -84,7 +84,7 @@ pub fn debug_draw_entity_no(mut commands: Commands, asset_server: Res<AssetServe
             },
             Node {
                 position_type: PositionType::Absolute,
-                bottom: Val::Px(60.0),
+                top: Val::Px(60.0),
                 right: Val::Px(5.0),
                 ..default()
             },

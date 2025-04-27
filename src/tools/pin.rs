@@ -97,35 +97,37 @@ fn render_pins(
     mut materials: ResMut<Assets<ColorMaterial>>,
     camera: Query<&Projection, With<MapViewerMarker>>,
 ) {
-    if let Ok(projection) = camera.single() {
-        for (entity, _, _) in selections_query.iter() {
-            commands.entity(entity).despawn();
-        }
+    let projection = match camera.single() {
+        Ok(camera) => camera,
+        Err(_) => return,
+    };
+    for (entity, _, _) in selections_query.iter() {
+        commands.entity(entity).despawn();
+    }
 
-        let fill_color = Srgba {
-            red: 0.,
-            green: 0.,
-            blue: 1.,
-            alpha: 0.75,
-        };
+    let fill_color = Srgba {
+        red: 0.,
+        green: 0.,
+        blue: 1.,
+        alpha: 0.75,
+    };
 
-        let projection = match projection {
-            Projection::Orthographic(proj) => proj,
-            _ => return,
-        };
-        let width = 7.5 * projection.scale;
-        let elevation = 500.0;
+    let projection = match projection {
+        Projection::Orthographic(proj) => proj,
+        _ => return,
+    };
+    let width = 7.5 * projection.scale;
+    let elevation = 500.0;
 
-        for pin in pin.pins.pins.iter() {
-            let loc = pin.get_in_world_space(tile_map_manager.clone());
-            commands.spawn((
-                Mesh2d(meshes.add(Circle::new(width))),
-                Transform::from_translation(Vec3::new(loc.x, loc.y, elevation)),
-                MeshMaterial2d(materials.add(Color::from(fill_color))),
-                pin.clone(),
-                RenderLayers::layer(1),
-            ));
-        }
+    for pin in pin.pins.pins.iter() {
+        let loc = pin.get_in_world_space(tile_map_manager.clone());
+        commands.spawn((
+            Mesh2d(meshes.add(Circle::new(width))),
+            Transform::from_translation(Vec3::new(loc.x, loc.y, elevation)),
+            MeshMaterial2d(materials.add(Color::from(fill_color))),
+            pin.clone(),
+            RenderLayers::layer(1),
+        ));
     }
 }
 

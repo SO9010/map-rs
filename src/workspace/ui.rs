@@ -1,13 +1,18 @@
+use std::collections::HashMap;
+
 use bevy::prelude::*;
 use bevy_egui::{
     EguiContexts,
     egui::{self, Align2, Checkbox, CornerRadius, RichText},
 };
-use bevy_map_viewer::{Coord, MapViewerMarker, TileMapResources, ZoomChangedEvent};
+use bevy_map_viewer::{
+    Coord, EguiBlockInputState, MapViewerMarker, TileMapResources, ZoomChangedEvent, game_to_coord,
+};
 use rstar::{AABB, Envelope};
 use uuid::Uuid;
 
 use crate::{
+    geojson::MapBundle,
     overpass::{build_overpass_query_string, get_bounds},
     tools::ToolResources,
     workspace::{SelectionType, Workspace, WorkspaceData},
@@ -191,6 +196,90 @@ pub fn workspace_actions_ui(
                     });
                 });
             });
+    }
+}
+
+#[derive(Resource)]
+pub struct PersistentInfoWindows {
+    pub windows: HashMap<String, String>,
+}
+
+impl Default for PersistentInfoWindows {
+    fn default() -> Self {
+        PersistentInfoWindows {
+            windows: HashMap::new(),
+        }
+    }
+}
+
+pub fn item_info(
+    windows: Query<&Window>,
+    camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    mouse_button: Res<ButtonInput<MouseButton>>,
+    mut contexts: EguiContexts,
+    mut persistent_info_windows: ResMut<PersistentInfoWindows>,
+    map_bundle: Res<MapBundle>,
+    res_manager: Res<TileMapResources>,
+    state: Res<EguiBlockInputState>,
+) {
+    if mouse_button.just_pressed(MouseButton::Left) && !state.block_input {
+        if map_bundle.features.size() == 0 {
+            return;
+        }
+        let (camera, camera_transform) = camera.iter().next().expect("Couldnt get camera");
+        let Ok(window) = windows.single() else {
+            return;
+        };
+        if let Some(cursor_pos) = window.cursor_position() {
+            let world_position = camera
+                .viewport_to_world_2d(camera_transform, cursor_pos)
+                .unwrap();
+            let position = game_to_coord(
+                world_position.x,
+                world_position.y,
+                res_manager.chunk_manager.refrence_long_lat,
+                res_manager.chunk_manager.displacement,
+                14,
+                res_manager.zoom_manager.tile_quality,
+            );
+            let envelope: AABB<[f64; 2]> = AABB::from_corners(
+                [position.lat as f64, position.long as f64],
+                [position.lat as f64, position.long as f64],
+            );
+            let features = map_bundle
+                .features
+                .locate_in_envelope_intersecting(&envelope)
+                .collect::<Vec<_>>();
+            for feature in features {
+                let feat = feature.clone();
+                if persistent_info_windows
+                    .windows
+                    .contains_key(&feat.id.to_string())
+                {
+                    continue;
+                }
+                let mut window_state = String::new();
+                for (key, value) in feat.properties.as_object().unwrap() {
+                    window_state.push_str(&format!("{}: {}\n", key, value));
+                }
+                persistent_info_windows
+                    .windows
+                    .insert(feat.id.to_string(), window_state);
+            }
+        }
+    }
+
+    let mut windows_to_remove = Vec::new();
+    for (id, window_state) in persistent_info_windows.windows.iter() {
+        egui::Window::new(id.clone()).show(contexts.ctx_mut(), |ui| {
+            ui.label(window_state.to_string());
+            if ui.button("Close").clicked() {
+                windows_to_remove.push(id.clone());
+            }
+        });
+    }
+    for id in windows_to_remove {
+        persistent_info_windows.windows.remove(&id);
     }
 }
 
