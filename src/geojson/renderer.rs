@@ -44,8 +44,7 @@ pub fn respawn_shapes(
 
         for feature in intersection_candidates {
             let mut shape = feature.get_in_world_space(tile_map_manager.clone());
-            shape.pop(); // Remove the last point if necessary
-
+            shape.reverse();
             let shape_vertices: Vec<[f32; 3]> = shape
                 .iter()
                 .map(|point| [point.x as f32, point.y as f32, 0.0])

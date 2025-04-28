@@ -202,7 +202,7 @@ pub fn workspace_actions_ui(
 
 #[derive(Resource)]
 pub struct PersistentInfoWindows {
-    pub windows: HashMap<String, String>,
+    pub windows: HashMap<String, serde_json::Value>,
 }
 
 impl Default for PersistentInfoWindows {
@@ -259,13 +259,9 @@ pub fn item_info(
                 {
                     continue;
                 }
-                let mut window_state = String::new();
-                for (key, value) in feat.properties.as_object().unwrap() {
-                    window_state.push_str(&format!("{}: {}\n", key, value));
-                }
                 persistent_info_windows
                     .windows
-                    .insert(feat.id.to_string(), window_state);
+                    .insert(feat.id.to_string(), feat.properties);
             }
         }
     }
@@ -273,7 +269,18 @@ pub fn item_info(
     let mut windows_to_remove = Vec::new();
     for (id, window_state) in persistent_info_windows.windows.iter() {
         egui::Window::new(id.clone()).show(contexts.ctx_mut(), |ui| {
-            ui.label(window_state.to_string());
+            egui::Grid::new("grid").show(ui, |ui| {
+                if let Some(object) = window_state.as_object() {
+                    for (key, value) in object {
+                        ui.horizontal(|ui| {
+                            ui.label(key);
+                            ui.separator();
+                            ui.label(format!("{}", value));
+                        });
+                        ui.end_row();
+                    }
+                }
+            });
             if ui.button("Close").clicked() {
                 windows_to_remove.push(id.clone());
             }
