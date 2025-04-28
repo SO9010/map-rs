@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 bevy = "0.16.0"
-bevy_pancam = {git = "https://github.com/SO9010/bevy_pancam.git"}
+bevy_pancam = "0.18.0"
 crossbeam-channel = "0.5.15"
 geo = "0.30.0"
 rstar = "0.12.2"

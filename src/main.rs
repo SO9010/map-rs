@@ -1,6 +1,5 @@
 use bevy::{
     prelude::*,
-    window::PresentMode,
     winit::{UpdateMode, WinitSettings},
 };
 
@@ -30,8 +29,6 @@ fn main() {
             primary_window: Some(Window {
                 title: "Map Viewer".to_string(),
                 name: Some("Map Viewer".to_string()),
-                present_mode: PresentMode::AutoVsync,
-                prevent_default_event_handling: false,
                 ..Default::default()
             }),
             ..Default::default()

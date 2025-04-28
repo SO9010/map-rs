@@ -27,7 +27,7 @@ pub fn respawn_shapes(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    if !zoom_change.par_read().is_empty() {
+    if !zoom_change.is_empty() {
         zoom_change.clear();
 
         let mut intersection_candidates: Vec<&MapFeature> = Vec::new();
