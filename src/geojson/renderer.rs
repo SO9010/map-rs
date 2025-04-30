@@ -55,7 +55,7 @@ pub fn respawn_shapes(
             shape.reverse();
             let shape_vertices: Vec<[f32; 3]> = shape
                 .iter()
-                .map(|point| [point.x as f32, point.y as f32, 0.0])
+                .map(|point| [point.x, point.y, 0.0])
                 .collect::<Vec<_>>();
 
             let shape_indices: Vec<u32> = (1..shape.len() as u32 - 1)

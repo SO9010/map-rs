@@ -72,7 +72,7 @@ pub fn workspace_actions_ui(
                                     workspace_res
                                         .workspace
                                         .clone()
-                                        .unwrap_or(WorkspaceData::default())
+                                        .unwrap_or_default()
                                         .get_name(),
                                 ))
                                 .show_ui(ui, |ui| {
@@ -104,9 +104,7 @@ pub fn workspace_actions_ui(
                                                     selection.start.unwrap_or_default();
                                                 workspace_res.workspace = Some(workspace.clone());
 
-                                                camera_transform.translation = Vec3::from(
-                                                    center(&selection, &tile_map_res).extend(0.0),
-                                                );
+                                                camera_transform.translation = center(&selection, &tile_map_res).extend(0.0);
 
                                                 let q = build_overpass_query_string(
                                                     get_bounds(selection.clone()),
@@ -201,17 +199,11 @@ pub fn workspace_actions_ui(
 }
 
 #[derive(Resource)]
+#[derive(Default)]
 pub struct PersistentInfoWindows {
     pub windows: HashMap<String, serde_json::Value>,
 }
 
-impl Default for PersistentInfoWindows {
-    fn default() -> Self {
-        PersistentInfoWindows {
-            windows: HashMap::new(),
-        }
-    }
-}
 
 pub fn item_info(
     windows: Query<&Window>,
@@ -422,12 +414,12 @@ UI Layout Suggestions:
 */
 // Have a little option to hide to the side. Also allow resizing.
 pub fn workspace_analysis_ui(
-    mut tile_map_res: ResMut<TileMapResources>,
+    tile_map_res: ResMut<TileMapResources>,
     mut contexts: EguiContexts,
-    mut camera: Query<(&Camera, &mut Transform), With<MapViewerMarker>>,
-    mut tools: ResMut<ToolResources>,
-    mut zoom_event: EventWriter<ZoomChangedEvent>,
-    mut workspace_res: ResMut<Workspace>,
+    camera: Query<(&Camera, &mut Transform), With<MapViewerMarker>>,
+    tools: ResMut<ToolResources>,
+    zoom_event: EventWriter<ZoomChangedEvent>,
+    workspace_res: ResMut<Workspace>,
 ) {
     let ctx = contexts.ctx_mut();
     let screen_rect = ctx.screen_rect();

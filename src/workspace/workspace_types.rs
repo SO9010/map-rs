@@ -12,7 +12,7 @@ use crate::geojson::{MapFeature, get_data_from_string_osm};
 use super::{
     Workspace, WorkspaceData, WorkspacePlugin, WorkspaceRequest,
     renderer::render_workspace_requests,
-    ui::{PersistentInfoWindows, item_info, workspace_actions_ui, workspace_analysis_ui},
+    ui::{PersistentInfoWindows, item_info, workspace_actions_ui},
     worker::{cleanup_tasks, process_requests},
 };
 
