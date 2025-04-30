@@ -7,10 +7,12 @@ use rstar::{AABB, RTree, RTreeObject};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::geojson::{MapFeature, get_data_from_string_osm};
+
 use super::{
     Workspace, WorkspaceData, WorkspacePlugin, WorkspaceRequest,
     renderer::render_workspace_requests,
-    ui::{PersistentInfoWindows, item_info, workspace_actions_ui},
+    ui::{PersistentInfoWindows, item_info, workspace_actions_ui, workspace_analysis_ui},
     worker::{cleanup_tasks, process_requests},
 };
 
@@ -24,6 +26,7 @@ impl Plugin for WorkspacePlugin {
                 Update,
                 ((
                     workspace_actions_ui.after(EguiPreUpdateSet::InitContexts),
+                    // workspace_analysis_ui.after(EguiPreUpdateSet::InitContexts),
                     item_info.after(EguiPreUpdateSet::InitContexts),
                 ),),
             );
@@ -53,23 +56,24 @@ impl Workspace {
 
     pub fn get_unrendered_requests(&self) -> Vec<WorkspaceRequest> {
         let loaded_requests = self.loaded_requests.lock().unwrap();
-        loaded_requests
-            .values()
-            .filter_map(|(request, rendered)| {
-                if !rendered {
-                    Some(request.clone())
-                } else {
-                    None
-                }
-            })
-            .collect()
+        let mut rendered_requests = Vec::new();
+        for (_, request) in loaded_requests.iter() {
+            if request.get_processed_data().size() == 0 {
+                rendered_requests.push(request.clone());
+            }
+        }
+        rendered_requests
     }
 
-    pub fn mark_as_rendered(&self, request_id: &str) {
-        let mut loaded_requests = self.loaded_requests.lock().unwrap();
-        if let Some((_request, rendered)) = loaded_requests.get_mut(request_id) {
-            *rendered = true; // Mark as rendered
+    pub fn get_rendered_requests(&self) -> Vec<WorkspaceRequest> {
+        let loaded_requests = self.loaded_requests.lock().unwrap();
+        let mut rendered_requests = Vec::new();
+        for (_, request) in loaded_requests.iter() {
+            if request.get_processed_data().size() != 0 {
+                rendered_requests.push(request.clone());
+            }
         }
+        rendered_requests
     }
 }
 
@@ -136,6 +140,21 @@ impl WorkspaceRequest {
         self.request.clone()
     }
 
+    pub fn process_request(&mut self) {
+        match self.get_request() {
+            crate::workspace::RequestType::OverpassTurboRequest(_) => {
+                if let Ok(data) =
+                    get_data_from_string_osm(&String::from_utf8(self.raw_data.clone()).unwrap())
+                {
+                    for feature in data {
+                        self.processed_data.insert(feature.clone());
+                    }
+                }
+            }
+            crate::workspace::RequestType::OpenMeteoRequest(_) => {}
+        }
+    }
+
     pub fn get_raw_data(&self) -> Vec<u8> {
         self.raw_data.clone()
     }
@@ -198,8 +217,13 @@ impl WorkspaceRequest {
             visible: true,
             request,
             raw_data,
+            processed_data: RTree::new(),
             last_query_date: chrono::Utc::now().timestamp(),
         }
+    }
+
+    pub fn get_processed_data(&self) -> RTree<MapFeature> {
+        self.processed_data.clone()
     }
 }
 

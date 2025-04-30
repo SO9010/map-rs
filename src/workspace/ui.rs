@@ -12,7 +12,7 @@ use rstar::{AABB, Envelope};
 use uuid::Uuid;
 
 use crate::{
-    geojson::MapBundle,
+    geojson::MapFeature,
     overpass::{build_overpass_query_string, get_bounds},
     tools::ToolResources,
     workspace::{SelectionType, Workspace, WorkspaceData},
@@ -219,14 +219,12 @@ pub fn item_info(
     mouse_button: Res<ButtonInput<MouseButton>>,
     mut contexts: EguiContexts,
     mut persistent_info_windows: ResMut<PersistentInfoWindows>,
-    map_bundle: Res<MapBundle>,
     res_manager: Res<TileMapResources>,
     state: Res<EguiBlockInputState>,
+    tools: Res<ToolResources>,
+    workspace: Res<Workspace>,
 ) {
-    if mouse_button.just_pressed(MouseButton::Left) && !state.block_input {
-        if map_bundle.features.size() == 0 {
-            return;
-        }
+    if mouse_button.just_pressed(MouseButton::Left) && !state.block_input && tools.pointer {
         let (camera, camera_transform) = camera.iter().next().expect("Couldnt get camera");
         let Ok(window) = windows.single() else {
             return;
@@ -247,10 +245,20 @@ pub fn item_info(
                 [position.lat as f64, position.long as f64],
                 [position.lat as f64, position.long as f64],
             );
-            let features = map_bundle
-                .features
-                .locate_in_envelope_intersecting(&envelope)
-                .collect::<Vec<_>>();
+
+            let mut features: Vec<MapFeature> = Vec::new();
+            for i in workspace.get_rendered_requests() {
+                if i.get_processed_data().size() == 0 {
+                    continue;
+                }
+                features.extend(
+                    i.get_processed_data()
+                        .locate_in_envelope_intersecting(&envelope)
+                        .cloned()
+                        .collect::<Vec<_>>(),
+                );
+            }
+
             for feature in features {
                 let feat = feature.clone();
                 if persistent_info_windows
@@ -330,4 +338,121 @@ fn center(selection: &super::Selection, tile_map_res: &TileMapResources) -> Vec2
             .to_game_coords(tile_map_res.clone()),
         _ => Vec2::new(0.0, 0.0),
     }
+}
+
+// We should add a right panel for area analysis
+/*
+Right Panel: Area Analysis
+1. Customizable Styles
+
+    Color by Attribute:
+        A dropdown for selecting the attribute to color by
+        (e.g., "Building type," "Land use," "Population density").
+        This dynamically updates the map with chosen color schemes.
+
+    Size by Attribute:
+        Allow users to adjust point size based on specific attributes,
+        such as the "size of buildings" or "household income."
+
+    Icons for Points:
+        Enable users to select different icons for points on the map based on attributes
+        (e.g., a house icon for residences, a tree for parks).
+
+2. Thematic Mapping: Choropleths
+
+    Dropdown for Layer Selection:
+        A list to choose which layers to apply choropleth styling to.
+
+    Legend for Choropleth:
+        Automatically generate a color scale showing the range of values
+        (e.g., darker shades of blue for higher population density).
+
+3. Legend Generation
+
+    Auto-generated Legends:
+        Once you style a layer or apply thematic mapping,
+        the panel will automatically generate a legend explaining the color, size, and icons used on the map.
+
+4. Charts & Statistics
+
+    House Type Breakdown:
+        Show a pie chart or bar graph breaking down the area by different house types
+        (e.g., "Detached," "Semi-detached," "Apartments").
+
+    Area Size:
+        Display the total size (area) of a selected polygon or area (e.g., "Total area: 150,000 m²").
+
+    Population Density:
+        Show the population density for the selected area (e.g., people per km²).
+
+    Weather Analysis:
+        Include a weather summary for the selected area,
+        such as temperature, precipitation, or other relevant weather parameters.
+
+    UV & Sunlight Analysis:
+        Provide insights about the UV index or sunlight exposure in the area,
+        possibly overlaying heat maps to indicate high/low sunlight regions.
+
+    Attribute Analysis:
+        A detailed breakdown of any attributes present in the area
+        (e.g., "Number of residential buildings," "Average household income").
+
+5. Layer Pickers
+
+    Add Layers:
+        Allow users to add additional data layers, such as road networks, land use, pollution levels, etc.
+
+    Layer Toggle:
+        Let users enable/disable specific layers in the analysis.
+
+UI Layout Suggestions:
+
+    Top Section:
+        A title or summary of the selected area (e.g., "Cambridge - Central Area").
+
+    Left Section:
+        A panel with sliders/dropdowns for custom styles, color by attribute, and thematic mapping options.
+
+    Middle Section:
+        Interactive charts (pie charts, bar graphs, heatmaps) showing key statistics,
+        such as population density and area size.
+
+    Bottom Section:
+        A mini map preview (if space allows), or layer picker dropdown with checkboxes to enable/disable data layers.
+*/
+// Have a little option to hide to the side. Also allow resizing.
+pub fn workspace_analysis_ui(
+    mut tile_map_res: ResMut<TileMapResources>,
+    mut contexts: EguiContexts,
+    mut camera: Query<(&Camera, &mut Transform), With<MapViewerMarker>>,
+    mut tools: ResMut<ToolResources>,
+    mut zoom_event: EventWriter<ZoomChangedEvent>,
+    mut workspace_res: ResMut<Workspace>,
+) {
+    let ctx = contexts.ctx_mut();
+    let screen_rect = ctx.screen_rect();
+
+    let tilebox_width = 200.0;
+    let tilebox_height = screen_rect.height() - 40.0;
+
+    let tilebox_pos = egui::pos2(screen_rect.width() - tilebox_width - 10.0, 30.0);
+
+    egui::Area::new("info".into())
+        .fixed_pos(tilebox_pos)
+        .show(ctx, |ui| {
+            egui::Frame::new()
+                .fill(egui::Color32::from_rgba_premultiplied(30, 30, 30, 255))
+                .corner_radius(10.0)
+                .shadow(egui::epaint::Shadow {
+                    color: egui::Color32::from_black_alpha(60),
+                    offset: [5, 5],
+                    blur: 10,
+                    spread: 5,
+                })
+                .show(ui, |ui| {
+                    ui.set_width(tilebox_width);
+                    ui.set_height(tilebox_height);
+                    ui.spacing_mut().item_spacing = egui::vec2(8.0, 10.0);
+                });
+        });
 }

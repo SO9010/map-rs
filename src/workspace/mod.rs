@@ -4,11 +4,12 @@ use std::{
 };
 
 use bevy::ecs::resource::Resource;
+use rstar::RTree;
 use serde::{Deserialize, Serialize};
 use worker::WorkspaceWorker;
 pub use workspace_types::*;
 
-use crate::overpass::OverpassClient;
+use crate::{geojson::MapFeature, overpass::OverpassClient};
 
 mod renderer;
 mod ui;
@@ -21,7 +22,7 @@ pub struct WorkspacePlugin;
 pub struct Workspace {
     pub workspace: Option<WorkspaceData>,
     // (rendered, id)
-    pub loaded_requests: Arc<Mutex<HashMap<String, (WorkspaceRequest, bool)>>>,
+    pub loaded_requests: Arc<Mutex<HashMap<String, WorkspaceRequest>>>,
     pub worker: WorkspaceWorker,
 
     // Request Clients:
@@ -61,5 +62,7 @@ pub struct WorkspaceRequest {
     visible: bool,
     request: RequestType,
     raw_data: Vec<u8>, // Raw data from the request maybe have this as a id list aswell...
+    #[serde(skip)]
+    processed_data: RTree<MapFeature>,
     last_query_date: i64, // When the OSM data was fetched
 }

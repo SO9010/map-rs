@@ -37,6 +37,7 @@ fn tool_ui(mut tools: ResMut<ToolResources>, mut contexts: EguiContexts) {
     let pin_icon = egui::include_image!("../../assets/buttons/pin.svg");
     let polygon_select = egui::include_image!("../../assets/buttons/polygon-pt.svg");
     let rectangle_select = egui::include_image!("../../assets/buttons/rectangle-pt.svg");
+    let arrow_select = egui::include_image!("../../assets/buttons/arrow.svg");
 
     egui::Area::new("toolbar".into())
         .fixed_pos(toolbar_pos)
@@ -72,7 +73,15 @@ fn tool_ui(mut tools: ResMut<ToolResources>, mut contexts: EguiContexts) {
                             };
 
                         ui.add(egui::Label::new(""));
-
+                        if ui
+                            .add_sized(
+                                [64.0, 30.0],
+                                image_button_selected(tools.pointer, arrow_select),
+                            )
+                            .clicked()
+                        {
+                            tools.select_tool("pointer");
+                        }
                         if ui
                             .add_sized(
                                 [64.0, 30.0],

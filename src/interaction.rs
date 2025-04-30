@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_map_viewer::ZoomChangedEvent;
 
-use crate::geojson::{MapBundle, get_file_data};
+use crate::{geojson::get_file_data, workspace::Workspace};
 
 pub struct InteractionSystemPlugin;
 
@@ -13,7 +13,7 @@ impl Plugin for InteractionSystemPlugin {
 
 fn file_drop(
     mut evr_dnd: EventReader<FileDragAndDrop>,
-    mut map_bundle: ResMut<MapBundle>,
+    mut workspace_res: ResMut<Workspace>,
     mut zoom_event: EventWriter<ZoomChangedEvent>,
 ) {
     for ev in evr_dnd.read() {
@@ -32,8 +32,11 @@ fn file_drop(
                     "Dropped file with path: {:?}, in window id: {:?}",
                     path_buf, window
                 );
+                // TODO ADD ADD WORKSPACE REQUEST
+                /*
                 get_file_data(&mut map_bundle.features, path_buf.to_str().unwrap());
                 zoom_event.write(ZoomChangedEvent);
+                */
             }
         }
     }

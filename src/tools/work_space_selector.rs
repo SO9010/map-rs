@@ -28,7 +28,7 @@ impl Default for SelectionSettings {
     fn default() -> Self {
         Self {
             tool_type: SelectionType::CIRCLE,
-            enabled: true,
+            enabled: false,
         }
     }
 }

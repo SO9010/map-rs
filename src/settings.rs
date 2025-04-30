@@ -28,7 +28,7 @@ fn ui_example_system(
     let ctx = contexts.ctx_mut();
     let screen_rect = ctx.screen_rect();
 
-    let tilebox_width = 175.0;
+    let tilebox_width = 200.0;
     let tilebox_height = screen_rect.height() - 40.0;
 
     let tilebox_pos = egui::pos2(10.0, 30.0);

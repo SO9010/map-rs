@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_map_viewer::{Coord, TileMapResources};
 use geo::BoundingRect;
-use rstar::{RTree, RTreeObject, AABB};
+use rstar::{AABB, RTreeObject};
 use serde::{Deserialize, Serialize};
 
 #[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -42,24 +42,4 @@ fn polygon_area(geometry: &[Vec2]) -> f32 {
     }
 
     area
-}
-
-#[derive(Resource, Clone, Debug)]
-pub struct MapBundle {
-    /// A collection of map features, please put this in a spatial hashmap
-    pub features: RTree<MapFeature>,
-}
-
-impl Default for MapBundle {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl MapBundle {
-    pub fn new() -> Self {
-        Self {
-            features: RTree::new(),
-        }
-    }
 }

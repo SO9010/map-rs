@@ -13,14 +13,26 @@ use super::{
 };
 
 // Collected res for the tools. When you add a new tool, add it here.
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct ToolResources {
     pub selection_areas: SelectionAreas,
     pub selection_settings: SelectionSettings,
     pub measure: Measure,
     pub pins: Pins,
+    pub pointer: bool,
 }
 
+impl Default for ToolResources {
+    fn default() -> Self {
+        ToolResources {
+            selection_areas: SelectionAreas::default(),
+            selection_settings: SelectionSettings::default(),
+            measure: Measure::default(),
+            pins: Pins::default(),
+            pointer: true,
+        }
+    }
+}
 impl ToolResources {
     pub fn respawn(&mut self) {
         self.selection_areas.respawn = true;
@@ -49,6 +61,7 @@ impl ToolResources {
                 self.selection_settings.enabled = false;
                 self.measure.disable();
                 self.pins.enabled = false;
+                self.pointer = true;
             }
         }
         self.respawn();
@@ -83,6 +96,9 @@ fn handle_tool_keybinds(
         }
         if keys.just_pressed(KeyCode::KeyP) {
             tools.select_tool("pins");
+        }
+        if keys.just_pressed(KeyCode::KeyP) {
+            tools.select_tool("pointer");
         }
     }
 }
