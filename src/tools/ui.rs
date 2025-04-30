@@ -66,7 +66,7 @@ fn tool_ui(mut tools: ResMut<ToolResources>, mut contexts: EguiContexts) {
                                         .corner_radius(8.0)
                                 } else {
                                     egui::ImageButton::new(image)
-                                        .tint(Color32::from_rgb(200, 200, 200))
+                                        .tint(Color32::from_rgb(150, 150, 150))
                                         .frame(false)
                                         .corner_radius(8.0)
                                 }

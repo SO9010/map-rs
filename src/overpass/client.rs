@@ -156,6 +156,20 @@ pub fn get_bounds(selection: Selection) -> String {
                 }
                 format!("around:{}, {}, {}", dist, start.lat, start.long)
             }
+            // TODO: Add support to polygon.
+            SelectionType::POLYGON => {
+                if let Some(points) = &selection.points {
+                    let points_string = points
+                        .iter()
+                        .map(|point| format!("{} {}", point.lat, point.long))
+                        .collect::<Vec<String>>()
+                        .join(" ");
+                    format!("poly:\"{}\"", points_string)
+                } else {
+                    String::new() // Return an empty string if no points are provided
+                }
+            }
+
             _ => {
                 return String::new();
             }

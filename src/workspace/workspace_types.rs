@@ -361,55 +361,48 @@ impl RTreeObject for Selection {
     fn envelope(&self) -> Self::Envelope {
         match self.selection_type {
             SelectionType::RECTANGLE => {
-                return AABB::from_corners(
-                    [
-                        self.start.unwrap().lat.into(),
-                        self.start.unwrap().long as f64,
-                    ],
-                    [self.end.unwrap().lat as f64, self.end.unwrap().long as f64],
-                );
+                if let (Some(start), Some(end)) = (self.start, self.end) {
+                    return AABB::from_corners(
+                        [start.lat as f64, start.long as f64],
+                        [end.lat as f64, end.long as f64],
+                    );
+                }
+                AABB::from_corners([0.0, 0.0], [0.0, 0.0])
             }
             SelectionType::CIRCLE => {
                 if let (Some(center), Some(edge)) = (self.start, self.end) {
                     let radius = center.to_vec2().distance(edge.to_vec2());
 
-                    let lat_radius = radius as f64; // Approximation - adjust if needed
-                    let long_radius = radius as f64;
-
                     return AABB::from_corners(
                         [
-                            center.lat as f64 - lat_radius,
-                            center.long as f64 - long_radius,
+                            center.lat as f64 - radius as f64,  // Minimum latitude
+                            center.long as f64 - radius as f64, // Minimum longitude
                         ],
                         [
-                            center.lat as f64 + lat_radius,
-                            center.long as f64 + long_radius,
+                            center.lat as f64 + radius as f64,  // Maximum latitude
+                            center.long as f64 + radius as f64, // Maximum longitude
                         ],
                     );
                 }
-                return AABB::from_corners([0.0, 0.0], [0.0, 0.0]);
+                AABB::from_corners([0.0, 0.0], [0.0, 0.0])
             }
             SelectionType::POLYGON => {
-                let mut min = [f64::MAX, f64::MAX];
-                let mut max = [f64::MIN, f64::MIN];
-                for point in self.points.as_ref().unwrap() {
-                    if point.long < min[0] as f32 {
-                        min[0] = point.long as f64;
+                if let Some(points) = &self.points {
+                    let mut min = [f64::MAX, f64::MAX];
+                    let mut max = [f64::MIN, f64::MIN];
+
+                    for point in points {
+                        min[0] = min[0].min(point.lat as f64);
+                        min[1] = min[1].min(point.long as f64);
+                        max[0] = max[0].max(point.lat as f64);
+                        max[1] = max[1].max(point.long as f64);
                     }
-                    if point.lat < min[1] as f32 {
-                        min[1] = point.lat as f64;
-                    }
-                    if point.long > max[0] as f32 {
-                        max[0] = point.long as f64;
-                    }
-                    if point.lat > max[1] as f32 {
-                        max[1] = point.lat as f64;
-                    }
+
+                    return AABB::from_corners(min, max);
                 }
-                return AABB::from_corners(min, max);
+                AABB::from_corners([0.0, 0.0], [0.0, 0.0])
             }
             _ => AABB::from_corners([0.0, 0.0], [0.0, 0.0]),
-        };
-        AABB::from_corners([0.0, 0.0], [0.0, 0.0])
+        }
     }
 }

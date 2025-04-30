@@ -46,22 +46,31 @@ impl ToolResources {
                 self.selection_settings.enabled = true;
                 self.measure.disable();
                 self.pins.enabled = false;
+                self.pointer = false;
             }
             "measure" => {
                 self.selection_settings.enabled = false;
                 self.measure.enabled = true;
                 self.pins.enabled = false;
+                self.pointer = false;
             }
             "pins" => {
                 self.selection_settings.enabled = false;
                 self.measure.disable();
                 self.pins.enabled = true;
+                self.pointer = false;
+            }
+            "pointer" => {
+                self.selection_settings.enabled = false;
+                self.measure.disable();
+                self.pins.enabled = false;
+                self.pointer = true;
             }
             _ => {
                 self.selection_settings.enabled = false;
                 self.measure.disable();
                 self.pins.enabled = false;
-                self.pointer = true;
+                self.pointer = false;
             }
         }
         self.respawn();
