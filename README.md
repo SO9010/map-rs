@@ -28,22 +28,45 @@ A fast, open-source GIS tool for urban planning, spatial analysis, and geospatia
 
 ---
 
-## **Installation** *(WIP - Currently for Developers Only)*  
-### **Prerequisites**  
-- **Rust** (required for compiling the app).  
-- Install the following dependencies:  
-  ```sh
-  sudo apt-get update
-  sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
-  sudo apt-get install -y libfontconfig1-dev
-  sudo apt-get install -y protobuf-compiler
-  ```
+## **Building from source** *(WIP - Currently for Developers Only)*  
+### **Prerequisites**
+1. Rust toolchain (incl. Cargo)
+   - Install via https://rustup.rs/
 
-### **Building from Source**  
+2. Click on your Linux distribution to see the required dependencies:
+
+<details>
+  <summary>Fedora / RHEL / CentOS (dnf)</summary>
+
+```bash
+sudo dnf install alsa-lib-devel libudev-devel fontconfig-devel protobuf-compiler
+```
+
+</details> <details> <summary>Ubuntu / Debian (apt)</summary>
+
+```bash
+sudo apt install libasound2-dev libudev-dev libfontconfig1-dev protobuf-compiler
+```
+
+</details> <details> <summary>Arch Linux / Manjaro (pacman)</summary>
+
+```bash
+sudo pacman -S alsa-lib libudev fontconfig protobuf
+```
+
+</details> <details> <summary>Alpine Linux (apk)</summary>
+
+```bash
+sudo apk add alsa-lib-dev eudev-dev fontconfig-dev protobuf-dev protobuf
+```
+
+</details>
+
+### **Compile project**  
 ```sh
-https://github.com/SO9010/map-rs.git
+git clone https://github.com/SO9010/map-rs.git
 cd map-rs
-cargo run
+cargo build # or 'cargo run', to run the app
 ```
 
 ---
