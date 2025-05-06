@@ -3,6 +3,8 @@ use std::collections::HashSet;
 use bevy::prelude::*;
 use bevy_egui::EguiPreUpdateSet;
 use bevy_map_viewer::{Coord, TileMapResources};
+use geo::Geodesic;
+use geographiclib_rs::Geodesic;
 use rstar::{AABB, RTree, RTreeObject};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -12,7 +14,7 @@ use crate::geojson::{MapFeature, get_data_from_string_osm};
 use super::{
     Workspace, WorkspaceData, WorkspacePlugin, WorkspaceRequest,
     renderer::render_workspace_requests,
-    ui::{PersistentInfoWindows, item_info, workspace_actions_ui},
+    ui::{PersistentInfoWindows, item_info, workspace_actions_ui, workspace_analysis_ui},
     worker::{cleanup_tasks, process_requests},
 };
 
@@ -26,7 +28,7 @@ impl Plugin for WorkspacePlugin {
                 Update,
                 ((
                     workspace_actions_ui.after(EguiPreUpdateSet::InitContexts),
-                    // workspace_analysis_ui.after(EguiPreUpdateSet::InitContexts),
+                    workspace_analysis_ui.after(EguiPreUpdateSet::InitContexts),
                     item_info.after(EguiPreUpdateSet::InitContexts),
                 ),),
             );
@@ -124,6 +126,35 @@ impl WorkspaceData {
     pub fn set_selection(&mut self, selection: Selection) {
         self.selection = selection;
         self.last_modified = chrono::Utc::now().timestamp();
+    }
+    pub fn get_area(&self) -> (f32, bevy_map_viewer::DistanceType) {
+        match self.selection.selection_type {
+            SelectionType::RECTANGLE => {
+                if let (Some(start), Some(end)) = (self.selection.start, self.selection.end) {
+                    let top =
+                        Coord::new(start.lat, start.long).distance(&Coord::new(end.lat, end.long));
+                    let left = Coord::new(start.lat, start.long)
+                        .distance(&Coord::new(start.lat, end.long));
+                    return (top.0 * left.0, left.1);
+                }
+                return (0.0, bevy_map_viewer::DistanceType::Km);
+            }
+            SelectionType::CIRCLE => {
+                if let (Some(center), Some(edge)) = (self.selection.start, self.selection.end) {
+                    let radius = center.distance(&edge);
+                    return (std::f32::consts::PI * radius.0 * radius.0, radius.1);
+                }
+                return (0.0, bevy_map_viewer::DistanceType::Km);
+            }
+            SelectionType::POLYGON => {
+                if let Some(_points) = &self.selection.points {
+                    return (0.0, bevy_map_viewer::DistanceType::Km);
+                    // TODO: Implement polygon area calculation
+                }
+                return (0.0, bevy_map_viewer::DistanceType::Km);
+            }
+            _ => (0.0, bevy_map_viewer::DistanceType::Km),
+        }
     }
 }
 

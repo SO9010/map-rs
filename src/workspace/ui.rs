@@ -8,7 +8,7 @@ use bevy_egui::{
 use bevy_map_viewer::{
     Coord, EguiBlockInputState, MapViewerMarker, TileMapResources, ZoomChangedEvent, game_to_coord,
 };
-use rstar::{AABB, Envelope};
+use rstar::{AABB, Envelope, RTreeObject};
 use uuid::Uuid;
 
 use crate::{
@@ -104,7 +104,8 @@ pub fn workspace_actions_ui(
                                                     selection.start.unwrap_or_default();
                                                 workspace_res.workspace = Some(workspace.clone());
 
-                                                camera_transform.translation = center(&selection, &tile_map_res).extend(0.0);
+                                                camera_transform.translation =
+                                                    center(&selection, &tile_map_res).extend(0.0);
 
                                                 let q = build_overpass_query_string(
                                                     get_bounds(selection.clone()),
@@ -198,13 +199,12 @@ pub fn workspace_actions_ui(
     }
 }
 
-#[derive(Resource)]
-#[derive(Default)]
+#[derive(Resource, Default)]
 pub struct PersistentInfoWindows {
     pub windows: HashMap<String, serde_json::Value>,
 }
 
-
+// TODO: Add a colour selector to the elements, then add the colour to a settings to be found and rendered.
 pub fn item_info(
     windows: Query<&Window>,
     camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
@@ -413,38 +413,49 @@ UI Layout Suggestions:
         A mini map preview (if space allows), or layer picker dropdown with checkboxes to enable/disable data layers.
 */
 // Have a little option to hide to the side. Also allow resizing.
-pub fn workspace_analysis_ui(
-    tile_map_res: ResMut<TileMapResources>,
-    mut contexts: EguiContexts,
-    camera: Query<(&Camera, &mut Transform), With<MapViewerMarker>>,
-    tools: ResMut<ToolResources>,
-    zoom_event: EventWriter<ZoomChangedEvent>,
-    workspace_res: ResMut<Workspace>,
-) {
-    let ctx = contexts.ctx_mut();
-    let screen_rect = ctx.screen_rect();
+pub fn workspace_analysis_ui(mut contexts: EguiContexts, workspace_res: ResMut<Workspace>) {
+    if let Some(workspace) = &workspace_res.workspace {
+        let ctx = contexts.ctx_mut();
+        let screen_rect = ctx.screen_rect();
 
-    let tilebox_width = 200.0;
-    let tilebox_height = screen_rect.height() - 40.0;
+        let tilebox_width = 200.0;
+        let tilebox_height = screen_rect.height() - 40.0;
 
-    let tilebox_pos = egui::pos2(screen_rect.width() - tilebox_width - 10.0, 30.0);
+        let tilebox_pos = egui::pos2(screen_rect.width() - tilebox_width - 10.0, 30.0);
 
-    egui::Area::new("info".into())
-        .fixed_pos(tilebox_pos)
-        .show(ctx, |ui| {
-            egui::Frame::new()
-                .fill(egui::Color32::from_rgba_premultiplied(30, 30, 30, 255))
-                .corner_radius(10.0)
-                .shadow(egui::epaint::Shadow {
-                    color: egui::Color32::from_black_alpha(60),
-                    offset: [5, 5],
-                    blur: 10,
-                    spread: 5,
-                })
-                .show(ui, |ui| {
-                    ui.set_width(tilebox_width);
-                    ui.set_height(tilebox_height);
-                    ui.spacing_mut().item_spacing = egui::vec2(8.0, 10.0);
-                });
-        });
+        // Number of items:
+        let mut item_count = 0;
+        for lists in workspace_res.get_rendered_requests().iter() {
+            item_count += lists.get_processed_data().size();
+        }
+        let workspace_area = workspace.get_area();
+        egui::Area::new("info".into())
+            .fixed_pos(tilebox_pos)
+            .show(ctx, |ui| {
+                egui::Frame::new()
+                    .fill(egui::Color32::from_rgba_premultiplied(30, 30, 30, 255))
+                    .corner_radius(10.0)
+                    .shadow(egui::epaint::Shadow {
+                        color: egui::Color32::from_black_alpha(60),
+                        offset: [5, 5],
+                        blur: 10,
+                        spread: 5,
+                    })
+                    .show(ui, |ui| {
+                        ui.set_width(tilebox_width);
+                        ui.set_height(tilebox_height);
+                        ui.vertical_centered(|ui| {
+                            ui.label("");
+                            ui.spacing_mut().item_spacing = egui::vec2(8.0, 10.0);
+                            ui.label(RichText::new("Workspace Analysis").strong());
+                            ui.separator();
+                            ui.label(format!("Number of items: {}", item_count));
+                            ui.label(format!(
+                                "Workspace area: {} {:#?}",
+                                workspace_area.0, workspace_area.1
+                            ));
+                        });
+                    });
+            });
+    }
 }
