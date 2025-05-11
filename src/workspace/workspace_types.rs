@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use bevy::prelude::*;
 use bevy_egui::EguiPreUpdateSet;
@@ -51,6 +51,7 @@ impl Workspace {
     /// - Updates the workspace with the request data and serializes the request for storage.
     /// - Adds the request ID to the workspace's list of requests.
     pub fn process_request(&mut self, request: WorkspaceRequest) {
+        info!("Processing request: {:?}", request);
         self.worker.queue_request(request.clone());
     }
 
@@ -73,11 +74,21 @@ impl Workspace {
                 rendered_requests.push(request.clone());
             }
         }
+        if let Some(workspace) = &self.workspace {
+            for j in workspace.get_requests().iter() {
+                if let Some(request) = loaded_requests.get(j) {
+                    rendered_requests.push(request.clone());
+                }
+            }
+        }
         rendered_requests
     }
 }
 
 impl WorkspaceData {
+    pub fn get_color_properties(&self) -> HashMap<(String, serde_json::Value), Srgba> {
+        self.properties.clone()
+    }
     pub fn get_id(&self) -> String {
         self.id.clone()
     }
@@ -98,23 +109,19 @@ impl WorkspaceData {
         self.last_modified
     }
 
-    pub fn get_requests(&self) -> Option<HashSet<String>> {
+    pub fn get_requests(&self) -> HashSet<String> {
         self.requests.clone()
     }
     pub fn add_request(&mut self, request_id: String) {
-        self.requests
-            .get_or_insert_with(HashSet::new)
-            .insert(request_id);
+        self.requests.insert(request_id);
         self.last_modified = chrono::Utc::now().timestamp();
     }
     pub fn remove_request(&mut self, request_id: String) {
-        if let Some(requests) = &mut self.requests {
-            requests.remove(&request_id);
-        }
+        self.requests.remove(&request_id);
         self.last_modified = chrono::Utc::now().timestamp();
     }
     pub fn clear_requests(&mut self) {
-        self.requests = Some(HashSet::new());
+        self.requests = HashSet::new();
         self.last_modified = chrono::Utc::now().timestamp();
     }
     pub fn set_name(&mut self, name: String) {
@@ -264,7 +271,8 @@ impl WorkspaceData {
             selection,
             creation_date: chrono::Utc::now().timestamp(),
             last_modified: chrono::Utc::now().timestamp(),
-            requests: None,
+            requests: HashSet::new(),
+            properties: HashMap::new(),
         }
     }
 }

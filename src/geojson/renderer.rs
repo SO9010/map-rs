@@ -1,10 +1,10 @@
-use std::{collections::HashMap, hash::Hash};
+use std::collections::HashMap;
 
 use bevy::{
     asset::RenderAssetUsages,
     prelude::*,
     render::{
-        mesh::{Indices, MeshVertexAttribute, PrimitiveTopology, VertexFormat},
+        mesh::{Indices, PrimitiveTopology},
         view::RenderLayers,
     },
 };
@@ -18,7 +18,7 @@ use super::MapFeature;
 
 #[derive(Component)]
 pub struct ShapeMarker;
-// TODO: Add render settings which takes the map feature and checks the properties to see if it contains something like terrace or building to change the colour
+// TODO: Fix the issue where the shapes overlap themselves.
 pub fn respawn_shapes(
     mut commands: Commands,
     shapes_query: Query<(Entity, &ShapeMarker)>,
@@ -32,9 +32,17 @@ pub fn respawn_shapes(
         zoom_change.clear();
 
         let mut intersection_candidates: Vec<MapFeature> = Vec::new();
+        let ws = if let Some(ws) = workspace.workspace.clone() {
+            ws
+        } else {
+            return;
+        };
 
         // Now all we need is settings to get the needed values to turn to different colours.
-        let mut hashmap: HashMap<serde_json::Value, MeshConstructor> = HashMap::new();
+        let colors: HashMap<(String, serde_json::Value), Srgba> = ws.get_color_properties();
+
+        let mut hashmap: HashMap<(String, serde_json::Value), MeshConstructor> = HashMap::new();
+        info!("{}", colors.len());
         if let Some(selection) = &workspace.workspace {
             for i in workspace.get_rendered_requests() {
                 if i.get_processed_data().size() == 0 {
@@ -50,48 +58,45 @@ pub fn respawn_shapes(
             }
         }
 
-        let mut m = MeshConstructor::new();
         // TODO: Fix roads
         for feature in intersection_candidates {
-            let mut shape = feature.get_in_world_space(tile_map_manager.clone());
+            let shape = feature.get_in_world_space(tile_map_manager.clone());
             let shape_vertices: Vec<[f32; 3]> = shape
                 .iter()
                 .map(|point| [point.x, point.y, 0.0])
                 .collect::<Vec<_>>();
-
-            if let Some(bild) = feature.properties.get("building") {
-                if bild == "house" {
-                    if hashmap.contains_key(bild) {
-                        if let Some(v) = hashmap.get_mut(bild) {
-                            v.add_shape(shape_vertices);
-                        }
-                    } else {
-                        hashmap.insert(bild.clone(), MeshConstructor::new());
-
-                        if let Some(v) = hashmap.get_mut(bild) {
-                            v.add_shape(shape_vertices);
-                            v.add_color(Srgba::new(0.9, 0.6, 0.6, 0.8));
-                        }
-                    }
+            for (item, c) in colors.clone().into_iter() {
+                if feature.properties.get(item.0.clone()).is_none() {
                     continue;
                 }
+                let value = feature.properties.get(item.0.clone()).unwrap();
+                if value != &item.1 {
+                    continue;
+                }
+                if let Some(v) = hashmap.get_mut(&item) {
+                    v.add_shape(shape_vertices.clone());
+                    v.add_color(c);
+                } else {
+                    hashmap.insert(item.clone(), MeshConstructor::new());
+
+                    if let Some(v) = hashmap.get_mut(&item) {
+                        v.add_shape(shape_vertices.clone());
+                        v.add_color(c);
+                    }
+                }
             }
-            if hashmap
-                .get(&serde_json::Value::String("default".to_string()))
-                .is_some()
-            {
-                if let Some(v) = hashmap.get_mut(&serde_json::Value::String("default".to_string()))
-                {
+            let default = &(
+                "default".to_string(),
+                serde_json::Value::String("default".to_string()),
+            );
+            if hashmap.get(default).is_some() {
+                if let Some(v) = hashmap.get_mut(default) {
                     v.add_shape(shape_vertices);
                 }
             } else {
-                hashmap.insert(
-                    serde_json::Value::String("default".to_string()),
-                    MeshConstructor::new(),
-                );
+                hashmap.insert(default.clone(), MeshConstructor::new());
 
-                if let Some(v) = hashmap.get_mut(&serde_json::Value::String("default".to_string()))
-                {
+                if let Some(v) = hashmap.get_mut(default) {
                     v.add_shape(shape_vertices);
                 }
             }

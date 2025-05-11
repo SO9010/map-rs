@@ -3,9 +3,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use bevy::ecs::resource::Resource;
+use bevy::{color::Srgba, ecs::resource::Resource};
 use rstar::RTree;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use worker::WorkspaceWorker;
 pub use workspace_types::*;
 
@@ -21,7 +22,7 @@ pub struct WorkspacePlugin;
 #[derive(Resource)]
 pub struct Workspace {
     pub workspace: Option<WorkspaceData>,
-    // (rendered, id)
+    // (id, request)
     pub loaded_requests: Arc<Mutex<HashMap<String, WorkspaceRequest>>>,
     pub worker: WorkspaceWorker,
 
@@ -45,14 +46,15 @@ impl Default for Workspace {
 // WorkspaceRenderer,
 // WorkspaceSettings,
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
 pub struct WorkspaceData {
     id: String,
     name: String,
     selection: Selection,
     creation_date: i64,
     last_modified: i64,
-    requests: Option<HashSet<String>>,
+    requests: HashSet<String>,
+    properties: HashMap<(String, Value), Srgba>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -64,5 +66,6 @@ pub struct WorkspaceRequest {
     raw_data: Vec<u8>, // Raw data from the request maybe have this as a id list aswell...
     #[serde(skip)]
     processed_data: RTree<MapFeature>,
+
     last_query_date: i64, // When the OSM data was fetched
 }

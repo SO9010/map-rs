@@ -98,15 +98,26 @@ pub fn workspace_actions_ui(
                                                 )
                                                 .clicked()
                                             {
+                                                if workspace_res
+                                                    .workspace
+                                                    .clone()
+                                                    .unwrap_or_default()
+                                                    .get_id()
+                                                    != workspace.get_id()
+                                                {
+                                                    workspace_res.workspace =
+                                                        Some(workspace.clone());
+                                                }
+
+                                                // Center the camera on the selection
                                                 let selection: super::Selection =
                                                     workspace.get_selection();
                                                 tile_map_res.location_manager.location =
                                                     selection.start.unwrap_or_default();
-                                                workspace_res.workspace = Some(workspace.clone());
-
                                                 camera_transform.translation =
                                                     center(&selection, &tile_map_res).extend(0.0);
 
+                                                // Make request to the overpass server
                                                 let q = build_overpass_query_string(
                                                     get_bounds(selection.clone()),
                                                     workspace_res.overpass_agent.settings.clone(),
@@ -204,7 +215,6 @@ pub struct PersistentInfoWindows {
     pub windows: HashMap<String, serde_json::Value>,
 }
 
-// TODO: Add a colour selector to the elements, then add the colour to a settings to be found and rendered.
 pub fn item_info(
     windows: Query<&Window>,
     camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
@@ -214,7 +224,8 @@ pub fn item_info(
     res_manager: Res<TileMapResources>,
     state: Res<EguiBlockInputState>,
     tools: Res<ToolResources>,
-    workspace: Res<Workspace>,
+    mut workspace: ResMut<Workspace>,
+    mut zoom_change: EventWriter<ZoomChangedEvent>,
 ) {
     if mouse_button.just_pressed(MouseButton::Left) && !state.block_input && tools.pointer {
         let (camera, camera_transform) = camera.iter().next().expect("Couldnt get camera");
@@ -274,13 +285,56 @@ pub fn item_info(
                     for (key, value) in object {
                         ui.horizontal(|ui| {
                             ui.label(key);
-                            ui.separator();
+
                             ui.label(format!("{}", value));
+
+                            if let Some(color) = workspace
+                                .workspace
+                                .as_mut()
+                                .unwrap()
+                                .properties
+                                .get(&(key.clone(), value.clone()))
+                            {
+                                let mut color = egui::Color32::from_rgb(
+                                    (color.red * 255.0) as u8,
+                                    (color.green * 255.0) as u8,
+                                    (color.blue * 255.0) as u8,
+                                );
+                                if ui.color_edit_button_srgba(&mut color).changed() {
+                                    // Update the workspace properties with the new color
+                                    workspace.workspace.as_mut().unwrap().properties.insert(
+                                        (key.clone(), value.clone()),
+                                        Srgba {
+                                            red: color.r() as f32 / 255.0,
+                                            green: color.g() as f32 / 255.0,
+                                            blue: color.b() as f32 / 255.0,
+                                            alpha: color.a() as f32 / 255.0,
+                                        },
+                                    );
+                                    zoom_change.write(ZoomChangedEvent);
+                                }
+                            } else {
+                                let mut color = egui::Color32::WHITE; // Default color
+                                if ui.color_edit_button_srgba(&mut color).changed() {
+                                    // Update the workspace properties with the new color
+                                    workspace.workspace.as_mut().unwrap().properties.insert(
+                                        (key.clone(), value.clone()),
+                                        Srgba {
+                                            red: color.r() as f32 / 255.0,
+                                            green: color.g() as f32 / 255.0,
+                                            blue: color.b() as f32 / 255.0,
+                                            alpha: color.a() as f32 / 255.0,
+                                        },
+                                    );
+                                    zoom_change.write(ZoomChangedEvent);
+                                }
+                            }
                         });
                         ui.end_row();
                     }
                 }
             });
+
             if ui.button("Close").clicked() {
                 windows_to_remove.push(id.clone());
             }

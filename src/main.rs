@@ -25,14 +25,19 @@ pub mod workspace;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Map Viewer".to_string(),
-                name: Some("Map Viewer".to_string()),
-                ..Default::default()
-            }),
-            ..Default::default()
-        }))
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "Map Viewer".to_string(),
+                        name: Some("Map Viewer".to_string()),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                })
+                .build()
+                .disable::<bevy::audio::AudioPlugin>(),
+        )
         .add_plugins((WorkspacePlugin, CameraSystemPlugin, InteractionSystemPlugin))
         .add_plugins(EguiPlugin {
             enable_multipass_for_primary_context: false,
