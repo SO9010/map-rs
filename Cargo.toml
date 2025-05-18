@@ -22,6 +22,8 @@ chrono = "0.4.40"
 bevy_map_viewer = { git = "https://github.com/SO9010/bevy-map-viewer.git" }
 openmeteo-rs-ureq = { git = "https://github.com/SO9010/openmeteo-rs-ureq.git"}
 winit = "0.30.9"
+directories = "6.0.0"
+platform-dirs = "0.3.0"
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]

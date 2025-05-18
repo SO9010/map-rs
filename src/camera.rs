@@ -24,6 +24,8 @@ use bevy_map_viewer::{Coord, MapViewerMarker, MapViewerPlugin, TileMapResources}
 use bevy_pancam::{DirectionKeys, PanCam, PanCamPlugin};
 
 use bevy_map_viewer::EguiBlockInputState;
+use directories::UserDirs;
+use platform_dirs::AppDirs;
 
 const SHADER_ASSET_PATH: &str = "shaders/full_screen_pass.wgsl";
 
@@ -31,13 +33,27 @@ pub struct CameraSystemPlugin;
 
 impl Plugin for CameraSystemPlugin {
     fn build(&self, app: &mut App) {
+        info!(
+            "{}",
+            AppDirs::new(Some("Map-rs"), false)
+                .map(|dirs| dirs.cache_dir)
+                .expect("Failed to get cache dir")
+                .to_str()
+                .expect("Failed to convert cache dir to str")
+                .to_string()
+        );
         app.add_plugins(PanCamPlugin)
             .add_plugins(PostProcessPlugin)
             .add_plugins(MapViewerPlugin {
                 starting_location: Coord::new(52.1951, 0.1313),
                 starting_zoom: 14,
                 tile_quality: 256.0,
-                cache_dir: "cache".to_string(),
+                cache_dir: AppDirs::new(Some("Map-rs"), false)
+                    .map(|dirs| dirs.cache_dir)
+                    .expect("Failed to get cache dir")
+                    .to_str()
+                    .expect("Failed to convert cache dir to str")
+                    .to_string(),
                 starting_url: None,
             })
             .add_systems(Startup, setup_camera)
