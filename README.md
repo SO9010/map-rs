@@ -1,6 +1,19 @@
 # **Urban Planning GIS App**  
 A fast, open-source GIS tool for urban planning, spatial analysis, and geospatial data visualization. This application allows users to select areas, fetch data from OpenStreetMap (Overpass Turbo), and analyze geographic data with a focus on urban development and sustainability.  
 
+## How to Use the Program
+
+To use the program in its current state:
+
+1. Select the **Selection Tool** (second icon from the left).  
+2. Use it to select an area on the map.  
+3. On the left side, choose the type of **Overpass request** you want to perform from the dropdown menu.  
+4. At the top, select the **Workspace**.  
+   - **Note:** Loading may take a few seconds depending on the size of the response.  
+5. Once the data is loaded, switch back to the **Cursor Tool** (which also acts as the info tool).  
+6. Click on a **house** or other **element**.  
+7. You can then change its color based on its properties.
+
 ## **Features**  
 ### **🗺️ Map Navigation & Selection**  
 - Move around and zoom into maps seamlessly.  
