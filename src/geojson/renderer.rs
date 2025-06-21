@@ -24,120 +24,8 @@ use bevy_map_viewer::ZoomChangedEvent;
 
 use super::MapFeature;
 #[derive(Component)]
-pub struct ShapeMarker {
-    /*
-    // This will take the id of the workspace that its rendering
-    pub id: String,
-    pub visible: bool,
-    pub displacement: Vec2,
-    */
-}
+pub struct ShapeMarker;
 
-// I want to split this into spawn shapes which constructs our mesh2d, then I want to have different functions to spawn or change the colour of the mesh
-// So spawn_shapes
-// Change color of property
-// Shift
-// Clear
-// We need a check workspace changed...
-// We also want to check if the camera has moved out of the way for some of the elements so we can hide them
-pub fn spawn_shapes(
-    mut commands: Commands,
-    shapes_query: Query<(Entity, &ShapeMarker)>,
-    tile_map_manager: Res<TileMapResources>,
-    workspace: Res<Workspace>,
-    mut zoom_change: EventReader<ZoomChangedEvent>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
-    if !zoom_change.is_empty() {
-        let mut intersection_candidates: Vec<MapFeature> = Vec::new();
-        let ws: crate::workspace::WorkspaceData = if let Some(ws) = workspace.workspace.clone() {
-            ws
-        } else {
-            return;
-        };
-        if tile_map_manager.zoom_manager.zoom_level < 14 {
-            return;
-        }
-        // Ok so we want to always add a displacement of tile_map_manager.chunk_manager.displacement rather than recalculating.
-        // Now all we need is settings to get the needed values to turn to different colours.
-        let colors: HashMap<(String, serde_json::Value), Srgba> = ws.get_color_properties();
-
-        let mut hashmap: HashMap<(String, serde_json::Value), MeshConstructor> = HashMap::new();
-        info!("{}", colors.len());
-        if let Some(selection) = &workspace.workspace {
-            for i in workspace.get_rendered_requests() {
-                if i.get_processed_data().size() == 0 || !i.get_visible() {
-                    continue;
-                }
-                let map_bundle = i.clone().get_processed_data();
-                intersection_candidates.extend(
-                    map_bundle
-                        .locate_in_envelope_intersecting(&selection.envelope())
-                        .cloned()
-                        .collect::<Vec<_>>(),
-                );
-            }
-        }
-
-        for feature in intersection_candidates {
-            let shape = feature.get_in_world_space(tile_map_manager.clone());
-            let shape_vertices: Vec<[f32; 3]> = shape
-                .iter()
-                .map(|point| [point.x, point.y, 0.0])
-                .collect::<Vec<_>>();
-            for (item, c) in colors.clone().into_iter() {
-                if feature.properties.get(item.0.clone()).is_none() {
-                    continue;
-                }
-                let value = feature.properties.get(item.0.clone()).unwrap();
-                if value != &item.1 {
-                    continue;
-                }
-                if let Some(v) = hashmap.get_mut(&item) {
-                    v.add_shape(shape_vertices.clone(), feature.closed);
-                    v.add_color(c);
-                } else {
-                    hashmap.insert(item.clone(), MeshConstructor::new());
-
-                    if let Some(v) = hashmap.get_mut(&item) {
-                        v.add_shape(shape_vertices.clone(), feature.closed);
-                        v.add_color(c);
-                    }
-                }
-            }
-            let default = &(
-                "default".to_string(),
-                serde_json::Value::String("default".to_string()),
-            );
-            if hashmap.get(default).is_some() {
-                if let Some(v) = hashmap.get_mut(default) {
-                    v.add_shape(shape_vertices, feature.closed);
-                }
-            } else {
-                hashmap.insert(default.clone(), MeshConstructor::new());
-
-                if let Some(v) = hashmap.get_mut(default) {
-                    v.add_shape(shape_vertices, feature.closed);
-                }
-            }
-        }
-
-        for (entity, _) in shapes_query.iter() {
-            commands.entity(entity).despawn();
-        }
-        for t in hashmap.into_iter() {
-            commands.spawn((
-                Mesh2d(meshes.add(t.1.to_mesh())),
-                MeshMaterial2d(materials.add(ColorMaterial::from_color(t.1.get_color()))),
-                Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
-                ShapeMarker {},
-                RenderLayers::layer(1),
-            ));
-        }
-    }
-}
-// TODO: Optimise by chaching. We dont really ever need to recaclulate but we may need to shift.
 pub fn respawn_shapes(
     mut commands: Commands,
     shapes_query: Query<(Entity, &ShapeMarker)>,
@@ -180,45 +68,29 @@ pub fn respawn_shapes(
 
         for feature in intersection_candidates {
             let shape = feature.get_in_world_space(tile_map_manager.clone());
-            let shape_vertices: Vec<[f32; 3]> = shape
-                .iter()
-                .map(|point| [point.x, point.y, 0.0])
-                .collect::<Vec<_>>();
-            for (item, c) in colors.clone().into_iter() {
-                if feature.properties.get(item.0.clone()).is_none() {
-                    continue;
-                }
-                let value = feature.properties.get(item.0.clone()).unwrap();
-                if value != &item.1 {
-                    continue;
-                }
-                if let Some(v) = hashmap.get_mut(&item) {
-                    v.add_shape(shape_vertices.clone(), feature.closed);
-                    v.add_color(c);
-                } else {
-                    hashmap.insert(item.clone(), MeshConstructor::new());
+            let shape_vertices: Vec<[f32; 3]> =
+                shape.iter().map(|point| [point.x, point.y, 0.0]).collect();
 
-                    if let Some(v) = hashmap.get_mut(&item) {
-                        v.add_shape(shape_vertices.clone(), feature.closed);
-                        v.add_color(c);
+            for (item, c) in &colors {
+                if let Some(value) = feature.properties.get(item.0.clone()) {
+                    if value == &item.1 {
+                        let entry = hashmap
+                            .entry(item.clone())
+                            .or_insert_with(MeshConstructor::new);
+                        entry.add_shape(shape_vertices.clone(), feature.closed);
+                        entry.add_color(*c);
                     }
                 }
             }
-            let default = &(
+
+            let default_key = (
                 "default".to_string(),
                 serde_json::Value::String("default".to_string()),
             );
-            if hashmap.get(default).is_some() {
-                if let Some(v) = hashmap.get_mut(default) {
-                    v.add_shape(shape_vertices, feature.closed);
-                }
-            } else {
-                hashmap.insert(default.clone(), MeshConstructor::new());
-
-                if let Some(v) = hashmap.get_mut(default) {
-                    v.add_shape(shape_vertices, feature.closed);
-                }
-            }
+            let entry = hashmap
+                .entry(default_key)
+                .or_insert_with(MeshConstructor::new);
+            entry.add_shape(shape_vertices, feature.closed);
         }
 
         for (entity, _) in shapes_query.iter() {
@@ -229,7 +101,7 @@ pub fn respawn_shapes(
                 Mesh2d(meshes.add(t.1.to_mesh())),
                 MeshMaterial2d(materials.add(ColorMaterial::from_color(t.1.get_color()))),
                 Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
-                ShapeMarker {},
+                ShapeMarker,
                 RenderLayers::layer(1),
             ));
         }
