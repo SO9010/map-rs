@@ -50,7 +50,6 @@ pub fn respawn_shapes(
         let colors: HashMap<(String, serde_json::Value), Srgba> = ws.get_color_properties();
 
         let mut hashmap: HashMap<(String, serde_json::Value), MeshConstructor> = HashMap::new();
-        info!("{}", colors.len());
         if let Some(selection) = &workspace.workspace {
             for i in workspace.get_rendered_requests() {
                 if i.get_processed_data().size() == 0 || !i.get_visible() {
