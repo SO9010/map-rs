@@ -23,7 +23,6 @@ To use the program in its current state:
 ### **📌 Layer Management**  
 - Add, remove, and reorder layers (vector, raster, and real-time data).  
 - Fetch OpenStreetMap data dynamically using **Overpass Turbo**.  
-- Support for custom map styling (color, opacity, symbology).  
 
 ### **📊 Geospatial Analysis** *(Planned)*  
 - Query building and road data based on custom filters.  

@@ -9,16 +9,23 @@ use bevy::{
     },
 };
 use bevy_map_viewer::TileMapResources;
+use lyon::{
+    math::point,
+    path::Path,
+    tessellation::{
+        BuffersBuilder, FillOptions, FillTessellator, FillVertex, StrokeOptions, StrokeTessellator,
+        StrokeVertex, VertexBuffers,
+    },
+};
 use rstar::RTreeObject;
 
 use crate::workspace::Workspace;
 use bevy_map_viewer::ZoomChangedEvent;
 
 use super::MapFeature;
-
 #[derive(Component)]
 pub struct ShapeMarker;
-// TODO: Fix the issue where the shapes overlap themselves.
+// TODO: Optimise by chaching. We dont really ever need to recaclulate but we may need to shift.
 pub fn respawn_shapes(
     mut commands: Commands,
     shapes_query: Query<(Entity, &ShapeMarker)>,
@@ -30,12 +37,14 @@ pub fn respawn_shapes(
 ) {
     if !zoom_change.is_empty() {
         let mut intersection_candidates: Vec<MapFeature> = Vec::new();
-        let ws = if let Some(ws) = workspace.workspace.clone() {
+        let ws: crate::workspace::WorkspaceData = if let Some(ws) = workspace.workspace.clone() {
             ws
         } else {
             return;
         };
-
+        if tile_map_manager.zoom_manager.zoom_level < 14 {
+            return;
+        }
         // Now all we need is settings to get the needed values to turn to different colours.
         let colors: HashMap<(String, serde_json::Value), Srgba> = ws.get_color_properties();
 
@@ -43,7 +52,7 @@ pub fn respawn_shapes(
         info!("{}", colors.len());
         if let Some(selection) = &workspace.workspace {
             for i in workspace.get_rendered_requests() {
-                if i.get_processed_data().size() == 0 {
+                if i.get_processed_data().size() == 0 || !i.get_visible() {
                     continue;
                 }
                 let map_bundle = i.clone().get_processed_data();
@@ -56,7 +65,6 @@ pub fn respawn_shapes(
             }
         }
 
-        // TODO: Fix roads
         for feature in intersection_candidates {
             let shape = feature.get_in_world_space(tile_map_manager.clone());
             let shape_vertices: Vec<[f32; 3]> = shape
@@ -72,13 +80,13 @@ pub fn respawn_shapes(
                     continue;
                 }
                 if let Some(v) = hashmap.get_mut(&item) {
-                    v.add_shape(shape_vertices.clone());
+                    v.add_shape(shape_vertices.clone(), feature.closed);
                     v.add_color(c);
                 } else {
                     hashmap.insert(item.clone(), MeshConstructor::new());
 
                     if let Some(v) = hashmap.get_mut(&item) {
-                        v.add_shape(shape_vertices.clone());
+                        v.add_shape(shape_vertices.clone(), feature.closed);
                         v.add_color(c);
                     }
                 }
@@ -89,13 +97,13 @@ pub fn respawn_shapes(
             );
             if hashmap.get(default).is_some() {
                 if let Some(v) = hashmap.get_mut(default) {
-                    v.add_shape(shape_vertices);
+                    v.add_shape(shape_vertices, feature.closed);
                 }
             } else {
                 hashmap.insert(default.clone(), MeshConstructor::new());
 
                 if let Some(v) = hashmap.get_mut(default) {
-                    v.add_shape(shape_vertices);
+                    v.add_shape(shape_vertices, feature.closed);
                 }
             }
         }
@@ -137,16 +145,67 @@ impl MeshConstructor {
     fn get_color(&self) -> Srgba {
         self.color
     }
-    fn add_shape(&mut self, shape: Vec<[f32; 3]>) {
-        let shape_indices: Vec<u32> = (1..shape.len() as u32 - 1)
-            .flat_map(|i| vec![0, i, i + 1])
-            .collect();
+    fn add_shape(&mut self, shape: Vec<[f32; 3]>, closed: bool) {
+        // Build a path using the provided shape vertices
+        let mut builder = Path::builder();
+        if let Some(first_point) = shape.first() {
+            builder.begin(point(first_point[0], first_point[1]));
+            for p in &shape[1..] {
+                builder.line_to(point(p[0], p[1]));
+            }
+            builder.end(closed);
+        }
+        let path = builder.build();
 
-        self.vertices.extend(&shape);
-        self.indices
-            .extend(shape_indices.iter().map(|i| i + self.index_offset));
+        // Tessellate the path
+        #[derive(Copy, Clone, Debug)]
+        struct MyVertex {
+            position: [f32; 2],
+        }
 
-        self.index_offset += shape.len() as u32;
+        let mut geometry: VertexBuffers<MyVertex, u16> = VertexBuffers::new();
+        match closed {
+            true => {
+                let mut tessellator = FillTessellator::new();
+                tessellator
+                    .tessellate_path(
+                        &path,
+                        &FillOptions::default(),
+                        &mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| MyVertex {
+                            position: vertex.position().to_array(),
+                        }),
+                    )
+                    .unwrap();
+            }
+            false => {
+                let mut tessellator = StrokeTessellator::new();
+                tessellator
+                    .tessellate_path(
+                        &path,
+                        &StrokeOptions::default().with_line_width(1.0),
+                        &mut BuffersBuilder::new(&mut geometry, |vertex: StrokeVertex| MyVertex {
+                            position: vertex.position().to_array(),
+                        }),
+                    )
+                    .unwrap();
+            }
+        }
+
+        // Convert tessellated vertices and indices to the format used by MeshConstructor
+        self.vertices.extend(
+            geometry
+                .vertices
+                .iter()
+                .map(|v| [v.position[0], v.position[1], 0.0]),
+        );
+        self.indices.extend(
+            geometry
+                .indices
+                .iter()
+                .map(|&i| i as u32 + self.index_offset),
+        );
+
+        self.index_offset += geometry.vertices.len() as u32;
     }
     fn to_mesh(&self) -> Mesh {
         let mesh = Mesh::new(

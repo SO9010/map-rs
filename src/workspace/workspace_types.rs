@@ -164,6 +164,9 @@ impl WorkspaceData {
 }
 
 impl WorkspaceRequest {
+    pub fn get_visible(&self) -> bool {
+        self.visible.clone()
+    }
     pub fn get_id(&self) -> String {
         self.id.clone()
     }

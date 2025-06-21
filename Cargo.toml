@@ -24,6 +24,7 @@ openmeteo-rs-ureq = { git = "https://github.com/SO9010/openmeteo-rs-ureq.git"}
 winit = "0.30.9"
 directories = "6.0.0"
 platform-dirs = "0.3.0"
+lyon = "1.0.1"
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]
