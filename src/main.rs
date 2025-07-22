@@ -18,6 +18,7 @@ pub mod camera;
 pub mod debug;
 pub mod geojson;
 pub mod interaction;
+pub mod llm;
 pub mod overpass;
 pub mod settings;
 pub mod tools;

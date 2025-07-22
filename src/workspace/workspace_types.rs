@@ -191,6 +191,7 @@ impl WorkspaceRequest {
                 }
             }
             crate::workspace::RequestType::OpenMeteoRequest(_) => {}
+            crate::workspace::RequestType::OpenRouterRequest(_) => {}
         }
     }
 
@@ -223,6 +224,7 @@ pub enum RequestType {
     // If we want to add more requests we can just add them here.
     OpenMeteoRequest(OpenMeteoRequest),
     OverpassTurboRequest(String),
+    OpenRouterRequest(String),
 }
 
 impl std::fmt::Debug for RequestType {
@@ -230,6 +232,7 @@ impl std::fmt::Debug for RequestType {
         match self {
             RequestType::OpenMeteoRequest(_) => write!(f, "OpenMeteoRequest"),
             RequestType::OverpassTurboRequest(_) => write!(f, "OverpassTurboRequest"),
+            RequestType::OpenRouterRequest(_) => write!(f, "OpenRouterRequest"),
         }
     }
 }

@@ -28,6 +28,7 @@ pub struct Workspace {
 
     // Request Clients:
     pub overpass_agent: OverpassClient,
+    pub overpass_agent: OpenrouterClient,
 }
 
 impl Default for Workspace {
@@ -37,6 +38,7 @@ impl Default for Workspace {
             loaded_requests: Arc::new(Mutex::new(HashMap::new())),
             worker: WorkspaceWorker::new(4),
             overpass_agent: OverpassClient::new("https://overpass-api.de/api/interpreter"),
+            llm_agent: OpenrouterClient::new(),
         }
     }
 }

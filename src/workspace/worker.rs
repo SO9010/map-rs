@@ -66,19 +66,20 @@ pub fn process_requests(mut commands: Commands, mut workspace: ResMut<Workspace>
                 info!("No workspace found");
                 return;
             }
-            let client = workspace.overpass_agent.clone();
+            let overpass_client = workspace.overpass_agent.clone();
             // Clone the loaded_requests Arc<Mutex> instead of holding the MutexGuard
             let loaded_requests = workspace.loaded_requests.clone();
             let task = task_pool.spawn(async move {
                 let mut result = Vec::new();
                 match request.get_request() {
                     RequestType::OverpassTurboRequest(ref query) => {
-                        if let Ok(q) = client.send_overpass_query_string(query.clone()) {
+                        if let Ok(q) = overpass_client.send_overpass_query_string(query.clone()) {
                             if !q.is_empty() {
                                 result = q.as_bytes().to_vec();
                             }
                         }
                     }
+                    RequestType::OpenRouterRequest(_) => todo!(),
                     RequestType::OpenMeteoRequest(_open_meteo_request) => {}
                 }
 
