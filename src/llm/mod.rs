@@ -9,4 +9,5 @@ use ureq::Agent;
 pub struct OpenrouterClient {
     pub token: Option<String>,
     pub agent: Agent,
+    pub url: String,
 }
