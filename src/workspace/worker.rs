@@ -79,6 +79,7 @@ pub fn process_requests(mut commands: Commands, mut workspace: ResMut<Workspace>
                             }
                         }
                     }
+                    here needs to be done and this is purposfully broken so that it gets flagged!
                     RequestType::OpenRouterRequest(_) => todo!(),
                     RequestType::OpenMeteoRequest(_open_meteo_request) => {}
                 }

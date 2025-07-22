@@ -139,10 +139,12 @@ pub fn workspace_actions_ui(
                                         }
                                     });
                                     // https://blog.afi.io/blog/how-to-draw-and-view-boundary-data-with-openstreetmap-osm/
+                                    /*
                                     ui.horizontal(|ui| {
                                         ui.label("Workspaces");
                                         if ui.button("Add").clicked() {}
                                     });
+                                    */
                                 });
                         });
                     });

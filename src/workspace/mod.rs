@@ -10,7 +10,7 @@ use serde_json::Value;
 use worker::WorkspaceWorker;
 pub use workspace_types::*;
 
-use crate::{geojson::MapFeature, overpass::OverpassClient};
+use crate::{geojson::MapFeature, llm::OpenrouterClient, overpass::OverpassClient};
 
 mod renderer;
 mod ui;
@@ -28,7 +28,7 @@ pub struct Workspace {
 
     // Request Clients:
     pub overpass_agent: OverpassClient,
-    pub overpass_agent: OpenrouterClient,
+    pub llm_agent: OpenrouterClient,
 }
 
 impl Default for Workspace {
@@ -38,7 +38,7 @@ impl Default for Workspace {
             loaded_requests: Arc::new(Mutex::new(HashMap::new())),
             worker: WorkspaceWorker::new(4),
             overpass_agent: OverpassClient::new("https://overpass-api.de/api/interpreter"),
-            llm_agent: OpenrouterClient::new(),
+            llm_agent: OpenrouterClient::new("https://openrouter.ai/api/v1/chat/completions", None),
         }
     }
 }
@@ -68,6 +68,8 @@ pub struct WorkspaceRequest {
     raw_data: Vec<u8>, // Raw data from the request maybe have this as a id list aswell...
     #[serde(skip)]
     processed_data: RTree<MapFeature>,
+    #[serde(skip)]
+    llm_analysis: Vec<String>,
 
     last_query_date: i64, // When the OSM data was fetched
 }

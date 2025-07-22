@@ -261,6 +261,7 @@ impl WorkspaceRequest {
             raw_data,
             processed_data: RTree::new(),
             last_query_date: chrono::Utc::now().timestamp(),
+            llm_analysis: Vec::new(),
         }
     }
 
