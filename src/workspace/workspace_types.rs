@@ -7,18 +7,24 @@ use rstar::{AABB, RTree, RTreeObject};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::geojson::{MapFeature, get_data_from_string_osm};
+use crate::{
+    geojson::{MapFeature, get_data_from_string_osm},
+    workspace::ui::chat_box_ui,
+};
 
 use super::{
     Workspace, WorkspaceData, WorkspacePlugin, WorkspaceRequest,
     renderer::render_workspace_requests,
-    ui::{PersistentInfoWindows, item_info, workspace_actions_ui, workspace_analysis_ui},
+    ui::{
+        ChatState, PersistentInfoWindows, item_info, workspace_actions_ui, workspace_analysis_ui,
+    },
     worker::{cleanup_tasks, process_requests},
 };
 
 impl Plugin for WorkspacePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Workspace::default())
+            .insert_resource(ChatState::default())
             .add_systems(FixedUpdate, (process_requests, cleanup_tasks))
             .add_systems(Update, render_workspace_requests)
             .insert_resource(PersistentInfoWindows::default())
@@ -26,7 +32,7 @@ impl Plugin for WorkspacePlugin {
                 Update,
                 ((
                     workspace_actions_ui.after(EguiPreUpdateSet::InitContexts),
-                    workspace_analysis_ui.after(EguiPreUpdateSet::InitContexts),
+                    chat_box_ui.after(EguiPreUpdateSet::InitContexts),
                     item_info.after(EguiPreUpdateSet::InitContexts),
                 ),),
             );
@@ -66,6 +72,18 @@ impl Workspace {
         rendered_requests
     }
 
+    pub fn get_requests(&self) -> Vec<WorkspaceRequest> {
+        let loaded_requests = self.loaded_requests.lock().unwrap();
+        let mut rendered_requests = Vec::new();
+        if let Some(workspace) = &self.workspace {
+            for j in workspace.get_requests().iter() {
+                if let Some(request) = loaded_requests.get(j) {
+                    rendered_requests.push(request.clone());
+                }
+            }
+        }
+        rendered_requests
+    }
     pub fn get_rendered_requests(&self) -> Vec<WorkspaceRequest> {
         let loaded_requests = self.loaded_requests.lock().unwrap();
         let mut rendered_requests = Vec::new();
@@ -192,6 +210,10 @@ impl WorkspaceRequest {
             }
             crate::workspace::RequestType::OpenMeteoRequest(_) => {}
             crate::workspace::RequestType::OpenRouterRequest(_) => {}
+            RequestType::OpenMeteoRequest(open_meteo_request) => todo!(),
+            RequestType::OverpassTurboRequest(_) => todo!(),
+            RequestType::OpenRouterRequest(_) => todo!(),
+            RequestType::AnalysisRequest(_) => todo!(),
         }
     }
 
@@ -225,6 +247,7 @@ pub enum RequestType {
     OpenMeteoRequest(OpenMeteoRequest),
     OverpassTurboRequest(String),
     OpenRouterRequest(String),
+    AnalysisRequest(String),
 }
 
 impl std::fmt::Debug for RequestType {
@@ -233,6 +256,7 @@ impl std::fmt::Debug for RequestType {
             RequestType::OpenMeteoRequest(_) => write!(f, "OpenMeteoRequest"),
             RequestType::OverpassTurboRequest(_) => write!(f, "OverpassTurboRequest"),
             RequestType::OpenRouterRequest(_) => write!(f, "OpenRouterRequest"),
+            RequestType::AnalysisRequest(_) => todo!(),
         }
     }
 }
@@ -276,6 +300,17 @@ impl WorkspaceData {
             id: Uuid::new_v4().to_string(),
             name,
             selection,
+            creation_date: chrono::Utc::now().timestamp(),
+            last_modified: chrono::Utc::now().timestamp(),
+            requests: HashSet::new(),
+            properties: HashMap::new(),
+        }
+    }
+    pub fn empty() -> Self {
+        Self {
+            id: Uuid::new_v4().to_string(),
+            name: "Empty".to_string(),
+            selection: Selection::empty(),
             creation_date: chrono::Utc::now().timestamp(),
             last_modified: chrono::Utc::now().timestamp(),
             requests: HashSet::new(),
@@ -394,6 +429,15 @@ impl Selection {
             start: None,
             end: None,
             points: Some(vec![start]),
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            selection_type: SelectionType::NONE,
+            start: None,
+            end: None,
+            points: None,
         }
     }
 }

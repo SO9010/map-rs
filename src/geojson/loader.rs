@@ -2,7 +2,7 @@ use std::{fs::File, io::BufReader};
 
 use bevy::log::info;
 use bevy_map_viewer::Coord;
-use geojson::GeoJson;
+use geojson::{GeoJson, JsonValue};
 use rstar::RTree;
 use serde::{Deserialize, Serialize};
 

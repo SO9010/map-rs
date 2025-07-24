@@ -12,6 +12,7 @@ pub use workspace_types::*;
 
 use crate::{geojson::MapFeature, llm::OpenrouterClient, overpass::OverpassClient};
 
+mod commands;
 mod renderer;
 mod ui;
 mod worker;
@@ -29,6 +30,7 @@ pub struct Workspace {
     // Request Clients:
     pub overpass_agent: OverpassClient,
     pub llm_agent: OpenrouterClient,
+    // Add llm requests agent!
 }
 
 impl Default for Workspace {

@@ -20,6 +20,20 @@ use crate::{
 
 use super::{RequestType, WorkspaceRequest};
 
+#[derive(Resource, Default)]
+pub struct ChatState {
+    pub input_text: String,
+    pub chat_history: Vec<ChatMessage>,
+    pub is_processing: bool,
+}
+
+#[derive(Clone)]
+pub struct ChatMessage {
+    pub content: String,
+    pub is_user: bool,
+    pub timestamp: String,
+}
+
 pub fn workspace_actions_ui(
     mut tile_map_res: ResMut<TileMapResources>,
     mut contexts: EguiContexts,
@@ -475,7 +489,7 @@ pub fn workspace_analysis_ui(mut contexts: EguiContexts, workspace_res: ResMut<W
         let screen_rect = ctx.screen_rect();
 
         let tilebox_width = 200.0;
-        let tilebox_height = screen_rect.height() - 40.0;
+        let tilebox_height = (screen_rect.height() - 40.0) * 0.25; // 1/4 of the right panel height
 
         let tilebox_pos = egui::pos2(screen_rect.width() - tilebox_width - 10.0, 30.0);
 
@@ -513,5 +527,202 @@ pub fn workspace_analysis_ui(mut contexts: EguiContexts, workspace_res: ResMut<W
                         });
                     });
             });
+    }
+}
+
+pub fn chat_box_ui(
+    mut contexts: EguiContexts,
+    mut chat_state: ResMut<ChatState>,
+    workspace: Res<Workspace>,
+) {
+    let ctx = contexts.ctx_mut();
+    let screen_rect = ctx.screen_rect();
+
+    let chat_width = if screen_rect.width() / 4 as f32 > 200.0 {
+        screen_rect.width() / 4 as f32
+    } else {
+        200.0
+    }; // Same width as workspace_analysis_ui
+    let chat_height = (screen_rect.height() - 50.0);
+    let chat_pos = egui::pos2(
+        screen_rect.width() - chat_width - 10.0,
+        40.0, // Position under item_info with some spacing
+    );
+
+    egui::Area::new("chat_box".into())
+        .fixed_pos(chat_pos)
+        .show(ctx, |ui| {
+            egui::Frame::new()
+                .fill(egui::Color32::from_rgba_premultiplied(25, 25, 25, 255))
+                .corner_radius(10.0)
+                .shadow(egui::epaint::Shadow {
+                    color: egui::Color32::from_black_alpha(60),
+                    offset: [5, 5],
+                    blur: 10,
+                    spread: 5,
+                })
+                .show(ui, |ui| {
+                    ui.set_width(chat_width);
+                    ui.set_height(chat_height);
+
+                    ui.vertical(|ui| {
+                        // Header
+                        ui.horizontal(|ui| {
+                            ui.label(
+                                RichText::new("AI Chat Assistant")
+                                    .strong()
+                                    .color(egui::Color32::WHITE),
+                            );
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.small_button("🗑").on_hover_text("Clear chat").clicked()
+                                    {
+                                        chat_state.chat_history.clear();
+                                    }
+                                },
+                            );
+                        });
+
+                        ui.separator();
+
+                        // Messages area (scrollable)
+                        egui::ScrollArea::vertical()
+                            .auto_shrink([false, false])
+                            .stick_to_bottom(true)
+                            .max_height(chat_height - 80.0) // Leave space for input
+                            .show(ui, |ui| {
+                                ui.set_width(chat_width - 20.0);
+
+                                if chat_state.chat_history.is_empty() {
+                                    ui.vertical_centered(|ui| {
+                                        ui.add_space(20.0);
+                                        ui.label(
+                                            RichText::new("Ask me about the map data!")
+                                                .color(egui::Color32::GRAY)
+                                                .italics(),
+                                        );
+                                    });
+                                } else {
+                                    for message in &chat_state.chat_history {
+                                        render_chat_message(ui, message, chat_width - 30.0);
+                                        ui.add_space(8.0);
+                                    }
+                                }
+
+                                // Show loading indicator if processing
+                                if chat_state.is_processing {
+                                    ui.horizontal(|ui| {
+                                        ui.add_space(10.0);
+                                        ui.spinner();
+                                        ui.label(
+                                            RichText::new("AI is thinking...")
+                                                .color(egui::Color32::GRAY),
+                                        );
+                                    });
+                                }
+                            });
+
+                        ui.add_space(5.0);
+                        ui.separator();
+
+                        // Input area
+                        ui.horizontal(|ui| {
+                            let text_edit = egui::TextEdit::singleline(&mut chat_state.input_text)
+                                .desired_width(chat_width - 60.0)
+                                .hint_text("Ask about the map data...");
+
+                            let response = ui.add(text_edit);
+
+                            let send_clicked =
+                                ui.button("📤").on_hover_text("Send message").clicked();
+
+                            let enter_pressed = response.lost_focus()
+                                && ui.input(|i| i.key_pressed(egui::Key::Enter));
+
+                            if (send_clicked || enter_pressed)
+                                && !chat_state.input_text.trim().is_empty()
+                                && !chat_state.is_processing
+                            {
+                                send_chat_message(&mut chat_state, &workspace);
+                            }
+                        });
+                    });
+                });
+        });
+}
+
+fn render_chat_message(ui: &mut egui::Ui, message: &ChatMessage, max_width: f32) {
+    let bg_color = if message.is_user {
+        egui::Color32::from_rgba_premultiplied(70, 130, 180, 200) // Steel blue for user
+    } else {
+        egui::Color32::from_rgba_premultiplied(60, 60, 60, 200) // Dark gray for AI
+    };
+
+    let text_color = egui::Color32::WHITE;
+
+    ui.horizontal(|ui| {
+        ui.add_space(10.0);
+        if !message.is_user {
+            ui.add_space(20.0);
+        }
+
+        egui::Frame::new()
+            .fill(bg_color)
+            .corner_radius(8.0)
+            .inner_margin(8.0)
+            .show(ui, |ui| {
+                ui.set_max_width(max_width * 0.8);
+
+                // Message header
+                ui.horizontal(|ui| {
+                    let icon = if message.is_user { "👤" } else { "🤖" };
+                    let sender = if message.is_user { "You" } else { "AI" };
+                    ui.label(
+                        RichText::new(format!("{} {}", icon, sender))
+                            .small()
+                            .color(egui::Color32::LIGHT_GRAY),
+                    );
+                });
+
+                // Message content with wrapping
+                ui.add(egui::Label::new(RichText::new(&message.content).color(text_color)).wrap());
+            });
+
+        if message.is_user {
+            ui.add_space(10.0);
+        }
+    });
+}
+
+fn send_chat_message(chat_state: &mut ChatState, workspace: &Workspace) {
+    let user_message = chat_state.input_text.trim().to_string();
+
+    // Add user message to chat
+    chat_state.chat_history.push(ChatMessage {
+        content: user_message.clone(),
+        is_user: true,
+        timestamp: chrono::Utc::now().format("%H:%M:%S").to_string(),
+    });
+
+    // Clear input
+    chat_state.input_text.clear();
+
+    // Set processing state
+    chat_state.is_processing = true;
+
+    // TODO: Replace this with actual LLM integration
+    // For now, simulate AI response
+    chat_state.chat_history.push(ChatMessage {
+        content: format!("I received your message: '{}'. LLM integration coming soon! I can analyze map data, features, and spatial relationships.", user_message),
+        is_user: false,
+        timestamp: chrono::Utc::now().format("%H:%M:%S").to_string(),
+    });
+
+    chat_state.is_processing = false;
+
+    // Keep only last 50 messages to prevent memory issues
+    while chat_state.chat_history.len() > 50 {
+        chat_state.chat_history.remove(0);
     }
 }
