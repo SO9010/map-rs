@@ -1,3 +1,36 @@
+//! # Workspace Management Module
+//! 
+//! This module provides comprehensive workspace management functionality for
+//! organizing, persisting, and analyzing geographic data and map configurations.
+//! 
+//! ## Purpose
+//! - Manage different map workspace configurations and data layers
+//! - Provide data persistence and session management
+//! - Handle background processing of geographic data requests
+//! - Coordinate between different data sources and analysis tools
+//! - Enable collaborative workspace sharing and management
+//! 
+//! ## Sub-modules
+//! - `commands`: Workspace operation commands and state management
+//! - `renderer`: Workspace-specific rendering and visualization
+//! - `ui`: User interface components for workspace interaction
+//! - `worker`: Background task processing and data pipeline management
+//! - `workspace_types`: Core data structures and plugin implementation
+//! 
+//! ## Key Features
+//! - Multi-layered data organization and management
+//! - Persistent workspace storage and loading
+//! - Background processing of API requests and data analysis
+//! - Integration with multiple data sources (OSM, weather, environmental)
+//! - Real-time data updates and synchronization
+//! - Collaborative workspace features preparation
+//! 
+//! ## Workspace Components
+//! - Data layers with independent styling and visibility
+//! - Analysis results and cached computations
+//! - User annotations and custom features
+//! - API integration settings and credentials
+
 use std::{
     collections::{HashMap, HashSet},
     sync::{Arc, Mutex},

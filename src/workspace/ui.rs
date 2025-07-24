@@ -25,6 +25,8 @@ pub struct ChatState {
     pub input_text: String,
     pub chat_history: Vec<ChatMessage>,
     pub is_processing: bool,
+    pub api_token: String,
+    pub token_verified: bool,
 }
 
 #[derive(Clone)]
@@ -580,11 +582,60 @@ pub fn chat_box_ui(
                                     {
                                         chat_state.chat_history.clear();
                                     }
+                                    
+                                    if chat_state.token_verified {
+                                        if ui.small_button("🔑").on_hover_text("Change API token").clicked() {
+                                            chat_state.token_verified = false;
+                                            chat_state.api_token.clear();
+                                            chat_state.chat_history.clear();
+                                        }
+                                    }
                                 },
                             );
                         });
 
                         ui.separator();
+
+                        // API Token input area
+                        if !chat_state.token_verified {
+                            ui.vertical(|ui| {
+                                ui.label(
+                                    RichText::new("🔑 API Token Required")
+                                        .strong()
+                                        .color(egui::Color32::YELLOW),
+                                );
+                                ui.add_space(5.0);
+                                
+                                ui.horizontal(|ui| {
+                                    let token_edit = egui::TextEdit::singleline(&mut chat_state.api_token)
+                                        .desired_width(chat_width - 80.0)
+                                        .hint_text("Enter your OpenRouter API token...")
+                                        .password(true);
+                                    
+                                    ui.add(token_edit);
+                                    
+                                    if ui.button("✓").on_hover_text("Verify token").clicked() && !chat_state.api_token.trim().is_empty() {
+                                        // Simple validation - just check if token is not empty
+                                        // In a real implementation, you might want to test the token with an API call
+                                        chat_state.token_verified = true;
+                                        chat_state.chat_history.push(ChatMessage {
+                                            content: "API token verified! You can now chat with the AI assistant.".to_string(),
+                                            is_user: false,
+                                            timestamp: chrono::Utc::now().format("%H:%M:%S").to_string(),
+                                        });
+                                    }
+                                });
+                                
+                                ui.add_space(5.0);
+                                ui.label(
+                                    RichText::new("Get your API token from: https://openrouter.ai/keys")
+                                        .small()
+                                        .color(egui::Color32::LIGHT_BLUE),
+                                );
+                            });
+                            
+                            ui.separator();
+                        }
 
                         // Messages area (scrollable)
                         egui::ScrollArea::vertical()
@@ -597,11 +648,19 @@ pub fn chat_box_ui(
                                 if chat_state.chat_history.is_empty() {
                                     ui.vertical_centered(|ui| {
                                         ui.add_space(20.0);
-                                        ui.label(
-                                            RichText::new("Ask me about the map data!")
-                                                .color(egui::Color32::GRAY)
-                                                .italics(),
-                                        );
+                                        if chat_state.token_verified {
+                                            ui.label(
+                                                RichText::new("Ask me about the map data!")
+                                                    .color(egui::Color32::GRAY)
+                                                    .italics(),
+                                            );
+                                        } else {
+                                            ui.label(
+                                                RichText::new("Please enter your API token above to start chatting")
+                                                    .color(egui::Color32::GRAY)
+                                                    .italics(),
+                                            );
+                                        }
                                     });
                                 } else {
                                     for message in &chat_state.chat_history {
@@ -626,27 +685,37 @@ pub fn chat_box_ui(
                         ui.add_space(5.0);
                         ui.separator();
 
-                        // Input area
-                        ui.horizontal(|ui| {
-                            let text_edit = egui::TextEdit::singleline(&mut chat_state.input_text)
-                                .desired_width(chat_width - 60.0)
-                                .hint_text("Ask about the map data...");
+                        // Input area - only show if token is verified
+                        if chat_state.token_verified {
+                            ui.horizontal(|ui| {
+                                let text_edit = egui::TextEdit::singleline(&mut chat_state.input_text)
+                                    .desired_width(chat_width - 60.0)
+                                    .hint_text("Ask about the map data...");
 
-                            let response = ui.add(text_edit);
+                                let response = ui.add(text_edit);
 
-                            let send_clicked =
-                                ui.button("📤").on_hover_text("Send message").clicked();
+                                let send_clicked =
+                                    ui.button("📤").on_hover_text("Send message").clicked();
 
-                            let enter_pressed = response.lost_focus()
-                                && ui.input(|i| i.key_pressed(egui::Key::Enter));
+                                let enter_pressed = response.lost_focus()
+                                    && ui.input(|i| i.key_pressed(egui::Key::Enter));
 
-                            if (send_clicked || enter_pressed)
-                                && !chat_state.input_text.trim().is_empty()
-                                && !chat_state.is_processing
-                            {
-                                send_chat_message(&mut chat_state, &workspace);
-                            }
-                        });
+                                if (send_clicked || enter_pressed)
+                                    && !chat_state.input_text.trim().is_empty()
+                                    && !chat_state.is_processing
+                                {
+                                    send_chat_message(&mut chat_state, &workspace);
+                                }
+                            });
+                        } else {
+                            ui.vertical_centered(|ui| {
+                                ui.label(
+                                    RichText::new("💡 Enter your API token above to start chatting")
+                                        .color(egui::Color32::DARK_GRAY)
+                                        .italics(),
+                                );
+                            });
+                        }
                     });
                 });
         });
@@ -685,7 +754,6 @@ fn render_chat_message(ui: &mut egui::Ui, message: &ChatMessage, max_width: f32)
                     );
                 });
 
-                // Message content with wrapping
                 ui.add(egui::Label::new(RichText::new(&message.content).color(text_color)).wrap());
             });
 

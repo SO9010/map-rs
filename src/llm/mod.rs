@@ -1,3 +1,29 @@
+//! # LLM Integration Module
+//! 
+//! This module provides Large Language Model (LLM) integration for AI-powered
+//! analysis and insights of geographic and map data.
+//! 
+//! ## Purpose
+//! - Connect to OpenRouter API for access to various LLM providers
+//! - Analyze geographic data and provide natural language insights
+//! - Enable conversational interaction with map data
+//! - Generate automated reports and summaries of spatial analysis
+//! 
+//! ## Sub-modules
+//! - `client`: OpenRouter API client implementation
+//! - `openrouter_types`: Request/response data structures for API communication
+//! 
+//! ## Key Features
+//! - Support for multiple LLM providers through OpenRouter
+//! - Contextual analysis of map features and spatial relationships
+//! - Natural language querying of geographic data
+//! - Integration with workspace data for comprehensive analysis
+//! - Secure API key management and authentication
+//! 
+//! ## Usage
+//! The LLM client can analyze map features, answer questions about geographic data,
+//! and provide insights based on spatial relationships and attribute data.
+
 mod client;
 mod openrouter_types;
 

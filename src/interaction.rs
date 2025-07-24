@@ -1,3 +1,25 @@
+//! # Interaction System Module
+//! 
+//! This module handles user input and interaction with the map viewer.
+//! 
+//! ## Purpose
+//! - Processes user input events (mouse, keyboard, file drops)
+//! - Handles file drag-and-drop functionality for data import
+//! - Manages interaction states and user interface events
+//! - Coordinates between UI and map interactions
+//! 
+//! ## Key Components
+//! - `InteractionSystemPlugin`: Main plugin for user interactions
+//! - File drop handling system
+//! - Input event processing
+//! - Interaction state management
+//! 
+//! ## Features
+//! - Drag-and-drop file import (GeoJSON, etc.)
+//! - Mouse and keyboard input handling
+//! - Touch and gesture support preparation
+//! - Context-sensitive interaction modes
+
 use bevy::prelude::*;
 use bevy_map_viewer::ZoomChangedEvent;
 
