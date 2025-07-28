@@ -1,3 +1,4 @@
+use crate::workspace::ui::{ChatMessage, ChatState};
 use crate::workspace::{RequestType, WorkspaceRequest};
 use bevy::prelude::*;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
@@ -32,7 +33,11 @@ impl WorkspaceWorker {
     }
 }
 
-pub fn process_requests(mut commands: Commands, mut workspace: ResMut<Workspace>) {
+pub fn process_requests(
+    mut commands: Commands,
+    mut workspace: ResMut<Workspace>,
+    chat_state: ResMut<ChatState>,
+) {
     let task_pool = AsyncComputeTaskPool::get();
     let pending_requests = workspace.worker.pending_requests.clone();
     let active_tasks = workspace.worker.active_tasks.clone();
@@ -67,8 +72,11 @@ pub fn process_requests(mut commands: Commands, mut workspace: ResMut<Workspace>
                 return;
             }
             let overpass_client = workspace.overpass_agent.clone();
+            let openrouter_client = workspace.llm_agent.clone();
             // Clone the loaded_requests Arc<Mutex> instead of holding the MutexGuard
             let loaded_requests = workspace.loaded_requests.clone();
+            let ws: Option<super::WorkspaceData> = workspace.workspace.clone();
+            let cs = chat_state.clone();
             let task = task_pool.spawn(async move {
                 let mut result = Vec::new();
                 match request.get_request() {
@@ -79,9 +87,46 @@ pub fn process_requests(mut commands: Commands, mut workspace: ResMut<Workspace>
                             }
                         }
                     }
-                    RequestType::OpenRouterRequest(_) => todo!(),
+                    RequestType::OpenRouterRequest() => {
+                        if let Some(mut workspace) = ws {
+                        if let Ok(q) = openrouter_client.send_openrouter_chat(&workspace.messages) {
+                                if let Some(choice) = q.choices.first() {
+                                    let ai_message = choice.message.content.clone();
+
+                                    workspace.add_message("assistant", &ai_message);
+                                    
+                                    // Update chat state with thread-safe access
+                                    if let Ok(mut inner) = cs.inner.lock() {
+                                        inner.chat_history.push(ChatMessage {
+                                            content: ai_message.clone(),
+                                            is_user: false,
+                                        });
+                                        inner.is_processing = false;
+                                    }
+                                    if &ai_message[0..2] == "rq" {
+                                        // Now we need to handle the request sent by the agent!
+                                    }
+                                } else {
+                                    // Handle case where no choices are returned
+                                    workspace.add_message("assistant", "Sorry, I didn't receive a proper response from the AI. Please try again.");
+                                    
+                                    // Update chat state with thread-safe access
+                                    if let Ok(mut inner) = cs.inner.lock() {
+                                        inner.chat_history.push(ChatMessage {
+                                        content:
+                                            "Sorry, I didn't receive a proper response from the AI. Please try again."
+                                                .to_string(),
+                                        is_user: false,
+                                        });
+                                        inner.is_processing = false;
+                                    }
+                                    bevy::log::info!("here3");
+
+                                }
+                            }
+                        }
+                    }
                     RequestType::OpenMeteoRequest(_open_meteo_request) => {}
-                    RequestType::AnalysisRequest(_) => todo!(),
                 }
 
                 request.raw_data = result.clone();

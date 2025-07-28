@@ -9,15 +9,14 @@ use uuid::Uuid;
 
 use crate::{
     geojson::{MapFeature, get_data_from_string_osm},
+    llm::{Message, OpenrouterClient},
     workspace::ui::chat_box_ui,
 };
 
 use super::{
     Workspace, WorkspaceData, WorkspacePlugin, WorkspaceRequest,
     renderer::render_workspace_requests,
-    ui::{
-        ChatState, PersistentInfoWindows, item_info, workspace_actions_ui, workspace_analysis_ui,
-    },
+    ui::{ChatState, PersistentInfoWindows, item_info, workspace_actions_ui},
     worker::{cleanup_tasks, process_requests},
 };
 
@@ -100,6 +99,21 @@ impl Workspace {
             }
         }
         rendered_requests
+    }
+}
+
+impl WorkspaceData {
+    pub fn add_message(&mut self, role: &str, content: &str) {
+        self.messages.push(Message {
+            role: role.to_string(),
+            content: content.to_string(),
+            refusal: serde_json::Value::Null,
+            reasoning: serde_json::Value::Null,
+        });
+    }
+
+    pub fn clear_history(&mut self) {
+        self.messages.clear();
     }
 }
 
@@ -209,11 +223,7 @@ impl WorkspaceRequest {
                 }
             }
             crate::workspace::RequestType::OpenMeteoRequest(_) => {}
-            crate::workspace::RequestType::OpenRouterRequest(_) => {}
-            RequestType::OpenMeteoRequest(open_meteo_request) => todo!(),
-            RequestType::OverpassTurboRequest(_) => todo!(),
-            RequestType::OpenRouterRequest(_) => todo!(),
-            RequestType::AnalysisRequest(_) => todo!(),
+            crate::workspace::RequestType::OpenRouterRequest() => {}
         }
     }
 
@@ -246,8 +256,7 @@ pub enum RequestType {
     // If we want to add more requests we can just add them here.
     OpenMeteoRequest(OpenMeteoRequest),
     OverpassTurboRequest(String),
-    OpenRouterRequest(String),
-    AnalysisRequest(String),
+    OpenRouterRequest(),
 }
 
 impl std::fmt::Debug for RequestType {
@@ -255,8 +264,7 @@ impl std::fmt::Debug for RequestType {
         match self {
             RequestType::OpenMeteoRequest(_) => write!(f, "OpenMeteoRequest"),
             RequestType::OverpassTurboRequest(_) => write!(f, "OverpassTurboRequest"),
-            RequestType::OpenRouterRequest(_) => write!(f, "OpenRouterRequest"),
-            RequestType::AnalysisRequest(_) => todo!(),
+            RequestType::OpenRouterRequest() => write!(f, "OpenRouterRequest"),
         }
     }
 }
@@ -304,6 +312,7 @@ impl WorkspaceData {
             last_modified: chrono::Utc::now().timestamp(),
             requests: HashSet::new(),
             properties: HashMap::new(),
+            messages: Vec::new(),
         }
     }
     pub fn empty() -> Self {
@@ -315,6 +324,7 @@ impl WorkspaceData {
             last_modified: chrono::Utc::now().timestamp(),
             requests: HashSet::new(),
             properties: HashMap::new(),
+            messages: Vec::new(),
         }
     }
 }

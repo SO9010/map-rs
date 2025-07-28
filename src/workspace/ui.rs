@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use bevy::prelude::*;
 use bevy_egui::{
@@ -8,7 +9,7 @@ use bevy_egui::{
 use bevy_map_viewer::{
     Coord, EguiBlockInputState, MapViewerMarker, TileMapResources, ZoomChangedEvent, game_to_coord,
 };
-use rstar::{AABB, Envelope, RTreeObject};
+use rstar::{AABB, Envelope};
 use uuid::Uuid;
 
 use crate::{
@@ -20,20 +21,39 @@ use crate::{
 
 use super::{RequestType, WorkspaceRequest};
 
-#[derive(Resource, Default)]
+// This should go into workspace so it can be saved.
+#[derive(Resource)]
 pub struct ChatState {
+    pub inner: Arc<Mutex<ChatStateInner>>,
+}
+
+impl Default for ChatState {
+    fn default() -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(ChatStateInner::default())),
+        }
+    }
+}
+
+impl Clone for ChatState {
+    fn clone(&self) -> Self {
+        Self {
+            inner: Arc::clone(&self.inner),
+        }
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct ChatStateInner {
     pub input_text: String,
     pub chat_history: Vec<ChatMessage>,
     pub is_processing: bool,
-    pub api_token: String,
-    pub token_verified: bool,
 }
 
 #[derive(Clone)]
 pub struct ChatMessage {
     pub content: String,
     pub is_user: bool,
-    pub timestamp: String,
 }
 
 pub fn workspace_actions_ui(
@@ -404,138 +424,10 @@ fn center(selection: &super::Selection, tile_map_res: &TileMapResources) -> Vec2
     }
 }
 
-// We should add a right panel for area analysis
-/*
-Right Panel: Area Analysis
-1. Customizable Styles
-
-    Color by Attribute:
-        A dropdown for selecting the attribute to color by
-        (e.g., "Building type," "Land use," "Population density").
-        This dynamically updates the map with chosen color schemes.
-
-    Size by Attribute:
-        Allow users to adjust point size based on specific attributes,
-        such as the "size of buildings" or "household income."
-
-    Icons for Points:
-        Enable users to select different icons for points on the map based on attributes
-        (e.g., a house icon for residences, a tree for parks).
-
-2. Thematic Mapping: Choropleths
-
-    Dropdown for Layer Selection:
-        A list to choose which layers to apply choropleth styling to.
-
-    Legend for Choropleth:
-        Automatically generate a color scale showing the range of values
-        (e.g., darker shades of blue for higher population density).
-
-3. Legend Generation
-
-    Auto-generated Legends:
-        Once you style a layer or apply thematic mapping,
-        the panel will automatically generate a legend explaining the color, size, and icons used on the map.
-
-4. Charts & Statistics
-
-    House Type Breakdown:
-        Show a pie chart or bar graph breaking down the area by different house types
-        (e.g., "Detached," "Semi-detached," "Apartments").
-
-    Area Size:
-        Display the total size (area) of a selected polygon or area (e.g., "Total area: 150,000 m²").
-
-    Population Density:
-        Show the population density for the selected area (e.g., people per km²).
-
-    Weather Analysis:
-        Include a weather summary for the selected area,
-        such as temperature, precipitation, or other relevant weather parameters.
-
-    UV & Sunlight Analysis:
-        Provide insights about the UV index or sunlight exposure in the area,
-        possibly overlaying heat maps to indicate high/low sunlight regions.
-
-    Attribute Analysis:
-        A detailed breakdown of any attributes present in the area
-        (e.g., "Number of residential buildings," "Average household income").
-
-5. Layer Pickers
-
-    Add Layers:
-        Allow users to add additional data layers, such as road networks, land use, pollution levels, etc.
-
-    Layer Toggle:
-        Let users enable/disable specific layers in the analysis.
-
-UI Layout Suggestions:
-
-    Top Section:
-        A title or summary of the selected area (e.g., "Cambridge - Central Area").
-
-    Left Section:
-        A panel with sliders/dropdowns for custom styles, color by attribute, and thematic mapping options.
-
-    Middle Section:
-        Interactive charts (pie charts, bar graphs, heatmaps) showing key statistics,
-        such as population density and area size.
-
-    Bottom Section:
-        A mini map preview (if space allows), or layer picker dropdown with checkboxes to enable/disable data layers.
-*/
-// Have a little option to hide to the side. Also allow resizing.
-pub fn workspace_analysis_ui(mut contexts: EguiContexts, workspace_res: ResMut<Workspace>) {
-    if let Some(workspace) = &workspace_res.workspace {
-        let ctx = contexts.ctx_mut();
-        let screen_rect = ctx.screen_rect();
-
-        let tilebox_width = 200.0;
-        let tilebox_height = (screen_rect.height() - 40.0) * 0.25; // 1/4 of the right panel height
-
-        let tilebox_pos = egui::pos2(screen_rect.width() - tilebox_width - 10.0, 30.0);
-
-        // Number of items:
-        let mut item_count = 0;
-        for lists in workspace_res.get_rendered_requests().iter() {
-            item_count += lists.get_processed_data().size();
-        }
-        let workspace_area = workspace.get_area();
-        egui::Area::new("info".into())
-            .fixed_pos(tilebox_pos)
-            .show(ctx, |ui| {
-                egui::Frame::new()
-                    .fill(egui::Color32::from_rgba_premultiplied(30, 30, 30, 255))
-                    .corner_radius(10.0)
-                    .shadow(egui::epaint::Shadow {
-                        color: egui::Color32::from_black_alpha(60),
-                        offset: [5, 5],
-                        blur: 10,
-                        spread: 5,
-                    })
-                    .show(ui, |ui| {
-                        ui.set_width(tilebox_width);
-                        ui.set_height(tilebox_height);
-                        ui.vertical_centered(|ui| {
-                            ui.label("");
-                            ui.spacing_mut().item_spacing = egui::vec2(8.0, 10.0);
-                            ui.label(RichText::new("Workspace Analysis").strong());
-                            ui.separator();
-                            ui.label(format!("Number of items: {}", item_count));
-                            ui.label(format!(
-                                "Workspace area: {} {:#?}",
-                                workspace_area.0, workspace_area.1
-                            ));
-                        });
-                    });
-            });
-    }
-}
-
 pub fn chat_box_ui(
     mut contexts: EguiContexts,
-    mut chat_state: ResMut<ChatState>,
-    workspace: Res<Workspace>,
+    chat_state: Res<ChatState>,
+    mut workspace: ResMut<Workspace>,
 ) {
     let ctx = contexts.ctx_mut();
     let screen_rect = ctx.screen_rect();
@@ -545,7 +437,7 @@ pub fn chat_box_ui(
     } else {
         200.0
     }; // Same width as workspace_analysis_ui
-    let chat_height = (screen_rect.height() - 50.0);
+    let chat_height = screen_rect.height() - 50.0;
     let chat_pos = egui::pos2(
         screen_rect.width() - chat_width - 10.0,
         40.0, // Position under item_info with some spacing
@@ -580,14 +472,8 @@ pub fn chat_box_ui(
                                 |ui| {
                                     if ui.small_button("🗑").on_hover_text("Clear chat").clicked()
                                     {
-                                        chat_state.chat_history.clear();
-                                    }
-                                    
-                                    if chat_state.token_verified {
-                                        if ui.small_button("🔑").on_hover_text("Change API token").clicked() {
-                                            chat_state.token_verified = false;
-                                            chat_state.api_token.clear();
-                                            chat_state.chat_history.clear();
+                                        if let Ok(mut inner) = chat_state.inner.lock() {
+                                            inner.chat_history.clear();
                                         }
                                     }
                                 },
@@ -596,48 +482,6 @@ pub fn chat_box_ui(
 
                         ui.separator();
 
-                        // API Token input area
-                        if !chat_state.token_verified {
-                            ui.vertical(|ui| {
-                                ui.label(
-                                    RichText::new("🔑 API Token Required")
-                                        .strong()
-                                        .color(egui::Color32::YELLOW),
-                                );
-                                ui.add_space(5.0);
-                                
-                                ui.horizontal(|ui| {
-                                    let token_edit = egui::TextEdit::singleline(&mut chat_state.api_token)
-                                        .desired_width(chat_width - 80.0)
-                                        .hint_text("Enter your OpenRouter API token...")
-                                        .password(true);
-                                    
-                                    ui.add(token_edit);
-                                    
-                                    if ui.button("✓").on_hover_text("Verify token").clicked() && !chat_state.api_token.trim().is_empty() {
-                                        // Simple validation - just check if token is not empty
-                                        // In a real implementation, you might want to test the token with an API call
-                                        chat_state.token_verified = true;
-                                        chat_state.chat_history.push(ChatMessage {
-                                            content: "API token verified! You can now chat with the AI assistant.".to_string(),
-                                            is_user: false,
-                                            timestamp: chrono::Utc::now().format("%H:%M:%S").to_string(),
-                                        });
-                                    }
-                                });
-                                
-                                ui.add_space(5.0);
-                                ui.label(
-                                    RichText::new("Get your API token from: https://openrouter.ai/keys")
-                                        .small()
-                                        .color(egui::Color32::LIGHT_BLUE),
-                                );
-                            });
-                            
-                            ui.separator();
-                        }
-
-                        // Messages area (scrollable)
                         egui::ScrollArea::vertical()
                             .auto_shrink([false, false])
                             .stick_to_bottom(true)
@@ -645,50 +489,42 @@ pub fn chat_box_ui(
                             .show(ui, |ui| {
                                 ui.set_width(chat_width - 20.0);
 
-                                if chat_state.chat_history.is_empty() {
-                                    ui.vertical_centered(|ui| {
-                                        ui.add_space(20.0);
-                                        if chat_state.token_verified {
+                                if let Ok(inner) = chat_state.inner.lock() {
+                                    if inner.chat_history.is_empty() {
+                                        ui.vertical_centered(|ui| {
+                                            ui.add_space(20.0);
                                             ui.label(
                                                 RichText::new("Ask me about the map data!")
                                                     .color(egui::Color32::GRAY)
                                                     .italics(),
                                             );
-                                        } else {
-                                            ui.label(
-                                                RichText::new("Please enter your API token above to start chatting")
-                                                    .color(egui::Color32::GRAY)
-                                                    .italics(),
-                                            );
+                                        });
+                                    } else {
+                                        for message in &inner.chat_history {
+                                            render_chat_message(ui, message, chat_width - 30.0);
+                                            ui.add_space(8.0);
                                         }
-                                    });
-                                } else {
-                                    for message in &chat_state.chat_history {
-                                        render_chat_message(ui, message, chat_width - 30.0);
-                                        ui.add_space(8.0);
+                                    } // Show loading indicator if processing
+                                    if inner.is_processing {
+                                        ui.horizontal(|ui| {
+                                            ui.add_space(10.0);
+                                            ui.spinner();
+                                            ui.label(
+                                                RichText::new("AI is thinking...")
+                                                    .color(egui::Color32::GRAY),
+                                            );
+                                        });
                                     }
-                                }
-
-                                // Show loading indicator if processing
-                                if chat_state.is_processing {
-                                    ui.horizontal(|ui| {
-                                        ui.add_space(10.0);
-                                        ui.spinner();
-                                        ui.label(
-                                            RichText::new("AI is thinking...")
-                                                .color(egui::Color32::GRAY),
-                                        );
-                                    });
                                 }
                             });
 
                         ui.add_space(5.0);
                         ui.separator();
 
-                        // Input area - only show if token is verified
-                        if chat_state.token_verified {
-                            ui.horizontal(|ui| {
-                                let text_edit = egui::TextEdit::singleline(&mut chat_state.input_text)
+                        // Input area
+                        ui.horizontal(|ui| {
+                            if let Ok(mut inner) = chat_state.inner.lock() {
+                                let text_edit = egui::TextEdit::singleline(&mut inner.input_text)
                                     .desired_width(chat_width - 60.0)
                                     .hint_text("Ask about the map data...");
 
@@ -701,21 +537,29 @@ pub fn chat_box_ui(
                                     && ui.input(|i| i.key_pressed(egui::Key::Enter));
 
                                 if (send_clicked || enter_pressed)
-                                    && !chat_state.input_text.trim().is_empty()
-                                    && !chat_state.is_processing
+                                    && !inner.input_text.trim().is_empty()
+                                    && !inner.is_processing
                                 {
-                                    send_chat_message(&mut chat_state, &workspace);
+                                    let user_message = inner.input_text.trim().to_string();
+                                    inner.input_text.clear();
+                                    inner.is_processing = true;
+
+                                    // Add user message to history
+                                    inner.chat_history.push(ChatMessage {
+                                        content: user_message.clone(),
+                                        is_user: true,
+                                    });
+
+                                    // Drop the lock before calling send_chat_message_background
+                                    drop(inner);
+                                    send_chat_message_background(
+                                        &chat_state,
+                                        &mut workspace,
+                                        user_message,
+                                    );
                                 }
-                            });
-                        } else {
-                            ui.vertical_centered(|ui| {
-                                ui.label(
-                                    RichText::new("💡 Enter your API token above to start chatting")
-                                        .color(egui::Color32::DARK_GRAY)
-                                        .italics(),
-                                );
-                            });
-                        }
+                            }
+                        });
                     });
                 });
         });
@@ -763,34 +607,102 @@ fn render_chat_message(ui: &mut egui::Ui, message: &ChatMessage, max_width: f32)
     });
 }
 
-fn send_chat_message(chat_state: &mut ChatState, workspace: &Workspace) {
-    let user_message = chat_state.input_text.trim().to_string();
+fn send_chat_message_background(
+    chat_state: &ChatState,
+    workspace: &mut Workspace,
+    user_message: String,
+) {
+    let mut llm_client = workspace.llm_agent.clone();
+    llm_client.set_token("!! REPLACE ME WITH TOKEN !!");
 
-    // Add user message to chat
-    chat_state.chat_history.push(ChatMessage {
-        content: user_message.clone(),
-        is_user: true,
-        timestamp: chrono::Utc::now().format("%H:%M:%S").to_string(),
-    });
+    // Build context information about the current workspace and selection
+    let mut context_info = String::new();
 
-    // Clear input
-    chat_state.input_text.clear();
+    if let Some(workspace_data) = &workspace.workspace {
+        let area = workspace_data.get_area();
+        let selection = workspace_data.get_selection();
 
-    // Set processing state
-    chat_state.is_processing = true;
+        context_info.push_str(&format!(
+            "Current workspace: {}\n",
+            workspace_data.get_name()
+        ));
+        context_info.push_str(&format!("Selection area: {:.2} {:#?}\n", area.0, area.1));
+        context_info.push_str(&format!(
+            "Selection type: {:#?}\n",
+            selection.selection_type
+        ));
 
-    // TODO: Replace this with actual LLM integration
-    // For now, simulate AI response
-    chat_state.chat_history.push(ChatMessage {
-        content: format!("I received your message: '{}'. LLM integration coming soon! I can analyze map data, features, and spatial relationships.", user_message),
-        is_user: false,
-        timestamp: chrono::Utc::now().format("%H:%M:%S").to_string(),
-    });
+        // Add coordinate information based on selection type
+        match selection.selection_type {
+            crate::workspace::SelectionType::RECTANGLE => {
+                if let (Some(start), Some(end)) = (selection.start, selection.end) {
+                    context_info.push_str(&format!(
+                        "Bounding box: SW({:.6}, {:.6}) to NE({:.6}, {:.6})\n",
+                        start.lat, start.long, end.lat, end.long
+                    ));
+                }
+            }
+            crate::workspace::SelectionType::CIRCLE => {
+                if let (Some(center), Some(edge)) = (selection.start, selection.end) {
+                    let radius = center.distance(&edge);
+                    context_info.push_str(&format!(
+                        "Center: ({:.6}, {:.6}), Radius: {:.2} {:#?}\n",
+                        center.lat, center.long, radius.0, radius.1
+                    ));
+                }
+            }
+            crate::workspace::SelectionType::POLYGON => {
+                if let Some(points) = &selection.points {
+                    context_info.push_str(&format!("Polygon with {} vertices\n", points.len()));
+                    for (i, point) in points.iter().take(5).enumerate() {
+                        context_info.push_str(&format!(
+                            "  Point {}: ({:.6}, {:.6})\n",
+                            i + 1,
+                            point.lat,
+                            point.long
+                        ));
+                    }
+                    if points.len() > 5 {
+                        context_info.push_str("  ...\n");
+                    }
+                }
+            }
+            _ => {}
+        }
 
-    chat_state.is_processing = false;
+        // Add information about loaded data
+        let requests = workspace.get_rendered_requests();
+        let total_features: usize = requests.iter().map(|r| r.get_processed_data().size()).sum();
+        context_info.push_str(&format!("Total features loaded: {}\n", total_features));
+        context_info.push_str(&format!("Data layers: {}\n", requests.len()));
+    } else {
+        context_info.push_str("No workspace selected\n");
+    }
 
-    // Keep only last 50 messages to prevent memory issues
-    while chat_state.chat_history.len() > 50 {
-        chat_state.chat_history.remove(0);
+    // Create the enhanced user message with context
+    let enhanced_message = if context_info.trim().is_empty() {
+        user_message.clone()
+    } else {
+        format!("CONTEXT:\n{}\nUSER QUERY: {}", context_info, user_message)
+    };
+    if let Some(workspace) = workspace.workspace.as_mut() {
+        workspace.add_message("user", &enhanced_message);
+    }
+
+    // Attempt to get response from LLM
+
+    let request = WorkspaceRequest::new(
+        Uuid::new_v4().to_string(),
+        1,
+        RequestType::OpenRouterRequest(),
+        Vec::new(),
+    );
+    workspace.worker.queue_request(request);
+
+    // Clean up old messages
+    if let Ok(mut inner) = chat_state.inner.lock() {
+        while inner.chat_history.len() > 50 {
+            inner.chat_history.remove(0);
+        }
     }
 }

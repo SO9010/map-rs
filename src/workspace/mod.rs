@@ -1,22 +1,22 @@
 //! # Workspace Management Module
-//! 
+//!
 //! This module provides comprehensive workspace management functionality for
 //! organizing, persisting, and analyzing geographic data and map configurations.
-//! 
+//!
 //! ## Purpose
 //! - Manage different map workspace configurations and data layers
 //! - Provide data persistence and session management
 //! - Handle background processing of geographic data requests
 //! - Coordinate between different data sources and analysis tools
 //! - Enable collaborative workspace sharing and management
-//! 
+//!
 //! ## Sub-modules
 //! - `commands`: Workspace operation commands and state management
 //! - `renderer`: Workspace-specific rendering and visualization
 //! - `ui`: User interface components for workspace interaction
 //! - `worker`: Background task processing and data pipeline management
 //! - `workspace_types`: Core data structures and plugin implementation
-//! 
+//!
 //! ## Key Features
 //! - Multi-layered data organization and management
 //! - Persistent workspace storage and loading
@@ -24,7 +24,7 @@
 //! - Integration with multiple data sources (OSM, weather, environmental)
 //! - Real-time data updates and synchronization
 //! - Collaborative workspace features preparation
-//! 
+//!
 //! ## Workspace Components
 //! - Data layers with independent styling and visibility
 //! - Analysis results and cached computations
@@ -43,7 +43,11 @@ use serde_json::Value;
 use worker::WorkspaceWorker;
 pub use workspace_types::*;
 
-use crate::{geojson::MapFeature, llm::OpenrouterClient, overpass::OverpassClient};
+use crate::{
+    geojson::MapFeature,
+    llm::{LlmResponse, Message, OpenrouterClient},
+    overpass::OverpassClient,
+};
 
 mod commands;
 mod renderer;
@@ -92,6 +96,7 @@ pub struct WorkspaceData {
     last_modified: i64,
     requests: HashSet<String>,
     properties: HashMap<(String, Value), Srgba>,
+    messages: Vec<Message>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -104,7 +109,7 @@ pub struct WorkspaceRequest {
     #[serde(skip)]
     processed_data: RTree<MapFeature>,
     #[serde(skip)]
-    llm_analysis: Vec<String>,
+    llm_analysis: Vec<LlmResponse>,
 
     last_query_date: i64, // When the OSM data was fetched
 }
