@@ -24,14 +24,22 @@ To use the program in its current state:
 - Add, remove, and reorder layers (vector, raster, and real-time data).  
 - Fetch OpenStreetMap data dynamically using **Overpass Turbo**.  
 
-### **📊 Geospatial Analysis** *(Planned)*  
+### **🤖 AI-Powered Analysis**
+- Interactive chat interface for geospatial queries
+- Natural language commands for spatial analysis (nearby features, distances, etc.)
+- Automated feature summarization and insights
+- Context-aware responses based on current map selection
+
+### **🛠️ Workspace & Project Management**
+- Save and load workspaces with selected areas and layers.  
+- Persistent workspace state and configuration.
+- Request history and data caching.
+
+### **📊 Geospatial Analysis**
 - Query building and road data based on custom filters.  
 - Measure areas, distances, and proximity between features.  
-- Overlay datasets such as solar potential, pollution, or transit accessibility.  
-
-### **🛠️ Workspace & Project Management**  *(Next working on)*
-- Save and load workspaces with selected areas and layers.  
-- Export workspaces for future analysis or collaboration.  
+- Feature counting and spatial statistics.
+- Bounding box and polygon-based queries.
 
 ### **🔌 Data Integration** *(Planned)*  
 - Import/Export **GeoJSON**, **Shapefiles**, and other GIS formats.  
@@ -81,16 +89,34 @@ cd map-rs
 cargo build # or 'cargo run', to run the app
 ```
 
+### **AI Chat Setup (Optional)**
+To use the AI-powered chat features:
+
+1. Get an API key from [OpenRouter](https://openrouter.ai/)
+2. Edit `src/workspace/ui.rs` and replace the line:
+   ```rust
+   workspace.llm_agent.set_token("!!! YOUR TOKEN HERE !!!");
+   ```
+   with your actual API key:
+   ```rust
+   workspace.llm_agent.set_token("your-actual-api-key-here");
+   ```
+3. Rebuild the application: `cargo build`
+
+**Note**: The application works without an API key, but AI chat functionality will be unavailable.
+
 ---
 
 ## **Roadmap**  
 - ✅ **Basic Map Navigation & Selection**  
 - ✅ **Overpass Turbo Data Fetching**  
+- ✅ **AI-Powered Chat & Spatial Analysis**
+- ✅ **Workspace Management**
 - ⏳ **Layer System (WIP)**  
 - ⏳ **Attribute Table & Metadata Display**  
 - ⏳ **Custom Styling & Visualization**  
 - ⏳ **GeoJSON & Shapefile Support**  
-- ⏳ **Geospatial Analysis Tools**  
+- ⏳ **Advanced Geospatial Analysis Tools**  
 
 ---
 

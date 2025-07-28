@@ -124,6 +124,8 @@ Each major system is implemented as a Bevy plugin:
 2. Clone repository
 3. Run `cargo build` to compile
 4. Run `cargo run` to start application
-5. Set environment variable `OPENROUTER_API_KEY` for AI features
+5. **For AI features**: Edit `src/workspace/ui.rs` and replace `"!!! YOUR TOKEN HERE !!!"` with your OpenRouter API key from [openrouter.ai](https://openrouter.ai/)
+
+The application will function without an API key, but AI-powered chat and analysis features will be unavailable.
 
 This documentation provides a high-level overview of the system architecture. Detailed API documentation for each module follows in the subsequent sections.
