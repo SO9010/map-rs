@@ -2,7 +2,7 @@ use std::{fs::File, io::BufReader};
 
 use bevy::log::info;
 use bevy_map_viewer::Coord;
-use geojson::{GeoJson, JsonValue};
+use geojson::GeoJson;
 use rstar::RTree;
 use serde::{Deserialize, Serialize};
 
@@ -140,7 +140,7 @@ pub fn get_map_data(file_path: &str) -> Result<Vec<MapFeature>, Box<dyn std::err
                                 feature.properties.clone().unwrap().get_key_value("entity")
                             )
                         },
-                        |id| format!("{:?}", id),
+                        |id| format!("{id:?}"),
                     ),
                     properties: serde_json::Value::Object(feature.properties.unwrap_or_default()),
                     closed,

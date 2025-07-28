@@ -46,7 +46,6 @@ use bevy_map_viewer::{Coord, MapViewerMarker, MapViewerPlugin, TileMapResources}
 use bevy_pancam::{DirectionKeys, PanCam, PanCamPlugin};
 
 use bevy_map_viewer::EguiBlockInputState;
-use directories::UserDirs;
 use platform_dirs::AppDirs;
 
 const SHADER_ASSET_PATH: &str = "shaders/full_screen_pass.wgsl";

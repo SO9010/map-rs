@@ -45,7 +45,7 @@ pub use workspace_types::*;
 
 use crate::{
     geojson::MapFeature,
-    llm::{LlmResponse, Message, OpenrouterClient},
+    llm::{Message, OpenrouterClient},
     overpass::OverpassClient,
 };
 
@@ -108,8 +108,5 @@ pub struct WorkspaceRequest {
     raw_data: Vec<u8>, // Raw data from the request maybe have this as a id list aswell...
     #[serde(skip)]
     processed_data: RTree<MapFeature>,
-    #[serde(skip)]
-    llm_analysis: Vec<LlmResponse>,
-
     last_query_date: i64, // When the OSM data was fetched
 }

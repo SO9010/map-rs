@@ -1,10 +1,10 @@
 use crate::{
     geojson::MapFeature,
-    workspace::{Workspace, WorkspaceData},
+    workspace::Workspace,
 };
 use bevy_map_viewer::Coord;
 use geo::Centroid;
-use rstar::{AABB, PointDistance, RTreeObject};
+use rstar::AABB;
 use std::fmt::Display;
 
 impl Workspace {
@@ -15,11 +15,10 @@ impl Workspace {
             let area = workspace.get_area();
             let selection = &workspace.selection;
             return format!(
-                "Features: {}, Area: {:?}, Selection: {:?}",
-                count, area, selection
+                "Features: {count}, Area: {area:?}, Selection: {selection:?}"
             );
         }
-        format!("Features: {}", count)
+        format!("Features: {count}")
     }
 
     // t    : Tags for feature. ex: rq: t 123456
@@ -84,13 +83,13 @@ impl Workspace {
 
         for f in &features {
             if let Some(props) = f.properties.as_object() {
-                for (k, v) in props {
+                for (k, _v) in props {
                     *tags_count.entry(k.clone()).or_insert(0) += 1;
                 }
             }
         }
 
-        format!("Count: {}, Tags Summary: {:?}", count, tags_count)
+        format!("Count: {count}, Tags Summary: {tags_count:?}")
     }
 
     // bb   : Features in bbox. ex: rq: bb {51.4,-0.1,51.6,-0.08}

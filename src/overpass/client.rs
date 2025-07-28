@@ -124,7 +124,7 @@ pub fn get_bounds(selection: Selection) -> String {
                 .map(|point| format!("{} {}", point.lat, point.long))
                 .collect::<Vec<String>>()
                 .join(" ");
-            format!("poly:\"{}\"", points_string)
+            format!("poly:\"{points_string}\"")
         } else {
             String::default()
         }
@@ -164,7 +164,7 @@ pub fn get_bounds(selection: Selection) -> String {
                         .map(|point| format!("{} {}", point.lat, point.long))
                         .collect::<Vec<String>>()
                         .join(" ");
-                    format!("poly:\"{}\"", points_string)
+                    format!("poly:\"{points_string}\"")
                 } else {
                     String::new() // Return an empty string if no points are provided
                 }

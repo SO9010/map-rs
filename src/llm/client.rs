@@ -150,7 +150,7 @@ impl OpenrouterClient {
                 .post(&self.url)
                 .header(
                     "Authorization",
-                    format!("Bearer {}", self.token.as_ref().unwrap().to_string()),
+                    format!("Bearer {}", self.token.as_ref().unwrap()),
                 )
                 .send_json(body_clone)
             {

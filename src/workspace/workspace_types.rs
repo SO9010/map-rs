@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::{
     geojson::{MapFeature, get_data_from_string_osm},
-    llm::{Message, OpenrouterClient},
+    llm::Message,
     workspace::ui::chat_box_ui,
 };
 
@@ -174,21 +174,21 @@ impl WorkspaceData {
                         .distance(&Coord::new(start.lat, end.long));
                     return (top.0 * left.0, left.1);
                 }
-                return (0.0, bevy_map_viewer::DistanceType::Km);
+                (0.0, bevy_map_viewer::DistanceType::Km)
             }
             SelectionType::CIRCLE => {
                 if let (Some(center), Some(edge)) = (self.selection.start, self.selection.end) {
                     let radius = center.distance(&edge);
                     return (std::f32::consts::PI * radius.0 * radius.0, radius.1);
                 }
-                return (0.0, bevy_map_viewer::DistanceType::Km);
+                (0.0, bevy_map_viewer::DistanceType::Km)
             }
             SelectionType::POLYGON => {
                 if let Some(_points) = &self.selection.points {
                     return (0.0, bevy_map_viewer::DistanceType::Km);
                     // TODO: Implement polygon area calculation
                 }
-                return (0.0, bevy_map_viewer::DistanceType::Km);
+                (0.0, bevy_map_viewer::DistanceType::Km)
             }
             _ => (0.0, bevy_map_viewer::DistanceType::Km),
         }
@@ -197,7 +197,7 @@ impl WorkspaceData {
 
 impl WorkspaceRequest {
     pub fn get_visible(&self) -> bool {
-        self.visible.clone()
+        self.visible
     }
     pub fn get_id(&self) -> String {
         self.id.clone()
@@ -293,7 +293,6 @@ impl WorkspaceRequest {
             raw_data,
             processed_data: RTree::new(),
             last_query_date: chrono::Utc::now().timestamp(),
-            llm_analysis: Vec::new(),
         }
     }
 

@@ -324,7 +324,7 @@ pub fn item_info(
                         ui.horizontal(|ui| {
                             ui.label(key);
 
-                            ui.label(format!("{}", value));
+                            ui.label(format!("{value}"));
 
                             if let Some(color) = workspace
                                 .workspace
@@ -432,8 +432,8 @@ pub fn chat_box_ui(
     let ctx = contexts.ctx_mut();
     let screen_rect = ctx.screen_rect();
 
-    let chat_width = if screen_rect.width() / 4 as f32 > 200.0 {
-        screen_rect.width() / 4 as f32
+    let chat_width = if screen_rect.width() / 4_f32 > 200.0 {
+        screen_rect.width() / 4_f32
     } else {
         200.0
     }; // Same width as workspace_analysis_ui
@@ -592,7 +592,7 @@ fn render_chat_message(ui: &mut egui::Ui, message: &ChatMessage, max_width: f32)
                     let icon = if message.is_user { "👤" } else { "🤖" };
                     let sender = if message.is_user { "You" } else { "AI" };
                     ui.label(
-                        RichText::new(format!("{} {}", icon, sender))
+                        RichText::new(format!("{icon} {sender}"))
                             .small()
                             .color(egui::Color32::LIGHT_GRAY),
                     );
@@ -673,7 +673,7 @@ fn send_chat_message_background(
         // Add information about loaded data
         let requests = workspace.get_rendered_requests();
         let total_features: usize = requests.iter().map(|r| r.get_processed_data().size()).sum();
-        context_info.push_str(&format!("Total features loaded: {}\n", total_features));
+        context_info.push_str(&format!("Total features loaded: {total_features}\n"));
         context_info.push_str(&format!("Data layers: {}\n", requests.len()));
     } else {
         context_info.push_str("No workspace selected\n");
@@ -683,7 +683,7 @@ fn send_chat_message_background(
     let enhanced_message = if context_info.trim().is_empty() {
         user_message.clone()
     } else {
-        format!("CONTEXT:\n{}\nUSER QUERY: {}", context_info, user_message)
+        format!("CONTEXT:\n{context_info}\nUSER QUERY: {user_message}")
     };
     if let Some(workspace) = workspace.workspace.as_mut() {
         workspace.add_message("user", &enhanced_message);

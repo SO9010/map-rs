@@ -131,6 +131,6 @@ pub fn count_entities(
 ) {
     for mut span in &mut query {
         let entity_count = query_entity.iter().count();
-        **span = format!("{}", entity_count);
+        **span = format!("{entity_count}");
     }
 }

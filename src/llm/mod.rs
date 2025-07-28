@@ -30,8 +30,8 @@ mod openrouter_types;
 use std::fmt::Display;
 
 pub use openrouter_types::*;
-use serde::{Deserialize, Serialize};
-use ureq::{Agent, unversioned::transport::time::Duration};
+use serde::Serialize;
+use ureq::Agent;
 
 use crate::llm::client::LLM_PROMPT;
 

@@ -31,7 +31,7 @@ pub fn respawn_shapes(
     shapes_query: Query<(Entity, &ShapeMarker)>,
     tile_map_manager: Res<TileMapResources>,
     workspace: Res<Workspace>,
-    mut zoom_change: EventReader<ZoomChangedEvent>,
+    zoom_change: EventReader<ZoomChangedEvent>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
@@ -192,12 +192,12 @@ impl MeshConstructor {
         self.index_offset += geometry.vertices.len() as u32;
     }
     fn to_mesh(&self) -> Mesh {
-        let mesh = Mesh::new(
+        
+        Mesh::new(
             PrimitiveTopology::TriangleList,
             RenderAssetUsages::default(),
         )
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.vertices.clone())
-        .with_inserted_indices(Indices::U32(self.indices.clone()));
-        mesh
+        .with_inserted_indices(Indices::U32(self.indices.clone()))
     }
 }
