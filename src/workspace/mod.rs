@@ -57,7 +57,7 @@ mod workspace_types;
 
 pub struct WorkspacePlugin;
 
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub struct Workspace {
     pub workspace: Option<WorkspaceData>,
     // (id, request)

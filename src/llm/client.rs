@@ -1,3 +1,4 @@
+use bevy::log;
 use serde_json::json;
 
 use crate::llm::LlmResponse;
@@ -12,21 +13,19 @@ use super::{Message, OpenrouterClient};
 //     rq: <cmd> <params>
 //
 // Commands:
+//   i    : General info/stats   ex: rq: i (workspace info)
+//   cnt  : Count features       ex: rq: cnt (count all workspace features)
 //   nb   : Nearby features      ex: rq: nb {51.5,-0.09} r500
-//   cnt  : Count features       ex: rq: cnt {51.5,-0.09} r500
 //   sm   : Summarize features   ex: rq: sm {51.5,-0.09} r500
 //   gt   : Feature details      ex: rq: gt 123456
 //   t    : Feature tags         ex: rq: t 123456
 //   bb   : Features in bbox     ex: rq: bb {51.4,-0.1,51.6,-0.08}
 //   d    : Distance             ex: rq: d {51.5,-0.09} {51.6,-0.10}
 //   n    : Nearest feature      ex: rq: n {51.5,-0.09}
-//   ply  : Features in polygon  ex: rq: ply {[51.5,-0.1],[51.6,-0.1],[51.6,-0.09]}
-//   i    : General info/stats   ex: rq: i {51.5,-0.09} r500
 //
 // Rules:
 // - Points as {lat,lon}, radius as r<meters> (e.g., r200).
 // - bbox: {minLat,minLon,maxLat,maxLon}.
-// - polygons: {[lat,lon],...}.
 // - Always prefix data requests with "rq:".
 //
 // Example:
@@ -35,7 +34,8 @@ use super::{Message, OpenrouterClient};
 //
 // ============================================================================
 
-// We should add a populiation decnity command
+// We should add a population density command
+// Command list updated to match actual implementations in commands.rs
 pub const LLM_PROMPT: &str = r#"
 You are a geo-analysis assistant.
 
@@ -49,23 +49,22 @@ Your job is to answer user questions about geographic areas. Always follow this 
 
 --- Commands ---
 
-Needs specific parameters:
-- rq: nb {lat,lon} r{radius} → Nearby features
-- rq: bb {lat1,lon1,lat2,lon2} → Features in bounding box
+Workspace-level commands (no parameters needed):
+- rq: i → General workspace info and stats
+- rq: cnt → Count all features in workspace
+
+Location-based commands (need coordinates):
+- rq: nb {lat,lon} r{radius} → Nearby features within radius
+- rq: sm {lat,lon} r{radius} → Summarize features in area
+- rq: n {lat,lon} → Nearest feature to point
 - rq: d {lat1,lon1} {lat2,lon2} → Distance between two points
-- rq: n {lat,lon} → Nearest feature
-- rq: ply {[lat,lon],[lat,lon],...} → Features inside polygon
 
-Context from workspace (no parameters)
+Bounding box command:
+- rq: bb {minLat,minLon,maxLat,maxLon} → Features in bounding box
 
-- rq: s → Get the selection information
-- rq: i → General summary for an area
-- rq: cnt → Count features
-- rq: sm → Summarize attributes (e.g. population, area)
-
-Id parameter
+Feature-specific commands (need feature ID):
 - rq: gt <id> → Get full details for a feature
-- rq: t <id> → Get tag metadata
+- rq: t <id> → Get tag metadata for a feature
 
 Points must be in {lat,lon} format. Distances like r500 mean 500 meters.
 
@@ -114,7 +113,7 @@ Rules Recap:
 
 "#;
 
-// I really should make my own llm api using ureq!
+// This really needs to reflect how many tokens are left!
 impl OpenrouterClient {
     fn build_messages_json(&self, mess: &Vec<Message>) -> serde_json::Value {
         let mut messages = vec![json!({
@@ -142,6 +141,8 @@ impl OpenrouterClient {
             "messages": self.build_messages_json(messages)
         });
 
+        // We want to parse throught the error message. Rate limiting probably means that the tokens are all used up!
+        // We can take "backup" keys so that it doesnt end it just switches keys.
         let mut status = 429;
         while status == 429 {
             let body_clone = body.clone(); // Clone the body for each request attempt
@@ -156,14 +157,18 @@ impl OpenrouterClient {
             {
                 if response.status() == 200 {
                     let res: LlmResponse = response.body_mut().read_json()?;
+                    log::info!("Got the llm response!");
                     return Ok(res);
                 } else if response.status() == 429 {
+                    log::info!("Timeout!");
                     std::thread::sleep(std::time::Duration::from_secs(5));
                 } else {
+                    log::info!("Error");
                     status = 0;
                 }
             }
         }
+
         Err(ureq::Error::ConnectionFailed)
     }
 }

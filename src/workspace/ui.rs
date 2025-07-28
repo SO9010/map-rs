@@ -612,8 +612,7 @@ fn send_chat_message_background(
     workspace: &mut Workspace,
     user_message: String,
 ) {
-    let mut llm_client = workspace.llm_agent.clone();
-    llm_client.set_token("!! REPLACE ME WITH TOKEN !!");
+    workspace.llm_agent.set_token("!!! YOUR TOKEN HERE !!!");
 
     // Build context information about the current workspace and selection
     let mut context_info = String::new();

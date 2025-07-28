@@ -1,12 +1,10 @@
-use crate::{
-    geojson::MapFeature,
-    workspace::Workspace,
-};
+use crate::{geojson::MapFeature, workspace::Workspace};
 use bevy_map_viewer::Coord;
 use geo::Centroid;
 use rstar::AABB;
 use std::fmt::Display;
 
+// TODO: Make the geojson simplifyer to parse to the llm.
 impl Workspace {
     // i    : General info/stats.
     pub fn get_info(&self) -> String {
@@ -14,9 +12,7 @@ impl Workspace {
         if let Some(workspace) = &self.workspace {
             let area = workspace.get_area();
             let selection = &workspace.selection;
-            return format!(
-                "Features: {count}, Area: {area:?}, Selection: {selection:?}"
-            );
+            return format!("Features: {count}, Area: {area:?}, Selection: {selection:?}");
         }
         format!("Features: {count}")
     }
