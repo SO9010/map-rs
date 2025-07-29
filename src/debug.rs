@@ -1,3 +1,25 @@
+//! # Debug System Module
+//! 
+//! This module provides debugging utilities and performance monitoring for the application.
+//! 
+//! ## Purpose
+//! - Real-time performance metrics display (FPS, frame time)
+//! - Debug overlays and visual debugging tools
+//! - Development-time diagnostics and profiling
+//! - Error reporting and logging utilities
+//! 
+//! ## Key Components
+//! - `DebugPlugin`: Main debug plugin with conditional compilation
+//! - `DebugText`: Component for debug information display
+//! - Performance monitoring systems
+//! - Debug UI rendering
+//! 
+//! ## Features
+//! - FPS counter and frame time diagnostics
+//! - Debug text overlays
+//! - Conditional debug builds (only active in debug mode)
+//! - Performance profiling integration
+
 use bevy::{
     color::palettes::css::GOLD,
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
@@ -109,6 +131,6 @@ pub fn count_entities(
 ) {
     for mut span in &mut query {
         let entity_count = query_entity.iter().count();
-        **span = format!("{}", entity_count);
+        **span = format!("{entity_count}");
     }
 }

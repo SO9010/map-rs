@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 
 use bevy::prelude::*;
 use bevy_map_viewer::{Coord, TileMapResources};
@@ -25,18 +24,8 @@ impl MapFeature {
         }
         new_points
     }
-
-    fn extract_attributes_from_properties(&self) -> HashSet<String> {
-        let mut attributes = HashSet::new();
-
-        if let serde_json::Value::Object(properties) = &self.properties {
-            for key in properties.keys() {
-                attributes.insert(key.clone());
-            }
-        }
-        attributes
-    }
 }
+
 impl RTreeObject for MapFeature {
     type Envelope = AABB<[f64; 2]>;
 

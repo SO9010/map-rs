@@ -1,18 +1,25 @@
 # **Urban Planning GIS App**  
-A fast, open-source GIS tool for urban planning, spatial analysis, and geospatial data visualization. This application allows users to select areas, fetch data from OpenStreetMap (Overpass Turbo), and analyze geographic data with a focus on urban development and sustainability.  
+A fast, open-source GIS tool for urban planning, spatial analysis, and geospatial data visualization. This application allows users to select areas, fetch data from OpenStreetMap (Overpass Turbo), and analyze geographic data with a focus on urban development and sustainability. It utilises LLM chatbots to help the user analyse their workspace.
+
+## Showcase
+https://github.com/user-attachments/assets/ecc4bf27-834c-4568-9ca9-af6da94acf6a
 
 ## How to Use the Program
 
 To use the program in its current state:
-
-1. Select the **Selection Tool** (second icon from the left).  
-2. Use it to select an area on the map.  
-3. On the left side, choose the type of **Overpass request** you want to perform from the dropdown menu.  
-4. At the top, select the **Workspace**.  
+1. Edit `src/workspace/ui.rs` and replace `"!!! YOUR TOKEN HERE !!!"` with your OpenRouter API key from [openrouter.ai](https://openrouter.ai/api). This will change very soon to just getting prompted in the app to input your token :)
+2. Select the **Selection Tool** (second icon from the left).  
+3. Use it to select an area on the map.  
+4. On the left side, choose the type of **Overpass request** you want to perform from the dropdown menu.  
+5. At the top, select the **Workspace**.  
    - **Note:** Loading may take a few seconds depending on the size of the response.  
-5. Once the data is loaded, switch back to the **Cursor Tool** (which also acts as the info tool).  
-6. Click on a **house** or other **element**.  
-7. You can then change its color based on its properties.
+From here you can either
+**Analyse using llm**
+For this simply ask what you want the llm to in the chat box on the right. Do note that it is containerised and will only be able to access data selected for the workspace.
+**Change color**
+6. Once the data is loaded, switch back to the **Cursor Tool** (which also acts as the info tool).
+7. Click on a **house** or other **element**.  
+8. You can then change its color based on its properties.
 
 ## **Features**  
 ### **🗺️ Map Navigation & Selection**  
@@ -24,19 +31,22 @@ To use the program in its current state:
 - Add, remove, and reorder layers (vector, raster, and real-time data).  
 - Fetch OpenStreetMap data dynamically using **Overpass Turbo**.  
 
-### **📊 Geospatial Analysis** *(Planned)*  
+### **🤖 AI-Powered Analysis**
+- Interactive chat interface for geospatial queries
+- Natural language commands for spatial analysis (population dencity, suitabilty of new houses, etc.)
+- Automated feature summarization and insights
+- Context-aware responses based on current map selection
+
+### **🛠️ Workspace & Project Management**
+- Save and load workspaces with selected areas and layers.  
+- Persistent workspace state and configuration.
+- Request history and data caching.
+
+### **📊 Geospatial Analysis**
 - Query building and road data based on custom filters.  
 - Measure areas, distances, and proximity between features.  
-- Overlay datasets such as solar potential, pollution, or transit accessibility.  
-
-### **🛠️ Workspace & Project Management**  *(Next working on)*
-- Save and load workspaces with selected areas and layers.  
-- Export workspaces for future analysis or collaboration.  
-
-### **🔌 Data Integration** *(Planned)*  
-- Import/Export **GeoJSON**, **Shapefiles**, and other GIS formats.  
-- Support for **WMS/WFS** layers (real-time weather, elevation, etc.).  
-- Generate heatmaps and custom visualizations.  
+- Feature counting and spatial statistics.
+- Bounding box and polygon-based queries.
 
 ---
 
@@ -81,16 +91,21 @@ cd map-rs
 cargo build # or 'cargo run', to run the app
 ```
 
----
+### **AI Chat Setup**
+To use the AI-powered chat features:
 
-## **Roadmap**  
-- ✅ **Basic Map Navigation & Selection**  
-- ✅ **Overpass Turbo Data Fetching**  
-- ⏳ **Layer System (WIP)**  
-- ⏳ **Attribute Table & Metadata Display**  
-- ⏳ **Custom Styling & Visualization**  
-- ⏳ **GeoJSON & Shapefile Support**  
-- ⏳ **Geospatial Analysis Tools**  
+1. Get an API key from [OpenRouter](https://openrouter.ai/)
+2. Edit `src/workspace/ui.rs` and replace the line:
+   ```rust
+   workspace.llm_agent.set_token("!!! YOUR TOKEN HERE !!!");
+   ```
+   with your actual API key:
+   ```rust
+   workspace.llm_agent.set_token("your-actual-api-key-here");
+   ```
+3. Rebuild the application: `cargo build`
+
+**Note**: The application works without an API key, but AI chat functionality will be unavailable.
 
 ---
 
