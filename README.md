@@ -1,7 +1,5 @@
 # **Urban Planning GIS App**  
-A fast, open-source GIS tool for urban planning, spatial analysis, and geospatial data visualization. This application allows users to select areas, 
-
-fetch data from OpenStreetMap (Overpass Turbo), and analyze geographic data with a focus on urban development and sustainability.  
+A fast, open-source GIS tool for urban planning, spatial analysis, and geospatial data visualization. This application allows users to select areas, fetch data from OpenStreetMap (Overpass Turbo), and analyze geographic data with a focus on urban development and sustainability. It utilises LLM chatbots to help the user analyse their workspace.
 
 ## Showcase
 https://github.com/user-attachments/assets/ecc4bf27-834c-4568-9ca9-af6da94acf6a
