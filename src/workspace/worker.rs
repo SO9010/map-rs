@@ -194,20 +194,8 @@ fn process_llm_request(
                             }
                         }
                         "sm" => {
-                            // Summarize features: rq: sm {51.5,-0.09} r500
-                            if let (Some(coord_str), Some(radius_str)) =
-                                (parts.next(), parts.next())
-                            {
-                                if let (Ok(coord), Ok(radius)) =
-                                    (parse_coord(coord_str), parse_radius(radius_str))
-                                {
-                                    workspace_clone.summarize_features(coord, radius)
-                                } else {
-                                    "Invalid coordinate or radius format. Use: rq: sm {lat,lon} r<meters>".to_string()
-                                }
-                            } else {
-                                "Missing parameters. Use: rq: sm {lat,lon} r<meters>".to_string()
-                            }
+                            // Summarize features: rq: sm
+                            workspace_clone.summarize_features()
                         }
                         "gt" => {
                             // Feature details by ID: rq: gt 123456
@@ -406,41 +394,4 @@ fn parse_bbox(bbox_str: &str) -> Result<(f64, f64, f64, f64), String> {
         .map_err(|_| "Invalid max_lon")?;
 
     Ok((min_lat, min_lon, max_lat, max_lon))
-}
-
-fn parse_polygon(polygon_str: &str) -> Result<Vec<Coord>, String> {
-    // Parse format: {[lat1,lon1],[lat2,lon2],[lat3,lon3]}
-    let polygon_str = polygon_str.trim_start_matches('{').trim_end_matches('}');
-    let mut coords = Vec::new();
-
-    // Split by '],' to separate coordinate pairs
-    let parts: Vec<&str> = polygon_str.split("],[").collect();
-
-    for (i, part) in parts.iter().enumerate() {
-        let coord_part = if i == 0 {
-            part.trim_start_matches('[')
-        } else if i == parts.len() - 1 {
-            part.trim_end_matches(']')
-        } else {
-            part
-        };
-
-        let coord_parts: Vec<&str> = coord_part.split(',').collect();
-        if coord_parts.len() != 2 {
-            return Err("Each coordinate must have exactly 2 parts".to_string());
-        }
-
-        let lat = coord_parts[0]
-            .trim()
-            .parse::<f32>()
-            .map_err(|_| "Invalid latitude")?;
-        let long = coord_parts[1]
-            .trim()
-            .parse::<f32>()
-            .map_err(|_| "Invalid longitude")?;
-
-        coords.push(Coord { lat, long });
-    }
-
-    Ok(coords)
 }

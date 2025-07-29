@@ -429,6 +429,9 @@ pub fn chat_box_ui(
     chat_state: Res<ChatState>,
     mut workspace: ResMut<Workspace>,
 ) {
+    if workspace.workspace.is_none() {
+        return;
+    }
     let ctx = contexts.ctx_mut();
     let screen_rect = ctx.screen_rect();
 

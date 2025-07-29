@@ -4,15 +4,19 @@ A fast, open-source GIS tool for urban planning, spatial analysis, and geospatia
 ## How to Use the Program
 
 To use the program in its current state:
-
-1. Select the **Selection Tool** (second icon from the left).  
-2. Use it to select an area on the map.  
-3. On the left side, choose the type of **Overpass request** you want to perform from the dropdown menu.  
-4. At the top, select the **Workspace**.  
+1. Edit `src/workspace/ui.rs` and replace `"!!! YOUR TOKEN HERE !!!"` with your OpenRouter API key from [openrouter.ai](https://openrouter.ai/api). This will change very soon to just getting prompted in the app to input your token :)
+2. Select the **Selection Tool** (second icon from the left).  
+3. Use it to select an area on the map.  
+4. On the left side, choose the type of **Overpass request** you want to perform from the dropdown menu.  
+5. At the top, select the **Workspace**.  
    - **Note:** Loading may take a few seconds depending on the size of the response.  
-5. Once the data is loaded, switch back to the **Cursor Tool** (which also acts as the info tool).  
-6. Click on a **house** or other **element**.  
-7. You can then change its color based on its properties.
+From here you can either
+**Analyse using llm**
+For this simply ask what you want the llm to in the chat box on the right. Do note that it is containerised and will only be able to access data selected for the workspace.
+**Change color**
+6. Once the data is loaded, switch back to the **Cursor Tool** (which also acts as the info tool).
+7. Click on a **house** or other **element**.  
+8. You can then change its color based on its properties.
 
 ## **Features**  
 ### **🗺️ Map Navigation & Selection**  
@@ -26,7 +30,7 @@ To use the program in its current state:
 
 ### **🤖 AI-Powered Analysis**
 - Interactive chat interface for geospatial queries
-- Natural language commands for spatial analysis (nearby features, distances, etc.)
+- Natural language commands for spatial analysis (population dencity, suitabilty of new houses, etc.)
 - Automated feature summarization and insights
 - Context-aware responses based on current map selection
 
@@ -40,11 +44,6 @@ To use the program in its current state:
 - Measure areas, distances, and proximity between features.  
 - Feature counting and spatial statistics.
 - Bounding box and polygon-based queries.
-
-### **🔌 Data Integration** *(Planned)*  
-- Import/Export **GeoJSON**, **Shapefiles**, and other GIS formats.  
-- Support for **WMS/WFS** layers (real-time weather, elevation, etc.).  
-- Generate heatmaps and custom visualizations.  
 
 ---
 
@@ -89,7 +88,7 @@ cd map-rs
 cargo build # or 'cargo run', to run the app
 ```
 
-### **AI Chat Setup (Optional)**
+### **AI Chat Setup**
 To use the AI-powered chat features:
 
 1. Get an API key from [OpenRouter](https://openrouter.ai/)
@@ -104,19 +103,6 @@ To use the AI-powered chat features:
 3. Rebuild the application: `cargo build`
 
 **Note**: The application works without an API key, but AI chat functionality will be unavailable.
-
----
-
-## **Roadmap**  
-- ✅ **Basic Map Navigation & Selection**  
-- ✅ **Overpass Turbo Data Fetching**  
-- ✅ **AI-Powered Chat & Spatial Analysis**
-- ✅ **Workspace Management**
-- ⏳ **Layer System (WIP)**  
-- ⏳ **Attribute Table & Metadata Display**  
-- ⏳ **Custom Styling & Visualization**  
-- ⏳ **GeoJSON & Shapefile Support**  
-- ⏳ **Advanced Geospatial Analysis Tools**  
 
 ---
 

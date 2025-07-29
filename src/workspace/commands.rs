@@ -12,7 +12,16 @@ impl Workspace {
         if let Some(workspace) = &self.workspace {
             let area = workspace.get_area();
             let selection = &workspace.selection;
-            return format!("Features: {count}, Area: {area:?}, Selection: {selection:?}");
+
+            let mut matches = Vec::new();
+            for request in self.get_requests() {
+                let mut m: Vec<MapFeature> = request.processed_data.iter().cloned().collect();
+                matches.append(&mut m);
+            }
+
+            return format!(
+                "Features: {count}, Area: {area:?}, Selection: {selection:?}, Summery of features: {matches:?}"
+            );
         }
         format!("Features: {count}")
     }
@@ -71,20 +80,21 @@ impl Workspace {
         matches
     }
 
-    // sm   : Summarize features. ex: rq: sm {51.5,-0.09} r500
-    pub fn summarize_features(&self, point: Coord, radius: f64) -> String {
-        let features = self.nearby_point(point, radius);
-        let count = features.len();
+    // sm   : Summarize features.
+    pub fn summarize_features(&self) -> String {
         let mut tags_count = std::collections::HashMap::new();
+        let mut count = 0;
+        for request in self.get_requests() {
+            count += request.processed_data.size();
 
-        for f in &features {
-            if let Some(props) = f.properties.as_object() {
-                for (k, _v) in props {
-                    *tags_count.entry(k.clone()).or_insert(0) += 1;
+            for f in request.processed_data.iter() {
+                if let Some(props) = f.properties.as_object() {
+                    for (k, _v) in props {
+                        *tags_count.entry(k.clone()).or_insert(0) += 1;
+                    }
                 }
             }
         }
-
         format!("Count: {count}, Tags Summary: {tags_count:?}")
     }
 
