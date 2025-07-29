@@ -1,3 +1,26 @@
+//! # Settings System Module
+//! 
+//! This module manages application configuration and user preferences.
+//! 
+//! ## Purpose
+//! - Stores and manages user preferences and application settings
+//! - Provides UI for configuring various application options
+//! - Handles settings persistence and loading
+//! - Manages theme and visual customization options
+//! 
+//! ## Key Components
+//! - `SettingsPlugin`: Main plugin for settings management
+//! - Settings UI components and dialogs
+//! - Configuration persistence systems
+//! - Theme and visual customization
+//! 
+//! ## Features
+//! - User preference management
+//! - Theme and color scheme customization
+//! - Performance and rendering settings
+//! - API configuration and credentials
+//! - Import/export of settings
+
 use bevy::prelude::*;
 #[allow(unused_imports)]
 use bevy_egui::{

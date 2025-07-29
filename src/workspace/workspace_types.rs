@@ -7,18 +7,23 @@ use rstar::{AABB, RTree, RTreeObject};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::geojson::{MapFeature, get_data_from_string_osm};
+use crate::{
+    geojson::{MapFeature, get_data_from_string_osm},
+    llm::Message,
+    workspace::ui::chat_box_ui,
+};
 
 use super::{
     Workspace, WorkspaceData, WorkspacePlugin, WorkspaceRequest,
     renderer::render_workspace_requests,
-    ui::{PersistentInfoWindows, item_info, workspace_actions_ui, workspace_analysis_ui},
+    ui::{ChatState, PersistentInfoWindows, item_info, workspace_actions_ui},
     worker::{cleanup_tasks, process_requests},
 };
 
 impl Plugin for WorkspacePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Workspace::default())
+            .insert_resource(ChatState::default())
             .add_systems(FixedUpdate, (process_requests, cleanup_tasks))
             .add_systems(Update, render_workspace_requests)
             .insert_resource(PersistentInfoWindows::default())
@@ -26,7 +31,7 @@ impl Plugin for WorkspacePlugin {
                 Update,
                 ((
                     workspace_actions_ui.after(EguiPreUpdateSet::InitContexts),
-                    workspace_analysis_ui.after(EguiPreUpdateSet::InitContexts),
+                    chat_box_ui.after(EguiPreUpdateSet::InitContexts),
                     item_info.after(EguiPreUpdateSet::InitContexts),
                 ),),
             );
@@ -66,6 +71,18 @@ impl Workspace {
         rendered_requests
     }
 
+    pub fn get_requests(&self) -> Vec<WorkspaceRequest> {
+        let loaded_requests = self.loaded_requests.lock().unwrap();
+        let mut rendered_requests = Vec::new();
+        if let Some(workspace) = &self.workspace {
+            for j in workspace.get_requests().iter() {
+                if let Some(request) = loaded_requests.get(j) {
+                    rendered_requests.push(request.clone());
+                }
+            }
+        }
+        rendered_requests
+    }
     pub fn get_rendered_requests(&self) -> Vec<WorkspaceRequest> {
         let loaded_requests = self.loaded_requests.lock().unwrap();
         let mut rendered_requests = Vec::new();
@@ -82,6 +99,21 @@ impl Workspace {
             }
         }
         rendered_requests
+    }
+}
+
+impl WorkspaceData {
+    pub fn add_message(&mut self, role: &str, content: &str) {
+        self.messages.push(Message {
+            role: role.to_string(),
+            content: content.to_string(),
+            refusal: serde_json::Value::Null,
+            reasoning: serde_json::Value::Null,
+        });
+    }
+
+    pub fn clear_history(&mut self) {
+        self.messages.clear();
     }
 }
 
@@ -142,21 +174,21 @@ impl WorkspaceData {
                         .distance(&Coord::new(start.lat, end.long));
                     return (top.0 * left.0, left.1);
                 }
-                return (0.0, bevy_map_viewer::DistanceType::Km);
+                (0.0, bevy_map_viewer::DistanceType::Km)
             }
             SelectionType::CIRCLE => {
                 if let (Some(center), Some(edge)) = (self.selection.start, self.selection.end) {
                     let radius = center.distance(&edge);
                     return (std::f32::consts::PI * radius.0 * radius.0, radius.1);
                 }
-                return (0.0, bevy_map_viewer::DistanceType::Km);
+                (0.0, bevy_map_viewer::DistanceType::Km)
             }
             SelectionType::POLYGON => {
                 if let Some(_points) = &self.selection.points {
                     return (0.0, bevy_map_viewer::DistanceType::Km);
                     // TODO: Implement polygon area calculation
                 }
-                return (0.0, bevy_map_viewer::DistanceType::Km);
+                (0.0, bevy_map_viewer::DistanceType::Km)
             }
             _ => (0.0, bevy_map_viewer::DistanceType::Km),
         }
@@ -165,7 +197,7 @@ impl WorkspaceData {
 
 impl WorkspaceRequest {
     pub fn get_visible(&self) -> bool {
-        self.visible.clone()
+        self.visible
     }
     pub fn get_id(&self) -> String {
         self.id.clone()
@@ -191,6 +223,7 @@ impl WorkspaceRequest {
                 }
             }
             crate::workspace::RequestType::OpenMeteoRequest(_) => {}
+            crate::workspace::RequestType::OpenRouterRequest() => {}
         }
     }
 
@@ -223,6 +256,7 @@ pub enum RequestType {
     // If we want to add more requests we can just add them here.
     OpenMeteoRequest(OpenMeteoRequest),
     OverpassTurboRequest(String),
+    OpenRouterRequest(),
 }
 
 impl std::fmt::Debug for RequestType {
@@ -230,6 +264,7 @@ impl std::fmt::Debug for RequestType {
         match self {
             RequestType::OpenMeteoRequest(_) => write!(f, "OpenMeteoRequest"),
             RequestType::OverpassTurboRequest(_) => write!(f, "OverpassTurboRequest"),
+            RequestType::OpenRouterRequest() => write!(f, "OpenRouterRequest"),
         }
     }
 }
@@ -276,6 +311,19 @@ impl WorkspaceData {
             last_modified: chrono::Utc::now().timestamp(),
             requests: HashSet::new(),
             properties: HashMap::new(),
+            messages: Vec::new(),
+        }
+    }
+    pub fn empty() -> Self {
+        Self {
+            id: Uuid::new_v4().to_string(),
+            name: "Empty".to_string(),
+            selection: Selection::empty(),
+            creation_date: chrono::Utc::now().timestamp(),
+            last_modified: chrono::Utc::now().timestamp(),
+            requests: HashSet::new(),
+            properties: HashMap::new(),
+            messages: Vec::new(),
         }
     }
 }
@@ -390,6 +438,15 @@ impl Selection {
             start: None,
             end: None,
             points: Some(vec![start]),
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            selection_type: SelectionType::NONE,
+            start: None,
+            end: None,
+            points: None,
         }
     }
 }

@@ -1,3 +1,29 @@
+//! # Map-RS Main Application
+//! 
+//! This is the entry point for the Map-RS interactive map viewer application.
+//! 
+//! ## Purpose
+//! - Initializes the Bevy application with all necessary plugins
+//! - Configures window settings and renderer options  
+//! - Sets up the main game loop and system scheduling
+//! - Manages input absorption for UI interactions
+//! 
+//! ## Architecture
+//! The application uses a modular plugin system where each major feature
+//! is implemented as a separate Bevy plugin:
+//! - WorkspacePlugin: Core workspace and data management
+//! - CameraSystemPlugin: Map navigation and camera controls
+//! - InteractionSystemPlugin: User input handling
+//! - RenderPlugin: GeoJSON and geographic data rendering
+//! - SettingsPlugin: Application configuration
+//! - ToolsPlugin: Interactive map tools
+//! - DebugPlugin: Development and debugging utilities
+//! 
+//! ## Key Systems
+//! - `absorb_egui_inputs`: Prevents game input when UI is active
+//! - Plugin initialization and dependency management
+//! - Window and renderer configuration
+
 use bevy::{
     prelude::*,
     winit::{UpdateMode, WinitSettings},
@@ -18,6 +44,7 @@ pub mod camera;
 pub mod debug;
 pub mod geojson;
 pub mod interaction;
+pub mod llm;
 pub mod overpass;
 pub mod settings;
 pub mod tools;

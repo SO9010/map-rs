@@ -1,3 +1,25 @@
+//! # Camera System Module
+//! 
+//! This module handles all camera-related functionality for the map viewer.
+//! 
+//! ## Purpose
+//! - Manages 2D camera movement and navigation across the map
+//! - Provides zoom controls and viewport management
+//! - Implements custom shader effects for visual enhancements
+//! - Handles camera-to-world coordinate transformations
+//! 
+//! ## Key Components
+//! - `CameraSystemPlugin`: Main plugin for camera functionality
+//! - `OldMonitorSettings`: Custom shader settings for visual effects
+//! - Camera movement and zoom systems
+//! - Coordinate transformation utilities
+//! 
+//! ## Features
+//! - Smooth camera movement and zoom
+//! - Custom post-processing effects via shaders
+//! - Map coordinate system integration
+//! - Viewport-based rendering optimizations
+
 use bevy::{
     core_pipeline::core_2d::graph::{Core2d, Node2d},
     core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state,
@@ -24,7 +46,6 @@ use bevy_map_viewer::{Coord, MapViewerMarker, MapViewerPlugin, TileMapResources}
 use bevy_pancam::{DirectionKeys, PanCam, PanCamPlugin};
 
 use bevy_map_viewer::EguiBlockInputState;
-use directories::UserDirs;
 use platform_dirs::AppDirs;
 
 const SHADER_ASSET_PATH: &str = "shaders/full_screen_pass.wgsl";
