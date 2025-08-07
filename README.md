@@ -27,10 +27,6 @@ For this simply ask what you want the llm to in the chat box on the right. Do no
 - Select an area using **circle** or **polygon** tools.  
 - Center the selection on the screen for easy analysis.  
 
-### **📌 Layer Management**  
-- Add, remove, and reorder layers (vector, raster, and real-time data).  
-- Fetch OpenStreetMap data dynamically using **Overpass Turbo**.  
-
 ### **🤖 AI-Powered Analysis**
 - Interactive chat interface for geospatial queries
 - Natural language commands for spatial analysis (population dencity, suitabilty of new houses, etc.)
@@ -40,13 +36,6 @@ For this simply ask what you want the llm to in the chat box on the right. Do no
 ### **🛠️ Workspace & Project Management**
 - Save and load workspaces with selected areas and layers.  
 - Persistent workspace state and configuration.
-- Request history and data caching.
-
-### **📊 Geospatial Analysis**
-- Query building and road data based on custom filters.  
-- Measure areas, distances, and proximity between features.  
-- Feature counting and spatial statistics.
-- Bounding box and polygon-based queries.
 
 ---
 
