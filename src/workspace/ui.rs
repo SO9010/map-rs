@@ -168,7 +168,7 @@ pub fn workspace_actions_ui(
                                                     workspace_res.worker.queue_request(request);
                                                     tools.selection_areas.respawn = true;
                                                 }
-
+                                                let _ = workspace_res.save_workspace();
                                                 tools.selection_areas.respawn = true;
                                                 zoom_event.write(ZoomChangedEvent);
                                             }

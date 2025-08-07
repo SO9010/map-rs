@@ -62,6 +62,8 @@ pub struct Workspace {
     pub workspace: Option<WorkspaceData>,
     // (id, request)
     pub loaded_requests: Arc<Mutex<HashMap<String, WorkspaceRequest>>>,
+    // This is highly inneficient, but it works for now.. We should have it so it only loads the id (which is the file name) and then loads the data when needed.
+    pub loaded_workspace: HashMap<String, WorkspaceData>,
     pub worker: WorkspaceWorker,
 
     // Request Clients:
@@ -76,6 +78,7 @@ impl Default for Workspace {
             workspace: None,
             loaded_requests: Arc::new(Mutex::new(HashMap::new())),
             worker: WorkspaceWorker::new(4),
+            loaded_workspace: HashMap::new(),
             overpass_agent: OverpassClient::new("https://overpass-api.de/api/interpreter"),
             llm_agent: OpenrouterClient::new("https://openrouter.ai/api/v1/chat/completions", None),
         }

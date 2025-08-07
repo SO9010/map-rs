@@ -1,3 +1,4 @@
+use crate::tools::ToolResources;
 use crate::workspace::ui::{ChatMessage, ChatState};
 use crate::workspace::{RequestType, WorkspaceRequest};
 use bevy::prelude::*;
@@ -30,6 +31,13 @@ impl WorkspaceWorker {
     pub fn queue_request(&self, request: WorkspaceRequest) {
         let mut pending = self.pending_requests.lock().unwrap();
         pending.push(request);
+    }
+}
+
+pub fn load_workspaces(mut workspace: ResMut<Workspace>, mut tools: ResMut<ToolResources>) {
+    let _ = workspace.load_workspace();
+    for (_, data) in workspace.loaded_workspace.clone().into_iter() {
+        tools.selection_areas.areas.insert(data);
     }
 }
 
@@ -97,14 +105,15 @@ pub fn process_requests(
                 }
 
                 request.raw_data = result.clone();
-
                 // Acquire the lock only when needed within the async block
                 let mut loaded_requests_guard = loaded_requests.lock().unwrap();
                 loaded_requests_guard.insert(request.get_id(), request.clone());
                 drop(loaded_requests_guard); // Explicitly drop the guard
 
                 let _serded = serde_json::to_string(&request).unwrap();
-                // Save to folder.
+                // Save requests after processing is complete
+                let _ = workspace_clone.save_requests();
+
                 let mut active = active_tasks_clone.lock().unwrap();
                 *active -= 1;
             });

@@ -2,3 +2,5 @@
 /.vscode
 /cache
 .idea/
+RQ_*
+WS_*

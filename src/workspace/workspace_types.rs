@@ -1,16 +1,21 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    fs::read_dir,
+};
 
 use bevy::prelude::*;
 use bevy_egui::EguiPreUpdateSet;
 use bevy_map_viewer::{Coord, TileMapResources};
 use rstar::{AABB, RTree, RTreeObject};
 use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::prelude::*;
 use uuid::Uuid;
 
 use crate::{
     geojson::{MapFeature, get_data_from_string_osm},
     llm::Message,
-    workspace::ui::chat_box_ui,
+    workspace::{ui::chat_box_ui, worker::load_workspaces},
 };
 
 use super::{
@@ -26,6 +31,7 @@ impl Plugin for WorkspacePlugin {
             .insert_resource(ChatState::default())
             .add_systems(FixedUpdate, (process_requests, cleanup_tasks))
             .add_systems(Update, render_workspace_requests)
+            .add_systems(Startup, load_workspaces)
             .insert_resource(PersistentInfoWindows::default())
             .add_systems(
                 Update,
@@ -35,6 +41,75 @@ impl Plugin for WorkspacePlugin {
                     item_info.after(EguiPreUpdateSet::InitContexts),
                 ),),
             );
+    }
+}
+
+// This will handle the saving and loading of workspace data.
+impl Workspace {
+    pub fn save_requests(&self) -> Result<(), std::io::Error> {
+        for (_, request) in self.loaded_requests.lock().unwrap().iter() {
+            if request.get_processed_data().size() != 0 {
+                if !std::path::Path::new(&format!("{}.json", request.get_id())).exists() {
+                    info!("Saving request: {}", request.get_id());
+                    let mut file = File::create(format!("RQ_{}.json", request.get_id()))?;
+                    file.write_all(serde_json::to_string(&request)?.as_bytes())?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn save_workspace(&self) -> Result<(), std::io::Error> {
+        let workspace_data = self.workspace.clone().unwrap_or_default();
+        let serialized_data = serde_json::to_string(&workspace_data)?;
+        let mut file = File::create(format!("WS_{}.json", workspace_data.get_id()))?;
+        file.write_all(serialized_data.as_bytes())?;
+        Ok(())
+    }
+
+    pub fn load_workspace(&mut self) -> Result<(), std::io::Error> {
+        let paths = read_dir("./").unwrap();
+        for path in paths {
+            if let Ok(path) = path {
+                if path.path().extension().is_some_and(|ext| ext == "json") {
+                    if path
+                        .path()
+                        .file_name()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .starts_with("WS_")
+                    {
+                        info!("Loading workspace: {}", path.path().display());
+                        let mut file = File::open(path.path())?;
+                        let mut contents = String::new();
+                        file.read_to_string(&mut contents)?;
+                        let workspace_data: WorkspaceData = serde_json::from_str(&contents)?;
+                        self.loaded_workspace
+                            .insert(workspace_data.get_id(), workspace_data);
+                    }
+                    if path
+                        .path()
+                        .file_name()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .starts_with("RQ_")
+                    {
+                        info!("Loading request: {}", path.path().display());
+                        let mut file = File::open(path.path())?;
+                        let mut contents = String::new();
+                        file.read_to_string(&mut contents)?;
+                        let request: WorkspaceRequest = serde_json::from_str(&contents)?;
+                        self.loaded_requests
+                            .lock()
+                            .unwrap()
+                            .insert(request.get_id(), request);
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 }
 

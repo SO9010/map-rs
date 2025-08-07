@@ -43,6 +43,7 @@ pub fn handle_selection(
     res_manager: ResMut<TileMapResources>,
     state: Res<EguiBlockInputState>,
     keys: Res<ButtonInput<KeyCode>>,
+    mut workspace: ResMut<Workspace>,
 ) {
     let (camera, camera_transform) = match camera.single() {
         Ok(result) => result,
@@ -66,12 +67,14 @@ pub fn handle_selection(
                     if let Some(selection) = tools.selection_areas.unfinished_selection.as_mut() {
                         selection.points.as_mut().unwrap().push(pos);
                         tools.selection_areas.respawn = true;
+                        let _ = workspace.save_workspace();
                     } else {
                         tools.selection_areas.unfinished_selection = Some(Selection::new_poly(
                             tools.selection_settings.tool_type.clone(),
                             pos,
                         ));
                         tools.selection_areas.respawn = true;
+                        let _ = workspace.save_workspace();
                     }
                 } else {
                     tools.selection_areas.unfinished_selection = Some(Selection::new(
@@ -80,6 +83,7 @@ pub fn handle_selection(
                         pos,
                     ));
                     tools.selection_areas.respawn = true;
+                    let _ = workspace.save_workspace();
                 }
             }
             if buttons.pressed(MouseButton::Left)
@@ -89,6 +93,7 @@ pub fn handle_selection(
                     if selection.end != Some(Coord::new(pos.lat, pos.long)) {
                         selection.end = Some(Coord::new(pos.lat, pos.long));
                         tools.selection_areas.respawn = true;
+                        let _ = workspace.load_workspace();
                     }
                 }
             }
@@ -108,10 +113,11 @@ pub fn handle_selection(
                         }
                     }
                     if let Some(selection) = tools.selection_areas.unfinished_selection.take() {
-                        let workspace = WorkspaceData::new(name.clone(), selection);
-                        let serded = serde_json::to_string(&workspace).unwrap();
+                        let workspace_data = WorkspaceData::new(name.clone(), selection);
+                        let serded = serde_json::to_string(&workspace_data).unwrap();
                         info!("Serialized workspace: {}", serded);
-                        tools.selection_areas.add(workspace);
+                        tools.selection_areas.add(workspace_data);
+                        let _ = workspace.save_workspace();
                     }
                     tools.selection_areas.respawn = true;
                 }
@@ -119,6 +125,7 @@ pub fn handle_selection(
             if buttons.pressed(MouseButton::Right) {
                 tools.selection_areas.unfinished_selection = None;
                 tools.selection_areas.respawn = true;
+                let _ = workspace.save_workspace();
             }
             if keys.just_pressed(KeyCode::Enter)
                 && tools.selection_settings.tool_type == SelectionType::POLYGON
@@ -127,6 +134,7 @@ pub fn handle_selection(
                     tools
                         .selection_areas
                         .add(WorkspaceData::new(name, selection));
+                    let _ = workspace.save_workspace();
                 }
             }
         }
